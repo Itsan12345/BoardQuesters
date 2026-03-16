@@ -12,6 +12,8 @@ import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questio
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 type DetailedFeedback = {
   question: string;
@@ -22,6 +24,7 @@ type DetailedFeedback = {
 };
 
 export default function MockExam() {
+  const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
@@ -34,7 +37,6 @@ export default function MockExam() {
 
   const startExam = async () => {
     setIsLoading(true);
-    setIsStarted(true);
     try {
       const result = await generateMockExamQuestions({
         subjectArea: "Mixed Laboratory Sciences",
@@ -42,9 +44,15 @@ export default function MockExam() {
       });
       // @ts-ignore
       setQuestions(result.questions);
+      setIsStarted(true);
       setTimeLeft(600);
-    } catch (error) {
-      console.error("Failed to fetch exam questions:", error);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "AI Quota Exceeded",
+        description: "The AI tutor is currently busy. Please wait a few seconds and try again.",
+      });
+      setIsStarted(false);
     } finally {
       setIsLoading(false);
     }
@@ -66,36 +74,42 @@ export default function MockExam() {
     setScore(finalScore);
     setIsGeneratingFeedback(true);
     
-    // In a real app, we'd capture the actual selected options. 
-    // Here we'll simulate user choices for the feedback screen
     const detailedFeedback: DetailedFeedback[] = [];
     
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      const isCorrect = Math.random() > 0.3; // Simulated
-      const simulatedAnswer = isCorrect ? q.correctAnswer : ['A', 'B', 'C', 'D'].find(l => l !== q.correctAnswer)!;
-      
-      try {
-        const feedbackResult = await provideExamFeedback({
-          question: q.question,
-          correctAnswer: q.correctAnswer,
-          userAnswer: simulatedAnswer
-        });
+    try {
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const isCorrect = Math.random() > 0.3; // Simulated for MVP
+        const simulatedAnswer = isCorrect ? q.correctAnswer : ['A', 'B', 'C', 'D'].find(l => l !== q.correctAnswer)!;
+        
+        try {
+          const feedbackResult = await provideExamFeedback({
+            question: q.question,
+            correctAnswer: q.correctAnswer,
+            userAnswer: simulatedAnswer
+          });
 
-        detailedFeedback.push({
-          question: q.question,
-          correctAnswer: q.correctAnswer,
-          userAnswer: simulatedAnswer,
-          isCorrect: simulatedAnswer === q.correctAnswer,
-          explanation: feedbackResult.explanation
-        });
-      } catch (e) {
-        console.error("Feedback error", e);
+          detailedFeedback.push({
+            question: q.question,
+            correctAnswer: q.correctAnswer,
+            userAnswer: simulatedAnswer,
+            isCorrect: simulatedAnswer === q.correctAnswer,
+            explanation: feedbackResult.explanation
+          });
+        } catch (e) {
+          detailedFeedback.push({
+            question: q.question,
+            correctAnswer: q.correctAnswer,
+            userAnswer: simulatedAnswer,
+            isCorrect: simulatedAnswer === q.correctAnswer,
+            explanation: "Feedback temporarily unavailable due to AI quota limits."
+          });
+        }
       }
+    } finally {
+      setFeedback(detailedFeedback);
+      setIsGeneratingFeedback(false);
     }
-    
-    setFeedback(detailedFeedback);
-    setIsGeneratingFeedback(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -137,8 +151,8 @@ export default function MockExam() {
             </div>
           </CardContent>
           <div className="p-12 text-center bg-muted/30">
-            <Button size="lg" onClick={startExam} className="px-12 h-14 text-lg shadow-xl hover:scale-105 transition-transform">
-              Begin Examination
+            <Button size="lg" onClick={startExam} disabled={isLoading} className="px-12 h-14 text-lg shadow-xl hover:scale-105 transition-transform">
+              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Begin Examination"}
             </Button>
             <p className="text-xs text-muted-foreground mt-4 font-medium uppercase tracking-widest">
               Syncing with BoardQuest Central Server

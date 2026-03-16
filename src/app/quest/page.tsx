@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Zap, Trophy, RefreshCw, Shield, Swords, Heart, Ghost, Skull } from 'lucide-react';
+import { ArrowLeft, Zap, Trophy, RefreshCw, Shield, Swords, Heart, Ghost, Skull, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +11,7 @@ import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questions';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const SUBJECT_ENEMIES: Record<string, { name: string; icon: any; color: string }> = {
   "Clinical Chemistry": { name: "Hyperglycemic Specter", icon: Ghost, color: "text-blue-500" },
@@ -21,6 +23,7 @@ const SUBJECT_ENEMIES: Record<string, { name: string; icon: any; color: string }
 };
 
 export default function LearningQuest() {
+  const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
@@ -44,8 +47,13 @@ export default function LearningQuest() {
       });
       // @ts-ignore
       setQuestions(result.questions);
-    } catch (error) {
-      console.error("Failed to fetch quest questions:", error);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "AI Quota Exceeded",
+        description: "Pathogens are regenerating... Please wait a few seconds before challenging them again.",
+      });
+      setQuestions([]);
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +113,7 @@ export default function LearningQuest() {
           <CardContent className="p-8 grid grid-cols-2 gap-8 divide-x">
             <div className="space-y-1">
               <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Accuracy</p>
-              <h3 className="text-4xl font-bold font-headline text-primary">{Math.round((score / questions.length) * 100)}%</h3>
+              <h3 className="text-4xl font-bold font-headline text-primary">{Math.round((score / (questions.length || 1)) * 100)}%</h3>
               <p className="text-xs font-medium text-muted-foreground">{score} / {questions.length} Hits</p>
             </div>
             <div className="space-y-1">
@@ -165,7 +173,7 @@ export default function LearningQuest() {
         )}
 
         {/* RPG Battle Scene */}
-        {!isLoading && (
+        {!isLoading && questions.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4">
             {/* Player Side */}
             <div className={cn(
@@ -212,12 +220,26 @@ export default function LearningQuest() {
           </div>
         )}
 
-        <QuizInterface 
-          questions={questions} 
-          onFinish={handleFinish} 
-          onAnswer={handleAnswer}
-          isLoading={isLoading} 
-        />
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <p className="text-muted-foreground font-medium animate-pulse">Summoning AI questions for your quest...</p>
+          </div>
+        ) : questions.length === 0 ? (
+          <div className="text-center py-20 space-y-4">
+            <p className="text-muted-foreground">The pathogens are currently shielding. Try again in a moment.</p>
+            <Button onClick={() => fetchQuestions(selectedSubject)} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" /> Retry Summoning
+            </Button>
+          </div>
+        ) : (
+          <QuizInterface 
+            questions={questions} 
+            onFinish={handleFinish} 
+            onAnswer={handleAnswer}
+            isLoading={false} 
+          />
+        )}
       </main>
     </div>
   );
