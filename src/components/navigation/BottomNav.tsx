@@ -1,0 +1,48 @@
+"use client";
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, BookOpen, Trophy, Send, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export function BottomNav() {
+  const pathname = usePathname();
+
+  const navItems = [
+    { name: 'Home', icon: Home, href: '/' },
+    { name: 'Study', icon: BookOpen, href: '/study' },
+    { name: 'Ranks', icon: Trophy, href: '/ranks' },
+    { name: 'Quest', icon: Send, href: '/quest' },
+    { name: 'Profile', icon: User, href: '/profile' },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t flex items-center justify-around px-2 z-50">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        const Icon = item.icon;
+        
+        return (
+          <Link 
+            key={item.name} 
+            href={item.href} 
+            className="flex flex-col items-center gap-1 group"
+          >
+            <div className={cn(
+              "p-2 rounded-xl transition-colors",
+              isActive ? "bg-primary text-white" : "text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+            )}>
+              <Icon className="h-6 w-6" />
+            </div>
+            <span className={cn(
+              "text-[10px] font-bold",
+              isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+            )}>
+              {item.name}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

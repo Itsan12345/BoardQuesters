@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,6 +11,7 @@ import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questio
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { BottomNav } from '@/components/navigation/BottomNav';
 
 const SUBJECT_ENEMIES: Record<string, { name: string; icon: any; color: string }> = {
   "Clinical Chemistry": { name: "Hyperglycemic Specter", icon: Ghost, color: "text-blue-500" },
@@ -135,12 +135,13 @@ export default function LearningQuest() {
             </Button>
           </Link>
         </div>
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <nav className="border-b bg-white/50 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2 font-medium">
@@ -241,6 +242,7 @@ export default function LearningQuest() {
           />
         )}
       </main>
+      <BottomNav />
     </div>
   );
 }

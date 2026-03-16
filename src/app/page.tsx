@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { BottomNav } from '@/components/navigation/BottomNav';
 
 // Mock user data representing a 4th-year MedTech student
 const mockUser = {
@@ -71,12 +72,7 @@ export default function Dashboard() {
               <Progress value={mockUser.progress} className="h-2.5 bg-secondary" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-12 bg-muted/50 rounded-xl" />
-              <div className="h-12 bg-muted/50 rounded-xl" />
-            </div>
-
-            <Link href="/quest" className="block">
+            <Link href="/study" className="block">
               <Button className="w-full h-12 bg-accent hover:bg-accent/90 rounded-xl font-bold">
                 Continue: {mockUser.currentTopic}
               </Button>
@@ -108,46 +104,11 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <div className="p-4 bg-muted/10">
-              <div className="h-1.5 bg-primary/20 rounded-full w-full" />
-            </div>
           </CardContent>
         </Card>
       </section>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t flex items-center justify-around px-2 z-50">
-        <Link href="/" className="flex flex-col items-center gap-1 group">
-          <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary transition-colors">
-            <Home className="h-6 w-6 text-primary group-hover:text-white" />
-          </div>
-          <span className="text-[10px] font-bold text-primary">Home</span>
-        </Link>
-        <Link href="/quest" className="flex flex-col items-center gap-1 group">
-          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
-            <BookOpen className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-          </div>
-          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Study</span>
-        </Link>
-        <Link href="/" className="flex flex-col items-center gap-1 group">
-          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
-            <Trophy className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-          </div>
-          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Ranks</span>
-        </Link>
-        <Link href="/quest" className="flex flex-col items-center gap-1 group">
-          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
-            <Send className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-          </div>
-          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Quest</span>
-        </Link>
-        <Link href="/" className="flex flex-col items-center gap-1 group">
-          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
-            <User className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-          </div>
-          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Profile</span>
-        </Link>
-      </nav>
+      <BottomNav />
     </div>
   );
 }
