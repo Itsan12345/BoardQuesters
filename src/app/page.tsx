@@ -1,219 +1,153 @@
-
 import Link from 'next/link';
 import { 
-  Trophy, 
-  Flame, 
-  Star, 
   Zap, 
-  BookOpen, 
-  ShieldCheck,
   ChevronRight,
-  TrendingUp,
-  Award
+  User,
+  BookOpen,
+  Trophy,
+  Send,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { SubjectProgress } from '@/components/dashboard/SubjectProgress';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { 
-  XP_PER_QUESTION, 
-  calculateLevel, 
-  progressToNextLevel, 
-  xpForNextLevel,
-  SUBJECT_AREAS 
-} from '@/lib/game-logic';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Mock user data representing a 4th-year MedTech student
 const mockUser = {
   name: "Alex Rivera",
   xp: 12450,
   streak: 12,
-  rank: 42,
-  totalQuests: 158,
-  subjects: {
-    "Clinical Chemistry": 78,
-    "Hematology": 85,
-    "Microbiology": 62,
-    "Immunohematology": 91,
-    "Clinical Microscopy": 88,
-    "Histopathology & MT Laws": 55
-  }
+  course: "MedTech Board Mastery",
+  currentTopic: "Clinical Chemistry: Carbohydrates",
+  progress: 67,
+  completedModules: 20,
+  totalModules: 30
 };
 
 const leaderboard = [
-  { name: "Sofia M.", xp: 15200, level: 14 },
-  { name: "John D.", xp: 14800, level: 13 },
-  { name: "Elena K.", xp: 13900, level: 12 },
-  { name: "Alex R.", xp: 12450, level: 12, isUser: true },
-  { name: "Mark T.", xp: 11200, level: 11 },
+  { name: "Cong Mercado Stefan", xp: "3,500 XP This Week", initial: "C" },
+  { name: "Ryan Go", xp: "2,500 XP This Week", initial: "R" },
+  { name: "Kevin Yap Gomez", xp: "2,100 XP This Week", initial: "K" },
 ];
 
 export default function Dashboard() {
-  const currentLevel = calculateLevel(mockUser.xp);
-  const nextLevelXp = xpForNextLevel(currentLevel);
-  const progressPercent = progressToNextLevel(mockUser.xp);
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-2">
-            BoardQuest
+    <div className="min-h-screen bg-[#f3f3f3] pb-24">
+      {/* Hero Section */}
+      <section className="px-6 pt-12 pb-8 space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-extrabold font-headline leading-tight tracking-tight">
+            Master Your Boards,<br />
+            <span className="text-primary">Level Up Your Knowledge</span>
           </h1>
-          <p className="text-muted-foreground font-medium mt-1">Welcome back, {mockUser.name}! Your exam is in 45 days.</p>
         </div>
-        <div className="flex gap-4">
-          <Link href="/quest">
-            <Button size="lg" className="bg-accent hover:bg-accent/90 shadow-lg group">
-              <Zap className="mr-2 h-5 w-5 fill-white group-hover:scale-110 transition-transform" />
-              Daily Quest
-            </Button>
-          </Link>
-          <Link href="/exam">
-            <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10 shadow-sm">
-              <ShieldCheck className="mr-2 h-5 w-5" />
-              Mock Exam
-            </Button>
-          </Link>
+
+        <Link href="/quest" className="block">
+          <Button size="lg" className="w-full sm:w-auto h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+            Start Quest <Zap className="h-5 w-5 fill-white" />
+          </Button>
+        </Link>
+
+        <div className="pt-4">
+          <h2 className="text-2xl font-bold font-headline">Your Study Dashboard</h2>
+          <p className="text-sm text-muted-foreground font-medium">Real-time tracking of your journey to professional certification</p>
         </div>
-      </header>
+      </section>
 
-      {/* Gamification Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="col-span-1 md:col-span-2 overflow-hidden border-none shadow-md bg-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <p className="text-sm text-muted-foreground font-semibold uppercase tracking-widest">Global Ranking</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <h2 className="text-4xl font-bold font-headline">Level {currentLevel}</h2>
-                  <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold">
-                    Master Class
-                  </div>
-                </div>
-              </div>
-              <Award className="w-10 h-10 text-primary opacity-20" />
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm font-medium">
-                <span>{mockUser.xp.toLocaleString()} XP</span>
-                <span className="text-muted-foreground">{nextLevelXp.toLocaleString()} XP for Level {currentLevel + 1}</span>
-              </div>
-              <Progress value={progressPercent} className="h-3" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <StatCard 
-          label="Study Streak" 
-          value={`${mockUser.streak} Days`} 
-          icon={Flame} 
-          colorClass="bg-orange-500" 
-        />
-        <StatCard 
-          label="Peer Rank" 
-          value={`#${mockUser.rank}`} 
-          icon={Trophy} 
-          colorClass="bg-amber-500" 
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Proficiency Area */}
-        <Card className="lg:col-span-2 border-none shadow-md bg-white">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <CardTitle className="font-headline text-xl">Subject Mastery</CardTitle>
-            </div>
-            <CardDescription>Performance across major laboratory science areas.</CardDescription>
+      {/* Course Card */}
+      <section className="px-4 mb-6">
+        <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+          <CardHeader className="pb-2">
+            <p className="text-xs font-black text-primary uppercase tracking-widest">Current Course</p>
+            <CardTitle className="text-xl font-bold">{mockUser.course}</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pb-8">
-            {Object.entries(mockUser.subjects).map(([subject, proficiency]) => (
-              <SubjectProgress key={subject} subject={subject} proficiency={proficiency} />
-            ))}
-          </CardContent>
-          <CardFooter className="bg-muted/50 p-4 justify-center">
-            <Link href="/quest" className="text-sm font-medium text-primary hover:underline flex items-center">
-              Strengthen weak areas in Learning Quest <ChevronRight className="w-4 h-4 ml-1" />
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-end">
+                <span className="text-4xl font-black text-primary">{mockUser.progress}%</span>
+                <span className="text-xs font-bold text-muted-foreground">{mockUser.completedModules}/{mockUser.totalModules} Modules Completed</span>
+              </div>
+              <Progress value={mockUser.progress} className="h-2.5 bg-secondary" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-12 bg-muted/50 rounded-xl" />
+              <div className="h-12 bg-muted/50 rounded-xl" />
+            </div>
+
+            <Link href="/quest" className="block">
+              <Button className="w-full h-12 bg-accent hover:bg-accent/90 rounded-xl font-bold">
+                Continue: {mockUser.currentTopic}
+              </Button>
             </Link>
-          </CardFooter>
+          </CardContent>
         </Card>
+      </section>
 
-        {/* Leaderboard Area */}
-        <Card className="border-none shadow-md bg-white">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-              <CardTitle className="font-headline text-xl">Top Aspirants</CardTitle>
-            </div>
-          </CardHeader>
+      {/* Leaderboard Section */}
+      <section className="px-4">
+        <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+          <div className="bg-white border-b py-3 text-center">
+            <span className="text-xs font-bold text-muted-foreground">Weekly Leaderboard</span>
+          </div>
           <CardContent className="p-0">
+            <div className="p-4 border-b">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Seasonal Ranking - Top 87</p>
+            </div>
             <div className="divide-y">
               {leaderboard.map((user, idx) => (
-                <div key={user.name} className={`flex items-center justify-between p-4 ${user.isUser ? 'bg-primary/5' : ''}`}>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-muted-foreground w-6">#{idx + 1}</span>
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-bold text-primary border-2 border-white shadow-sm">
-                      {user.name[0]}
-                    </div>
-                    <div>
-                      <p className={`font-bold ${user.isUser ? 'text-primary' : ''}`}>
-                        {user.name} {user.isUser && "(You)"}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-medium">Level {user.level}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold font-mono">{user.xp.toLocaleString()}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Points</p>
+                <div key={user.name} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+                  <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
+                    <AvatarFallback className="bg-primary text-white text-xl font-bold">{user.initial}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-bold text-lg">{user.name}</p>
+                    <p className="text-sm text-muted-foreground font-medium">{user.xp}</p>
                   </div>
                 </div>
               ))}
             </div>
+            <div className="p-4 bg-muted/10">
+              <div className="h-1.5 bg-primary/20 rounded-full w-full" />
+            </div>
           </CardContent>
-          <CardFooter className="justify-center p-4">
-            <Button variant="ghost" size="sm" className="text-primary font-bold">
-              View Full Leaderboard
-            </Button>
-          </CardFooter>
         </Card>
-      </div>
+      </section>
 
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-        <Card className="group hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer border-none shadow-md overflow-hidden">
-          <Link href="/quest">
-            <div className="p-6 flex items-start gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold font-headline mb-1">Learning Quest</h3>
-                <p className="text-sm text-muted-foreground">AI-assisted spaced repetition practice. Focus on retention and habit building.</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform mt-1" />
-            </div>
-          </Link>
-        </Card>
-        
-        <Card className="group hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer border-none shadow-md overflow-hidden">
-          <Link href="/exam">
-            <div className="p-6 flex items-start gap-4">
-              <div className="p-3 bg-accent/10 rounded-xl group-hover:bg-accent group-hover:text-white transition-colors">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold font-headline mb-1">Mock Examination</h3>
-                <p className="text-sm text-muted-foreground">High-stakes, timed simulation with adaptive questions. Real-time difficulty adjustment.</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform mt-1" />
-            </div>
-          </Link>
-        </Card>
-      </div>
+      {/* Mobile Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t flex items-center justify-around px-2 z-50">
+        <Link href="/" className="flex flex-col items-center gap-1 group">
+          <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary transition-colors">
+            <Home className="h-6 w-6 text-primary group-hover:text-white" />
+          </div>
+          <span className="text-[10px] font-bold text-primary">Home</span>
+        </Link>
+        <Link href="/quest" className="flex flex-col items-center gap-1 group">
+          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
+            <BookOpen className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+          </div>
+          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Study</span>
+        </Link>
+        <Link href="/" className="flex flex-col items-center gap-1 group">
+          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
+            <Trophy className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+          </div>
+          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Ranks</span>
+        </Link>
+        <Link href="/quest" className="flex flex-col items-center gap-1 group">
+          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
+            <Send className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+          </div>
+          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Quest</span>
+        </Link>
+        <Link href="/" className="flex flex-col items-center gap-1 group">
+          <div className="p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
+            <User className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+          </div>
+          <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary">Profile</span>
+        </Link>
+      </nav>
     </div>
   );
 }
