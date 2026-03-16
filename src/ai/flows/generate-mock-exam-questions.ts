@@ -66,10 +66,7 @@ const generateMockExamQuestionsPrompt = ai.definePrompt({
 
 Generate {{numberOfQuestions}} multiple-choice questions for the "{{subjectArea}}" laboratory science area. Each question must be a realistic scenario relevant to medical technology, and you must provide exactly four options (labeled A, B, C, D), the correct answer (as a letter A, B, C, or D), and a detailed explanation for why that answer is correct and why other options are incorrect.
 
-Ensure the questions are suitable for 4th-Year Medical Technology students and cover critical concepts within the specified subject area.
-
-Output the questions strictly in the following JSON format:
-{{{jsonSchema GenerateMockExamQuestionsOutputSchema}}}`,
+Ensure the questions are suitable for 4th-Year Medical Technology students and cover critical concepts within the specified subject area.`,
 });
 
 const generateMockExamQuestionsFlow = ai.defineFlow(
