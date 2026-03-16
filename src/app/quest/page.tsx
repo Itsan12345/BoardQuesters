@@ -1,67 +1,48 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Zap, Trophy, RefreshCw, Shield, Swords, Heart, Ghost, Skull, Loader2 } from 'lucide-react';
+import { ArrowLeft, Swords, Heart, Shield, Ghost, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
-import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questions';
+import { QuizInterface } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
+import { STATIC_QUESTIONS } from '@/lib/static-questions';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { BottomNav } from '@/components/navigation/BottomNav';
 
-const SUBJECT_ENEMIES: Record<string, { name: string; icon: any; color: string }> = {
-  "Clinical Chemistry": { name: "Hyperglycemic Specter", icon: Ghost, color: "text-blue-500" },
-  "Hematology": { name: "Sickle-Cell Reaper", icon: Skull, color: "text-red-500" },
-  "Microbiology": { name: "Biohazard Overlord", icon: Zap, color: "text-green-500" },
-  "Immunohematology": { name: "Anti-Serum Hydra", icon: Ghost, color: "text-purple-500" },
-  "Clinical Microscopy": { name: "Crystal Golem", icon: Ghost, color: "text-yellow-500" },
-  "Histopathology & MT Laws": { name: "Legal Beholder", icon: Skull, color: "text-orange-500" }
+const SUBJECT_METADATA: Record<string, { name: string; icon: any; color: string; enemy: string }> = {
+  "Clinical Chemistry": { name: "Clinical Chemistry", icon: FlaskConical, color: "bg-blue-500", enemy: "Hyperglycemic Specter" },
+  "Hematology": { name: "Hematology", icon: Microscope, color: "bg-red-500", enemy: "Sickle-Cell Reaper" },
+  "Microbiology": { name: "Microbiology", icon: Database, color: "bg-green-500", enemy: "Biohazard Overlord" },
+  "Immunohematology": { name: "Immunohematology", icon: Stethoscope, color: "bg-purple-500", enemy: "Anti-Serum Hydra" },
+  "Clinical Microscopy": { name: "Clinical Microscopy", icon: FlaskConical, color: "bg-yellow-500", enemy: "Crystal Golem" },
+  "Histopathology & MT Laws": { name: "MT Laws & Histopath", icon: ShieldAlert, color: "bg-orange-500", enemy: "Legal Beholder" }
 };
 
 export default function LearningQuest() {
-  const { toast } = useToast();
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // RPG States
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isAnimating, setIsAnimating] = useState<"player" | "enemy" | null>(null);
 
-  const fetchQuestions = async (subject: string) => {
-    setIsLoading(true);
-    setIsFinished(false);
+  const startQuest = () => {
+    const subjectQuestions = STATIC_QUESTIONS[selectedSubject] || [];
+    setQuestions(subjectQuestions);
     setPlayerHealth(100);
     setEnemyHealth(100);
-    try {
-      const result = await generateMockExamQuestions({
-        subjectArea: subject,
-        numberOfQuestions: 5
-      });
-      // @ts-ignore
-      setQuestions(result.questions);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "AI Quota Exceeded",
-        description: "Pathogens are regenerating... Please wait a few seconds before challenging them again.",
-      });
-      setQuestions([]);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsStarted(true);
+    setIsFinished(false);
   };
-
-  useEffect(() => {
-    fetchQuestions(selectedSubject);
-  }, [selectedSubject]);
 
   const handleAnswer = (isCorrect: boolean) => {
     const damage = 100 / (questions.length || 5);
@@ -72,7 +53,7 @@ export default function LearningQuest() {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.max(0, prev - damage));
     }
-    setTimeout(() => setIsAnimating(null), 1000);
+    setTimeout(() => setIsAnimating(null), 500);
   };
 
   const handleFinish = (finalScore: number) => {
@@ -80,168 +61,188 @@ export default function LearningQuest() {
     setIsFinished(true);
   };
 
-  const enemyInfo = SUBJECT_ENEMIES[selectedSubject] || SUBJECT_ENEMIES["Clinical Chemistry"];
-  const EnemyIcon = enemyInfo.icon;
+  const subjectMeta = SUBJECT_METADATA[selectedSubject];
 
   if (isFinished) {
-    const totalXp = score * XP_PER_QUESTION;
-    const isVictor = enemyHealth <= 0;
-
+    const isVictor = enemyHealth <= 0 || (score > questions.length / 2);
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-8">
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-8 animate-in fade-in zoom-in duration-300">
         <div className="relative inline-block">
-          <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full scale-150 animate-pulse" />
-          {isVictor ? (
-            <Trophy className="w-24 h-24 text-amber-500 mx-auto relative drop-shadow-xl" />
-          ) : (
-            <Skull className="w-24 h-24 text-destructive mx-auto relative drop-shadow-xl" />
-          )}
+          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="relative w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
+            {isVictor ? <Swords className="w-16 h-16 text-primary" /> : <Skull className="w-16 h-16 text-muted-foreground" />}
+          </div>
         </div>
         
         <div className="space-y-2">
-          <h2 className="text-4xl font-bold font-headline">
-            {isVictor ? "Victory!" : "Defeat..."}
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            {isVictor 
-              ? `You defeated the ${enemyInfo.name} in ${selectedSubject}.` 
-              : `The ${enemyInfo.name} overwhelmed you. Keep studying!`}
-          </p>
+          <h2 className="text-4xl font-bold font-headline">{isVictor ? "Victory!" : "Defeat..."}</h2>
+          <p className="text-muted-foreground">You earned {score * XP_PER_QUESTION} XP towards your license.</p>
         </div>
 
-        <Card className="border-none shadow-xl bg-white">
-          <CardContent className="p-8 grid grid-cols-2 gap-8 divide-x">
-            <div className="space-y-1">
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Accuracy</p>
-              <h3 className="text-4xl font-bold font-headline text-primary">{Math.round((score / (questions.length || 1)) * 100)}%</h3>
-              <p className="text-xs font-medium text-muted-foreground">{score} / {questions.length} Hits</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Gained</p>
-              <h3 className="text-4xl font-bold font-headline text-accent">+{isVictor ? totalXp : Math.floor(totalXp/2)} XP</h3>
-              <p className="text-xs font-medium text-muted-foreground">Streak: 12 Days</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" onClick={() => fetchQuestions(selectedSubject)} className="bg-primary hover:bg-primary/90">
-            <RefreshCw className="mr-2 w-5 h-5" />
-            Re-enter Battle
-          </Button>
-          <Link href="/">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto">
-              Retreat to Dashboard
-            </Button>
-          </Link>
+        <div className="flex flex-col gap-3">
+          <Button size="lg" onClick={() => setIsStarted(false)} className="h-14 rounded-2xl text-lg font-bold">Try Another Subject</Button>
+          <Link href="/"><Button variant="ghost" className="font-bold">Back to Dashboard</Button></Link>
         </div>
         <BottomNav />
       </div>
     );
   }
 
+  if (isStarted) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Battle Header */}
+        <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
+          <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full">
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-primary font-black font-headline text-lg uppercase leading-none">{selectedSubject}</h1>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+              Quest Session
+            </p>
+          </div>
+          <div className="w-10" />
+        </header>
+
+        <main className="flex-1 flex flex-col">
+          {/* RPG Battle Arena */}
+          <div className="relative h-[30vh] bg-gradient-to-b from-blue-100 to-green-50 overflow-hidden border-b">
+            {/* Grid Pattern Background */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+            
+            {/* Platforms */}
+            <div className="absolute bottom-8 right-12 w-48 h-12 bg-black/10 rounded-[100%] scale-y-50 blur-sm" />
+            <div className="absolute bottom-12 left-12 w-40 h-10 bg-black/10 rounded-[100%] scale-y-50 blur-sm" />
+
+            {/* Enemy Side (Top-Right) */}
+            <div className={cn(
+              "absolute top-8 right-8 transition-all duration-300",
+              isAnimating === "enemy" && "animate-shake scale-110"
+            )}>
+              <div className="bg-white/90 backdrop-blur-sm border-2 border-black p-2 rounded-lg shadow-md mb-2 min-w-[140px]">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold uppercase">{subjectMeta.enemy}</span>
+                  <span className="text-[8px] bg-black text-white px-1 rounded font-mono">Lv.70</span>
+                </div>
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-black/20">
+                  <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <div className="w-24 h-24 flex items-center justify-center">
+                   <subjectMeta.icon className="w-16 h-16 text-primary drop-shadow-lg" />
+                </div>
+              </div>
+            </div>
+
+            {/* Player Side (Bottom-Left) */}
+            <div className={cn(
+              "absolute bottom-4 left-8 transition-all duration-300",
+              isAnimating === "player" && "animate-shake scale-110"
+            )}>
+              <div className="w-20 h-20 mb-2 flex items-center justify-center">
+                 <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+                   <Shield className="w-8 h-8 text-white" />
+                 </div>
+              </div>
+              <div className="bg-white/90 backdrop-blur-sm border-2 border-black p-2 rounded-lg shadow-md min-w-[140px]">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold uppercase">Aspirant Alex</span>
+                  <span className="text-[8px] bg-primary text-white px-1 rounded font-mono">Lv.24</span>
+                </div>
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-black/20">
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${playerHealth}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Question Interface */}
+          <div className="flex-1 bg-white">
+             <QuizInterface 
+               questions={questions} 
+               onFinish={handleFinish} 
+               onAnswer={handleAnswer}
+               isLoading={false} 
+             />
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <nav className="border-b bg-white/50 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2 font-medium">
-            <ArrowLeft className="w-5 h-5" />
-            Dashboard
-          </Link>
-          <div className="flex items-center gap-2">
-            <Swords className="w-5 h-5 text-accent" />
-            <span className="font-bold font-headline text-lg">Battle Quest</span>
-          </div>
-          <div className="w-24" />
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#f3f3f3] flex flex-col">
+      <header className="px-6 pt-12 pb-6 space-y-2">
+        <h1 className="text-3xl font-extrabold font-headline leading-tight tracking-tight">
+          Select Your<br />
+          <span className="text-primary">Quest Region</span>
+        </h1>
+        <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">Master each laboratory science</p>
+      </header>
 
-      <main className="container mx-auto max-w-5xl py-8 space-y-8">
-        {!isLoading && (
-          <div className="flex flex-wrap gap-2 mb-4 justify-center">
-            {SUBJECT_AREAS.map((subject) => (
-              <Button 
+      {/* Floating Regions Horizontal Selector */}
+      <div className="flex-1 flex flex-col justify-center overflow-hidden py-12">
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto gap-6 px-12 no-scrollbar snap-x snap-mandatory"
+        >
+          {SUBJECT_AREAS.map((subject) => {
+            const meta = SUBJECT_METADATA[subject];
+            const isSelected = selectedSubject === subject;
+            const Icon = meta.icon;
+
+            return (
+              <button
                 key={subject}
-                variant={selectedSubject === subject ? "default" : "outline"}
-                size="sm"
                 onClick={() => setSelectedSubject(subject)}
-                className="rounded-full px-4 text-[10px] font-bold uppercase tracking-wider h-8"
+                className={cn(
+                  "flex-shrink-0 snap-center transition-all duration-500 ease-out transform",
+                  isSelected ? "scale-110 w-64" : "scale-90 w-48 opacity-60 grayscale blur-[2px]"
+                )}
               >
-                {subject}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {/* RPG Battle Scene */}
-        {!isLoading && questions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4">
-            {/* Player Side */}
-            <div className={cn(
-              "flex flex-col items-center space-y-4 transition-transform duration-200",
-              isAnimating === "player" && "translate-x-4 animate-bounce"
-            )}>
-              <div className="relative">
-                <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center border-4 border-primary shadow-lg">
-                  <Shield className="w-12 h-12 text-primary" />
-                </div>
-                {isAnimating === "player" && <span className="absolute -top-4 -right-4 text-destructive font-bold text-2xl animate-ping">-HP</span>}
-              </div>
-              <div className="w-full max-w-[200px] space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase">
-                  <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-red-500 fill-red-500" /> Aspirant</span>
-                  <span>{Math.round(playerHealth)}%</span>
-                </div>
-                <Progress value={playerHealth} className="h-3 bg-red-100" />
-              </div>
-            </div>
-
-            {/* Enemy Side */}
-            <div className={cn(
-              "flex flex-col items-center space-y-4 transition-transform duration-200",
-              isAnimating === "enemy" && "-translate-x-4 animate-bounce"
-            )}>
-              <div className="relative">
                 <div className={cn(
-                  "w-24 h-24 bg-muted rounded-full flex items-center justify-center border-4 border-destructive shadow-lg",
-                  enemyInfo.color
+                  "aspect-[3/4] rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
+                  meta.color
                 )}>
-                  <EnemyIcon className="w-12 h-12" />
-                </div>
-                {isAnimating === "enemy" && <span className="absolute -top-4 -left-4 text-accent font-bold text-2xl animate-ping">CRIT!</span>}
-              </div>
-              <div className="w-full max-w-[200px] space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase">
-                  <span>{enemyInfo.name}</span>
-                  <span>{Math.round(enemyHealth)}%</span>
-                </div>
-                <Progress value={enemyHealth} className="h-3 bg-destructive/10" />
-              </div>
-            </div>
-          </div>
-        )}
+                  {/* Sprite Effect */}
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="mt-8">
+                    <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md shadow-inner">
+                      <Icon className="w-12 h-12" />
+                    </div>
+                  </div>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-muted-foreground font-medium animate-pulse">Summoning AI questions for your quest...</p>
-          </div>
-        ) : questions.length === 0 ? (
-          <div className="text-center py-20 space-y-4">
-            <p className="text-muted-foreground">The pathogens are currently shielding. Try again in a moment.</p>
-            <Button onClick={() => fetchQuestions(selectedSubject)} variant="outline">
-              <RefreshCw className="mr-2 h-4 w-4" /> Retry Summoning
-            </Button>
-          </div>
-        ) : (
-          <QuizInterface 
-            questions={questions} 
-            onFinish={handleFinish} 
-            onAnswer={handleAnswer}
-            isLoading={false} 
-          />
-        )}
-      </main>
+                  <div className="text-center z-10 space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Region</p>
+                    <h3 className="text-xl font-bold leading-tight font-headline">{subject}</h3>
+                  </div>
+
+                  <div className="mb-4">
+                     <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
+                       {STATIC_QUESTIONS[subject]?.length || 0} Battles
+                     </Badge>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="px-6 pb-24">
+        <Button 
+          size="lg" 
+          onClick={startQuest} 
+          className="w-full h-16 rounded-2xl bg-primary text-xl font-black shadow-xl shadow-primary/20"
+        >
+          Enter Battle Arena
+        </Button>
+      </div>
+
       <BottomNav />
     </div>
   );
