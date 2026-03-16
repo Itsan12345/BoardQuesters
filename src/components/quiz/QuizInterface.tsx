@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type Question = {
@@ -20,11 +19,12 @@ export type Question = {
 interface QuizInterfaceProps {
   questions: Question[];
   onFinish: (score: number) => void;
+  onAnswer?: (isCorrect: boolean) => void;
   isLoading: boolean;
   isMockExam?: boolean;
 }
 
-export function QuizInterface({ questions, onFinish, isLoading, isMockExam = false }: QuizInterfaceProps) {
+export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMockExam = false }: QuizInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -51,9 +51,15 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
   const handleSubmit = () => {
     if (!selectedAnswer) return;
     
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
     setIsAnswered(true);
-    if (selectedAnswer === currentQuestion.correctAnswer) {
+    if (isCorrect) {
       setScore(s => s + 1);
+    }
+    
+    // RPG Hook: Notify parent of result
+    if (onAnswer) {
+      onAnswer(isCorrect);
     }
   };
 
@@ -63,12 +69,12 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
       setSelectedAnswer(null);
       setIsAnswered(false);
     } else {
-      onFinish(score + (selectedAnswer === currentQuestion.correctAnswer ? 1 : 0));
+      onFinish(score);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex justify-between items-center px-2">
         <div className="flex gap-2 items-center">
           <Badge variant="outline" className="border-primary text-primary font-bold">
@@ -82,7 +88,7 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
           )}
         </div>
         <div className="text-sm font-medium text-muted-foreground">
-          Current Progress: {Math.round(((currentIndex) / questions.length) * 100)}%
+          Quest Progress: {Math.round(((currentIndex) / questions.length) * 100)}%
         </div>
       </div>
 
@@ -137,7 +143,7 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
           <div className="text-sm text-muted-foreground italic font-medium">
             {isAnswered && (
               <span className={selectedAnswer === currentQuestion.correctAnswer ? "text-accent" : "text-destructive"}>
-                {selectedAnswer === currentQuestion.correctAnswer ? "Correct!" : "Keep learning!"}
+                {selectedAnswer === currentQuestion.correctAnswer ? "Critical Hit!" : "The pathogen strikes back!"}
               </span>
             )}
           </div>
@@ -148,7 +154,7 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
               disabled={!selectedAnswer}
               className="px-8 shadow-md"
             >
-              Confirm Choice
+              Cast Answer
             </Button>
           ) : (
             <Button 
@@ -156,7 +162,7 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
               onClick={handleNext}
               className="px-8 shadow-md bg-accent hover:bg-accent/90"
             >
-              {currentIndex === questions.length - 1 ? "Finish Quest" : "Next Question"}
+              {currentIndex === questions.length - 1 ? "End Battle" : "Next Turn"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           )}
@@ -168,7 +174,7 @@ export function QuizInterface({ questions, onFinish, isLoading, isMockExam = fal
           <CardContent className="p-6">
             <h4 className="flex items-center gap-2 font-bold font-headline mb-2 text-primary">
               <Sparkles className="w-5 h-5" />
-              AI Insight
+              Tutor Insight
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed italic">
               {currentQuestion.explanation}
