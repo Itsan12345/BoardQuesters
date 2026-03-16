@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "medtech-lab",
+      "description": "Modern medical laboratory setting",
+      "imageUrl": "https://picsum.photos/seed/medlab1/800/400",
+      "imageHint": "medical laboratory"
+    },
+    {
+      "id": "microscope-view",
+      "description": "Microscopic view of blood cells",
+      "imageUrl": "https://picsum.photos/seed/micro1/400/400",
+      "imageHint": "microscope cells"
+    },
+    {
+      "id": "student-study",
+      "description": "Medical student studying with books and tablet",
+      "imageUrl": "https://picsum.photos/seed/study1/600/400",
+      "imageHint": "student studying"
+    }
+  ]
+}
