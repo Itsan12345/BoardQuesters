@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,6 +6,7 @@ import { ArrowLeft, Swords, Heart, Shield, Ghost, Skull, Zap, FlaskConical, Micr
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { QuizInterface } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { STATIC_QUESTIONS } from '@/lib/static-questions';
