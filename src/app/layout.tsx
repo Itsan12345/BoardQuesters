@@ -3,7 +3,6 @@ import './globals.css';
 import {Toaster} from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
-import { BottomNav } from '@/components/navigation/BottomNav';
 import { ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +25,7 @@ export default function RootLayer({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased min-h-screen bg-background pb-20 md:pb-0">
+      <body className="font-body antialiased min-h-screen bg-background">
         <SidebarProvider>
           <div className="relative flex flex-col min-h-screen w-full">
             {/* Professional Overlapping Top Navigation */}
@@ -70,7 +69,6 @@ export default function RootLayer({
               </main>
             </div>
           </div>
-          <BottomNav />
           <Toaster />
         </SidebarProvider>
       </body>
