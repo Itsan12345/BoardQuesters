@@ -25,33 +25,33 @@ import { cn } from '@/lib/utils';
 
 const navGroups = [
   {
-    label: "Overview",
+    label: "OVERVIEW",
     items: [
       { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
     ]
   },
   {
-    label: "Learning Management",
+    label: "LEARNING MANAGEMENT",
     items: [
       { name: 'Study Curriculum', icon: GraduationCap, href: '/study' },
       { name: 'Quest Arena', icon: Sword, href: '/quest' },
     ]
   },
   {
-    label: "Assessment",
+    label: "ASSESSMENT",
     items: [
       { name: 'Mock Board Exam', icon: ClipboardCheck, href: '/exam' },
     ]
   },
   {
-    label: "Analytics & Ranking",
+    label: "ANALYTICS & RANKING",
     items: [
       { name: 'Leaderboard', icon: Trophy, href: '/ranks' },
       { name: 'Performance Mastery', icon: Medal, href: '/profile' },
     ]
   },
   {
-    label: "User Settings",
+    label: "USER MANAGEMENT",
     items: [
       { name: 'My Profile', icon: User, href: '/profile' },
     ]
@@ -62,15 +62,15 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r shadow-xl bg-white">
-      <SidebarContent className="px-3 gap-0 mt-4">
+    <Sidebar collapsible="offcanvas" className="border-r bg-white shadow-none">
+      <SidebarContent className="px-3 gap-0 mt-6">
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
-            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 mb-2">
+            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground/50 mb-1">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
+              <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -82,15 +82,15 @@ export function AppSidebar() {
                         isActive={isActive}
                         tooltip={item.name}
                         className={cn(
-                          "h-11 px-4 rounded-xl transition-all duration-200",
+                          "h-10 px-4 rounded-lg transition-all duration-200",
                           isActive 
-                            ? "bg-primary/5 text-primary font-bold shadow-sm" 
-                            : "text-foreground hover:bg-muted/50"
+                            ? "bg-primary/5 text-primary font-bold" 
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
                         <Link href={item.href} className="flex items-center gap-3">
                           <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                          <span className="text-sm tracking-tight">{item.name}</span>
+                          <span className="text-sm">{item.name}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
