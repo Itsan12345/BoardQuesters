@@ -69,8 +69,6 @@ export function AppSidebar() {
     setMounted(true);
   }, []);
 
-  // Use "expanded" as default during SSR to match SidebarProvider's default and prevent hydration mismatch
-  // Once mounted, it will flip to the actual state if it was collapsed.
   const isCollapsed = mounted ? state === "collapsed" : false;
 
   return (
@@ -87,7 +85,7 @@ export function AppSidebar() {
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu className={cn("gap-1.5", isCollapsed && "gap-3")}>
+              <SidebarMenu className={cn("gap-1.5", isCollapsed && "gap-4")}>
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -101,7 +99,7 @@ export function AppSidebar() {
                         className={cn(
                           "transition-all duration-200",
                           isCollapsed 
-                            ? "!h-12 !w-12 flex items-center justify-center !p-0 mx-auto rounded-xl" 
+                            ? "!h-14 !w-14 flex items-center justify-center !p-0 mx-auto rounded-xl" 
                             : "h-10 px-4 rounded-lg",
                           isActive 
                             ? "bg-primary/10 text-primary font-bold shadow-sm" 
@@ -111,7 +109,7 @@ export function AppSidebar() {
                         <Link href={item.href} className="flex items-center gap-3">
                           <Icon className={cn(
                             "shrink-0 transition-transform", 
-                            isCollapsed ? "h-6 w-6" : "h-4 w-4",
+                            isCollapsed ? "h-7 w-7" : "h-4 w-4",
                             isActive ? "text-primary" : "text-muted-foreground"
                           )} />
                           {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}
