@@ -56,7 +56,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Analytics Cards Grid - Matching Reference Style */}
+      {/* Analytics Cards Grid */}
       <div className="px-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
           { label: "Total XP", val: "12.4k", icon: Users, detail: "Lvl 24 Aspirant" },

@@ -20,6 +20,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
 
@@ -60,16 +61,23 @@ const navGroups = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white shadow-none">
-      {/* pt-16 ensures content starts precisely below the 64px header */}
-      <SidebarContent className="px-3 gap-0 pt-16">
+      {/* SidebarContent with pt-16 to push items below the fixed header */}
+      <SidebarContent className={cn(
+        "gap-0 pt-16 transition-all duration-300",
+        isCollapsed ? "px-1" : "px-3"
+      )}>
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
-            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
-              {group.label}
-            </SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => {
@@ -86,12 +94,13 @@ export function AppSidebar() {
                           "h-10 px-4 rounded-lg transition-all duration-200",
                           isActive 
                             ? "bg-primary/5 text-primary font-bold shadow-sm" 
-                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                          isCollapsed && "justify-center px-0"
                         )}
                       >
                         <Link href={item.href} className="flex items-center gap-3">
-                          <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                          <span className="text-sm">{item.name}</span>
+                          <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                          {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
