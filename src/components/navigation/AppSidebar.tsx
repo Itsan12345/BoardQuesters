@@ -69,7 +69,7 @@ export function AppSidebar() {
     setMounted(true);
   }, []);
 
-  // Use "expanded" as default during SSR to match SidebarProvider's default
+  // Use "expanded" as default during SSR to match SidebarProvider's default and prevent hydration mismatch
   const isCollapsed = mounted ? state === "collapsed" : false;
 
   return (
@@ -86,7 +86,7 @@ export function AppSidebar() {
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
+              <SidebarMenu className="gap-1.5">
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -98,15 +98,21 @@ export function AppSidebar() {
                         isActive={isActive}
                         tooltip={item.name}
                         className={cn(
-                          "h-10 px-4 rounded-lg transition-all duration-200",
+                          "transition-all duration-200",
+                          isCollapsed 
+                            ? "!h-10 !w-10 flex items-center justify-center !p-0 mx-auto rounded-xl" 
+                            : "h-10 px-4 rounded-lg",
                           isActive 
-                            ? "bg-primary/5 text-primary font-bold shadow-sm" 
-                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                          isCollapsed && "justify-center px-0 flex items-center"
+                            ? "bg-primary/10 text-primary font-bold shadow-sm" 
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
                         <Link href={item.href} className="flex items-center gap-3">
-                          <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                          <Icon className={cn(
+                            "shrink-0 transition-transform", 
+                            isCollapsed ? "h-5 w-5" : "h-4 w-4",
+                            isActive ? "text-primary" : "text-muted-foreground"
+                          )} />
                           {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}
                         </Link>
                       </SidebarMenuButton>
