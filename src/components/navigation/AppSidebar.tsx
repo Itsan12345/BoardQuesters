@@ -9,7 +9,8 @@ import {
   Send, 
   User,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  ClipboardCheck
 } from 'lucide-react';
 import {
   Sidebar,
@@ -27,10 +28,11 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const navItems = [
-  { name: 'Home', icon: Home, href: '/' },
+  { name: 'Dashboard', icon: Home, href: '/' },
   { name: 'Study Curriculum', icon: BookOpen, href: '/study' },
-  { name: 'Leaderboard', icon: Trophy, href: '/ranks' },
   { name: 'Learning Quest', icon: Send, href: '/quest' },
+  { name: 'Mock Exam', icon: ClipboardCheck, href: '/exam' },
+  { name: 'Leaderboard', icon: Trophy, href: '/ranks' },
   { name: 'My Profile', icon: User, href: '/profile' },
 ];
 
