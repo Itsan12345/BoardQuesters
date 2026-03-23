@@ -63,10 +63,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white shadow-none">
-      <SidebarContent className="px-3 gap-0 pt-4">
+      {/* pt-16 ensures content starts precisely below the 64px header */}
+      <SidebarContent className="px-3 gap-0 pt-16">
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
-            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground/50 mb-1">
+            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -84,7 +85,7 @@ export function AppSidebar() {
                         className={cn(
                           "h-10 px-4 rounded-lg transition-all duration-200",
                           isActive 
-                            ? "bg-primary/5 text-primary font-bold" 
+                            ? "bg-primary/5 text-primary font-bold shadow-sm" 
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
