@@ -27,41 +27,43 @@ export default function RootLayer({
       </head>
       <body className="font-body antialiased min-h-screen bg-background">
         <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-              {/* Refined Top Navigation */}
-              <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6">
-                <div className="flex items-center gap-4">
-                  <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors" />
-                  <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <div className="bg-primary/10 p-1.5 rounded-lg">
-                      <ShieldCheck className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-headline font-bold text-foreground leading-none text-lg">BoardQuest</span>
-                      <div className="mt-0.5">
-                        <Badge variant="secondary" className="bg-primary/10 text-primary text-[8px] h-3.5 font-bold uppercase tracking-wider border-none px-1">
-                          Aspirant Mode
-                        </Badge>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-end text-right">
-                    <span className="text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
+          <div className="relative flex flex-col min-h-screen w-full">
+            {/* Professional Overlapping Top Navigation */}
+            <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-white/95 backdrop-blur-md px-4 md:px-6 shadow-sm">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors" />
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                  <div className="bg-primary/10 p-1.5 rounded-lg">
+                    <ShieldCheck className="h-6 w-6 text-primary" />
                   </div>
-                  <Link href="/profile">
-                    <Avatar className="h-9 w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
-                      <AvatarImage src="https://picsum.photos/seed/alex/100/100" />
-                      <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
-                    </Avatar>
-                  </Link>
+                  <div className="flex flex-col">
+                    <span className="font-headline font-bold text-foreground leading-none text-lg">BoardQuest</span>
+                    <div className="mt-0.5">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-[8px] h-3.5 font-bold uppercase tracking-wider border-none px-1">
+                        Aspirant Mode
+                      </Badge>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-end text-right hidden sm:flex">
+                  <span className="text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
                 </div>
-              </header>
+                <Link href="/profile">
+                  <Avatar className="h-9 w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
+                    <AvatarImage src="https://picsum.photos/seed/alex/100/100" />
+                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
+                  </Avatar>
+                </Link>
+              </div>
+            </header>
+
+            <div className="flex flex-1 pt-16">
+              {/* Sidebar starts below the overlapping top nav visually, but occupies full height for its scroll area */}
+              <AppSidebar />
               <main className="flex-1 overflow-y-auto">
                 {children}
               </main>
