@@ -63,7 +63,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r bg-white shadow-none">
-      <SidebarContent className="px-3 gap-0 pt-4">
+      <SidebarContent className="px-3 gap-0 pt-20">
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className="py-2">
             <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground/50 mb-1">
