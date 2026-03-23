@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BottomNav } from '@/components/navigation/BottomNav';
 
 // Mock user data representing a 4th-year MedTech student
 const mockUser = {
@@ -34,7 +33,7 @@ const leaderboard = [
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-[#f3f3f3] pb-24">
+    <div className="min-h-full pb-12">
       {/* Hero Section */}
       <section className="px-6 pt-12 pb-8 space-y-6">
         <div className="space-y-1">
@@ -107,8 +106,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </section>
-
-      <BottomNav />
     </div>
   );
 }

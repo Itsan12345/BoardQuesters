@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Swords, Heart, Shield, Ghost, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
+import { Swords, Heart, Shield, Ghost, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -11,7 +11,6 @@ import { QuizInterface } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { STATIC_QUESTIONS } from '@/lib/static-questions';
 import { cn } from '@/lib/utils';
-import { BottomNav } from '@/components/navigation/BottomNav';
 
 const SUBJECT_METADATA: Record<string, { name: string; icon: any; color: string; enemy: string }> = {
   "Clinical Chemistry": { name: "Clinical Chemistry", icon: FlaskConical, color: "bg-blue-500", enemy: "Hyperglycemic Specter" },
@@ -83,14 +82,13 @@ export default function LearningQuest() {
           <Button size="lg" onClick={() => setIsStarted(false)} className="h-14 rounded-2xl text-lg font-bold">Try Another Subject</Button>
           <Link href="/"><Button variant="ghost" className="font-bold">Back to Dashboard</Button></Link>
         </div>
-        <BottomNav />
       </div>
     );
   }
 
   if (isStarted) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-full flex flex-col">
         {/* Battle Header */}
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
           <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full">
@@ -168,13 +166,12 @@ export default function LearningQuest() {
              />
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f3f3] flex flex-col">
+    <div className="min-h-full flex flex-col pb-12">
       <header className="px-6 pt-12 pb-6 space-y-2">
         <h1 className="text-3xl font-extrabold font-headline leading-tight tracking-tight">
           Select Your<br />
@@ -233,7 +230,7 @@ export default function LearningQuest() {
         </div>
       </div>
 
-      <div className="px-6 pb-24">
+      <div className="px-6">
         <Button 
           size="lg" 
           onClick={startQuest} 
@@ -242,8 +239,6 @@ export default function LearningQuest() {
           Enter Battle Arena
         </Button>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { BottomNav } from '@/components/navigation/BottomNav';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -79,7 +78,7 @@ export default function StudyPage() {
   const [selectedCategory, setSelectedCategory] = useState(MT_CURRICULUM[0]);
 
   return (
-    <div className="min-h-screen bg-[#f3f3f3] pb-24">
+    <div className="min-h-full pb-12">
       {/* Header */}
       <header className="bg-white border-b px-6 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -198,15 +197,15 @@ export default function StudyPage() {
                 <h3 className="font-headline font-bold text-lg">Ready for a challenge?</h3>
                 <p className="text-white/80 text-sm">Test your knowledge of {selectedCategory.title} in the Battle Quest.</p>
               </div>
-              <button className="ml-auto bg-white text-primary px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-transform">
-                Go to Quest
-              </button>
+              <Link href="/quest" className="ml-auto">
+                <button className="bg-white text-primary px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-transform">
+                  Go to Quest
+                </button>
+              </Link>
             </div>
           </Card>
         </section>
       </main>
-
-      <BottomNav />
     </div>
   );
 }
