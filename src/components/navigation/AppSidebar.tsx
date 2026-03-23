@@ -70,6 +70,7 @@ export function AppSidebar() {
   }, []);
 
   // Use "expanded" as default during SSR to match SidebarProvider's default and prevent hydration mismatch
+  // Once mounted, it will flip to the actual state if it was collapsed.
   const isCollapsed = mounted ? state === "collapsed" : false;
 
   return (
@@ -79,14 +80,14 @@ export function AppSidebar() {
         isCollapsed ? "px-1" : "px-3"
       )}>
         {navGroups.map((group) => (
-          <SidebarGroup key={group.label} className="py-2">
+          <SidebarGroup key={group.label} className={cn("py-2", isCollapsed && "px-0")}>
             {!isCollapsed && (
               <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
                 {group.label}
               </SidebarGroupLabel>
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1.5">
+              <SidebarMenu className={cn("gap-1.5", isCollapsed && "gap-3")}>
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -100,7 +101,7 @@ export function AppSidebar() {
                         className={cn(
                           "transition-all duration-200",
                           isCollapsed 
-                            ? "!h-10 !w-10 flex items-center justify-center !p-0 mx-auto rounded-xl" 
+                            ? "!h-12 !w-12 flex items-center justify-center !p-0 mx-auto rounded-xl" 
                             : "h-10 px-4 rounded-lg",
                           isActive 
                             ? "bg-primary/10 text-primary font-bold shadow-sm" 
@@ -110,7 +111,7 @@ export function AppSidebar() {
                         <Link href={item.href} className="flex items-center gap-3">
                           <Icon className={cn(
                             "shrink-0 transition-transform", 
-                            isCollapsed ? "h-5 w-5" : "h-4 w-4",
+                            isCollapsed ? "h-6 w-6" : "h-4 w-4",
                             isActive ? "text-primary" : "text-muted-foreground"
                           )} />
                           {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}
