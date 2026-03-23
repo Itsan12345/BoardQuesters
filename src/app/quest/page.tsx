@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Swords, Heart, Shield, Ghost, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
+import { Swords, Shield, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { QuizInterface } from '@/components/quiz/QuizInterface';
@@ -61,6 +60,7 @@ export default function LearningQuest() {
   };
 
   const subjectMeta = SUBJECT_METADATA[selectedSubject];
+  const EnemyIcon = subjectMeta.icon;
 
   if (isFinished) {
     const isVictor = enemyHealth <= 0 || (score > questions.length / 2);
@@ -106,14 +106,9 @@ export default function LearningQuest() {
         <main className="flex-1 flex flex-col">
           {/* RPG Battle Arena */}
           <div className="relative h-[30vh] bg-gradient-to-b from-blue-100 to-green-50 overflow-hidden border-b">
-            {/* Grid Pattern Background */}
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
             
-            {/* Platforms */}
-            <div className="absolute bottom-8 right-12 w-48 h-12 bg-black/10 rounded-[100%] scale-y-50 blur-sm" />
-            <div className="absolute bottom-12 left-12 w-40 h-10 bg-black/10 rounded-[100%] scale-y-50 blur-sm" />
-
-            {/* Enemy Side (Top-Right) */}
+            {/* Enemy Side */}
             <div className={cn(
               "absolute top-8 right-8 transition-all duration-300",
               isAnimating === "enemy" && "animate-shake scale-110"
@@ -129,12 +124,12 @@ export default function LearningQuest() {
               </div>
               <div className="flex justify-end">
                 <div className="w-24 h-24 flex items-center justify-center">
-                   <subjectMeta.icon className="w-16 h-16 text-primary drop-shadow-lg" />
+                   <EnemyIcon className="w-16 h-16 text-primary drop-shadow-lg" />
                 </div>
               </div>
             </div>
 
-            {/* Player Side (Bottom-Left) */}
+            {/* Player Side */}
             <div className={cn(
               "absolute bottom-4 left-8 transition-all duration-300",
               isAnimating === "player" && "animate-shake scale-110"
@@ -156,7 +151,6 @@ export default function LearningQuest() {
             </div>
           </div>
 
-          {/* Question Interface */}
           <div className="flex-1 bg-white">
              <QuizInterface 
                questions={questions} 
@@ -180,7 +174,6 @@ export default function LearningQuest() {
         <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">Master each laboratory science</p>
       </header>
 
-      {/* Floating Regions Horizontal Selector */}
       <div className="flex-1 flex flex-col justify-center overflow-hidden py-12">
         <div 
           ref={scrollContainerRef}
@@ -204,7 +197,6 @@ export default function LearningQuest() {
                   "aspect-[3/4] rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
                   meta.color
                 )}>
-                  {/* Sprite Effect */}
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   
                   <div className="mt-8">

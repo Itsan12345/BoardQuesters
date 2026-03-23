@@ -4,15 +4,16 @@ import {Toaster} from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { ShieldCheck } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'BoardQuest | MedTech Gamified Review',
   description: 'AI-assisted gamified board review system for Medical Technology students.',
 };
 
-export default function RootLayout({
+export default function RootLayer({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -29,11 +30,11 @@ export default function RootLayout({
           <div className="flex min-h-screen w-full">
             <AppSidebar />
             <div className="flex flex-col flex-1">
-              {/* Refined Top Navigation based on reference */}
+              {/* Refined Top Navigation */}
               <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6">
                 <div className="flex items-center gap-4">
                   <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors" />
-                  <div className="flex items-center gap-3">
+                  <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <div className="bg-primary/10 p-1.5 rounded-lg">
                       <ShieldCheck className="h-6 w-6 text-primary" />
                     </div>
@@ -45,7 +46,7 @@ export default function RootLayout({
                         </Badge>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -53,9 +54,12 @@ export default function RootLayout({
                     <span className="text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
                   </div>
-                  <Avatar className="h-9 w-9 border border-border shadow-sm">
-                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
-                  </Avatar>
+                  <Link href="/profile">
+                    <Avatar className="h-9 w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
+                      <AvatarImage src="https://picsum.photos/seed/alex/100/100" />
+                      <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
+                    </Avatar>
+                  </Link>
                 </div>
               </header>
               <main className="flex-1 overflow-y-auto">
