@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { 
   User,
   Trophy, 
@@ -62,7 +63,14 @@ const navGroups = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use "expanded" as default during SSR to match SidebarProvider's default
+  const isCollapsed = mounted ? state === "collapsed" : false;
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white shadow-none">
