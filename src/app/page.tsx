@@ -39,21 +39,16 @@ export default function Dashboard() {
           <Card className="border-none shadow-xl rounded-[2rem] bg-white overflow-hidden">
             <CardContent className="p-8 md:p-10 space-y-8">
               <div className="space-y-0.5">
-                <p className="text-xl font-black text-primary uppercase tracking-tight font-headline">CURRENT COURSE</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest font-headline">CURRENT COURSE</p>
                 <h3 className="text-lg font-bold text-[#1a1a1a]">MedTech Board Mastery</h3>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-end justify-between">
                   <span className="text-5xl font-black font-headline text-primary">67<span className="text-3xl">%</span></span>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pb-2">23/30 Modules Completed</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pb-2">20/30 Modules Completed</span>
                 </div>
                 <Progress value={67} className="h-3 bg-muted rounded-full overflow-hidden" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="h-16 bg-muted/50 rounded-2xl" />
-                <div className="h-16 bg-muted/50 rounded-2xl" />
               </div>
 
               <Link href="/study" className="block">
