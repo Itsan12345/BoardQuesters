@@ -66,7 +66,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white shadow-none">
-      {/* SidebarContent with pt-16 to push items below the fixed header */}
       <SidebarContent className={cn(
         "gap-0 pt-16 transition-all duration-300",
         isCollapsed ? "px-1" : "px-3"
@@ -95,7 +94,7 @@ export function AppSidebar() {
                           isActive 
                             ? "bg-primary/5 text-primary font-bold shadow-sm" 
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                          isCollapsed && "justify-center px-0"
+                          isCollapsed && "justify-center px-0 flex items-center"
                         )}
                       >
                         <Link href={item.href} className="flex items-center gap-3">
