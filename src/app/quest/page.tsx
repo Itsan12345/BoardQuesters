@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -41,7 +40,7 @@ const SUBJECT_METADATA: Record<string, {
   "Clinical Chemistry": { 
     name: "Clinical Chemistry", 
     icon: FlaskConical, 
-    color: "bg-blue-500", 
+    color: "bg-primary", 
     enemy: "Hyperglycemic Specter",
     imageUrl: "/images/island1.png",
     difficulty: 4,
@@ -51,7 +50,7 @@ const SUBJECT_METADATA: Record<string, {
   "Hematology": { 
     name: "Hematology", 
     icon: Microscope, 
-    color: "bg-red-500", 
+    color: "bg-accent", 
     enemy: "Sickle-Cell Reaper",
     difficulty: 3,
     biome: "The Sanguine Marshes",
@@ -60,7 +59,7 @@ const SUBJECT_METADATA: Record<string, {
   "Microbiology": { 
     name: "Microbiology", 
     icon: Database, 
-    color: "bg-green-500", 
+    color: "bg-primary", 
     enemy: "Biohazard Overlord",
     difficulty: 5,
     biome: "Toxic Spore Jungles",
@@ -69,7 +68,7 @@ const SUBJECT_METADATA: Record<string, {
   "Immunohematology": { 
     name: "Immunohematology", 
     icon: Stethoscope, 
-    color: "bg-purple-500", 
+    color: "bg-accent", 
     enemy: "Anti-Serum Hydra",
     difficulty: 5,
     biome: "The Serum Sea",
@@ -78,7 +77,7 @@ const SUBJECT_METADATA: Record<string, {
   "Clinical Microscopy": { 
     name: "Clinical Microscopy", 
     icon: FlaskConical, 
-    color: "bg-yellow-500", 
+    color: "bg-primary", 
     enemy: "Crystal Golem",
     difficulty: 2,
     biome: "Amber Sediment Cliffs",
@@ -87,7 +86,7 @@ const SUBJECT_METADATA: Record<string, {
   "Histopathology & MT Laws": { 
     name: "MT Laws & Histopath", 
     icon: ShieldAlert, 
-    color: "bg-orange-500", 
+    color: "bg-accent", 
     enemy: "Legal Beholder",
     difficulty: 3,
     biome: "The Citadel of Codes",
@@ -142,20 +141,20 @@ export default function LearningQuest() {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-8 animate-in fade-in zoom-in duration-300">
         <div className="relative inline-block">
-          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+          <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-150 animate-pulse" />
           <div className="relative w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
             {isVictor ? <Swords className="w-16 h-16 text-primary" /> : <Skull className="w-16 h-16 text-muted-foreground" />}
           </div>
         </div>
         
         <div className="space-y-2">
-          <h2 className="text-4xl font-bold font-headline">{isVictor ? "Victory!" : "Defeat..."}</h2>
+          <h2 className="text-4xl font-bold font-headline text-primary">{isVictor ? "Victory!" : "Defeat..."}</h2>
           <p className="text-muted-foreground">You earned {score * XP_PER_QUESTION} XP towards your license.</p>
         </div>
 
         <div className="flex flex-col gap-3">
           <Button size="lg" onClick={() => setIsStarted(false)} className="h-14 rounded-2xl text-lg font-bold">Return to Archipelago</Button>
-          <Link href="/"><Button variant="ghost" className="font-bold">Back to Dashboard</Button></Link>
+          <Link href="/"><Button variant="ghost" className="font-bold text-primary">Back to Dashboard</Button></Link>
         </div>
       </div>
     );
@@ -167,7 +166,7 @@ export default function LearningQuest() {
         {/* Battle Header */}
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
           <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full">
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-6 w-6 text-primary" />
           </Button>
           <div className="text-center">
             <h1 className="text-primary font-black font-headline text-lg uppercase leading-none">{selectedSubject}</h1>
@@ -179,10 +178,10 @@ export default function LearningQuest() {
         </header>
 
         <main className="flex-1 flex flex-col">
-          {/* RPG Battle Arena */}
-          <div className="relative h-[35vh] bg-gradient-to-b from-blue-900 to-indigo-900 overflow-hidden border-b">
+          {/* RPG Battle Arena - Maroon Themed Sky */}
+          <div className="relative h-[35vh] bg-gradient-to-b from-primary to-black overflow-hidden border-b">
             {/* Animated Sky Elements */}
-            <div className="absolute inset-0 opacity-20">
+            <div className="absolute inset-0 opacity-10">
               <div className="absolute top-10 left-[10%] animate-pulse"><Cloud className="w-20 h-20 text-white" /></div>
               <div className="absolute top-20 right-[20%] animate-pulse delay-700"><Cloud className="w-24 h-24 text-white" /></div>
             </div>
@@ -192,19 +191,19 @@ export default function LearningQuest() {
               "absolute top-8 right-8 transition-all duration-300",
               isAnimating === "enemy" && "animate-shake scale-110"
             )}>
-              <div className="bg-black/60 backdrop-blur-md border border-white/20 p-3 rounded-xl shadow-2xl mb-2 min-w-[160px]">
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl mb-2 min-w-[160px]">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10px] font-black text-white uppercase">{subjectMeta.enemy}</span>
-                  <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black">BOSS</span>
+                  <span className="text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black">BOSS</span>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
                 </div>
               </div>
               <div className="flex justify-end pr-4">
                 <div className="w-28 h-28 flex items-center justify-center relative">
-                   <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full animate-pulse" />
-                   <EnemyIcon className="w-20 h-20 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)] relative z-10" />
+                   <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+                   <EnemyIcon className="w-20 h-20 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] relative z-10" />
                 </div>
               </div>
             </div>
@@ -215,18 +214,18 @@ export default function LearningQuest() {
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="w-24 h-24 mb-3 flex items-center justify-center relative">
-                 <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full animate-pulse" />
-                 <div className="w-20 h-20 bg-blue-600 rounded-2xl rotate-3 flex items-center justify-center border-4 border-white/20 shadow-2xl relative z-10">
-                   <Shield className="w-10 h-10 text-white" />
+                 <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full animate-pulse" />
+                 <div className="w-20 h-20 bg-white rounded-2xl rotate-3 flex items-center justify-center border-4 border-primary shadow-2xl relative z-10">
+                   <Shield className="w-10 h-10 text-primary" />
                  </div>
               </div>
-              <div className="bg-black/60 backdrop-blur-md border border-white/20 p-3 rounded-xl shadow-2xl min-w-[160px]">
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl min-w-[160px]">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10px] font-black text-white uppercase">Aspirant Alex</span>
-                  <span className="text-[8px] bg-blue-600 text-white px-1.5 py-0.5 rounded font-black">LVL 24</span>
+                  <span className="text-[8px] bg-white text-primary px-1.5 py-0.5 rounded font-black">LVL 24</span>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${playerHealth}%` }} />
+                  <div className="h-full bg-white transition-all duration-500" style={{ width: `${playerHealth}%` }} />
                 </div>
               </div>
             </div>
@@ -246,17 +245,17 @@ export default function LearningQuest() {
   }
 
   return (
-    <div className="min-h-full flex flex-col pb-12 bg-sky-50 overflow-hidden relative">
-      {/* Dynamic Sky Background */}
+    <div className="min-h-full flex flex-col pb-12 bg-white overflow-hidden relative">
+      {/* Dynamic Sky Background - White and Soft Gray */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[10%] left-[5%] animate-cloud-slow opacity-20"><Cloud className="w-32 h-32 text-blue-200" /></div>
-        <div className="absolute top-[40%] right-[10%] animate-cloud-fast opacity-10"><Cloud className="w-40 h-40 text-blue-300" /></div>
-        <div className="absolute bottom-[20%] left-[15%] animate-cloud-slow opacity-15"><Wind className="w-24 h-24 text-blue-100" /></div>
+        <div className="absolute top-[10%] left-[5%] animate-cloud-slow opacity-20"><Cloud className="w-32 h-32 text-slate-200" /></div>
+        <div className="absolute top-[40%] right-[10%] animate-cloud-fast opacity-10"><Cloud className="w-40 h-40 text-slate-300" /></div>
+        <div className="absolute bottom-[20%] left-[15%] animate-cloud-slow opacity-15"><Wind className="w-24 h-24 text-slate-100" /></div>
       </div>
 
       <header className="px-8 pt-12 pb-2 space-y-2 relative z-10">
         <div className="flex items-center gap-2">
-          <Badge className="bg-blue-600/10 text-blue-700 border-none font-black text-[10px] tracking-widest uppercase">
+          <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] tracking-widest uppercase">
             Map Exploration
           </Badge>
         </div>
@@ -269,7 +268,7 @@ export default function LearningQuest() {
       <div className="flex-1 flex flex-col justify-center py-10 relative z-10 overflow-hidden">
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center min-h-[550px]"
+          className="flex overflow-x-auto gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center min-h-[550px] scroll-smooth"
         >
           {SUBJECT_AREAS.map((subject) => {
             const meta = SUBJECT_METADATA[subject];
@@ -282,14 +281,14 @@ export default function LearningQuest() {
                 onClick={() => setSelectedSubject(subject)}
                 className={cn(
                   "flex-shrink-0 snap-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform outline-none flex flex-col items-center",
-                  isSelected ? "scale-100 w-80" : "scale-75 w-56 opacity-40 grayscale blur-[1px]"
+                  isSelected ? "scale-100 w-80" : "scale-75 w-56 opacity-30 grayscale blur-[2px]"
                 )}
               >
                 <div className="relative w-full flex flex-col items-center">
                   {/* Floating Island Container */}
                   <div className={cn(
                     "relative w-full aspect-square transition-all duration-700",
-                    isSelected ? "animate-float drop-shadow-[0_30px_35px_rgba(0,0,0,0.2)]" : "drop-shadow-lg"
+                    isSelected ? "animate-float drop-shadow-[0_30px_35px_rgba(0,0,0,0.15)]" : "drop-shadow-sm"
                   )}>
                     {meta.imageUrl ? (
                       <div className="relative w-full h-full transform hover:scale-105 transition-transform duration-500">
@@ -318,7 +317,7 @@ export default function LearningQuest() {
                     
                     {/* Shadow below */}
                     <div className={cn(
-                      "absolute -bottom-10 left-1/2 -translate-x-1/2 w-1/2 h-6 bg-slate-900/10 blur-2xl rounded-[100%] transition-all duration-700",
+                      "absolute -bottom-10 left-1/2 -translate-x-1/2 w-1/2 h-6 bg-primary/5 blur-2xl rounded-[100%] transition-all duration-700",
                       isSelected ? "scale-125 opacity-40" : "scale-100 opacity-20"
                     )} />
                   </div>
@@ -329,7 +328,7 @@ export default function LearningQuest() {
                     isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                   )}>
                      <div className="space-y-1">
-                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/60">{meta.biome}</p>
+                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{meta.biome}</p>
                        <h3 className="text-3xl font-black font-headline text-slate-900 tracking-tighter">{subject}</h3>
                      </div>
 
@@ -340,7 +339,7 @@ export default function LearningQuest() {
                             key={i} 
                             className={cn(
                               "w-4 h-4",
-                              i < meta.difficulty ? "text-yellow-400 fill-yellow-400" : "text-slate-200"
+                              i < meta.difficulty ? "text-primary fill-primary" : "text-slate-200"
                             )} 
                            />
                          ))}
@@ -351,10 +350,10 @@ export default function LearningQuest() {
                        </p>
 
                        <div className="flex gap-2">
-                         <Badge variant="secondary" className="bg-white border text-slate-600 font-bold px-3 py-1 flex items-center gap-1">
+                         <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold px-3 py-1 flex items-center gap-1">
                            <Target className="w-3 h-3" /> {meta.enemy}
                          </Badge>
-                         <Badge className="bg-blue-600 text-white font-bold px-3 py-1">
+                         <Badge className="bg-primary text-white font-bold px-3 py-1">
                            {STATIC_QUESTIONS[subject]?.length || 0} QUESTS
                          </Badge>
                        </div>
@@ -371,38 +370,24 @@ export default function LearningQuest() {
         <Button 
           size="lg" 
           onClick={startQuest} 
-          className="w-full h-20 rounded-[2rem] bg-slate-900 hover:bg-slate-800 text-xl font-black shadow-2xl shadow-slate-900/20 hover:scale-[1.02] transition-transform active:scale-95 text-white flex items-center justify-center gap-4"
+          className="w-full h-20 rounded-[2rem] bg-primary hover:bg-primary/90 text-xl font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 text-white flex items-center justify-center gap-4"
         >
-          <Zap className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+          <Zap className="w-6 h-6 fill-white text-white" />
           Enter Battle Arena
         </Button>
       </div>
 
       <style jsx global>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
         @keyframes cloud-move {
           0% { transform: translateX(-20px); opacity: 0; }
           50% { transform: translateX(20px); opacity: 0.2; }
           100% { transform: translateX(-20px); opacity: 0; }
-        }
-        .animate-float {
-          animation: float 5s ease-in-out infinite;
         }
         .animate-cloud-slow {
           animation: cloud-move 15s linear infinite;
         }
         .animate-cloud-fast {
           animation: cloud-move 10s linear infinite;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
         }
       `}</style>
     </div>

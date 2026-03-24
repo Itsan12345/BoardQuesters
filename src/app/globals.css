@@ -1,30 +1,29 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 95%;
+    --background: 0 0% 98%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 0 72% 51%;
+    --primary: 0 72% 35%; /* Deep Maroon */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 90%;
-    --secondary-foreground: 0 72% 30%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 72% 20%;
     --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 0 72% 35%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 72% 45%; /* Crimson/Lighter Maroon */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: 0 72% 51%;
-    --radius: 1rem;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 72% 35%;
+    --radius: 1.25rem;
   }
 }
 
@@ -54,5 +53,14 @@
   
   .animate-shake {
     animation: shake 0.2s ease-in-out 3;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
   }
 }
