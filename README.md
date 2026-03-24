@@ -19,3 +19,7 @@ BoardQuest is a specialized MVP designed for 4th-year Medical Technology student
 - **Frontend**: React (NextJS App Router), Tailwind CSS, Shadcn UI.
 - **AI Engine**: Genkit with Google Gemini.
 - **Backend Architecture**: Structured for Laravel/MongoDB integration.
+
+## Assets
+- Static images are stored in `public/images/`.
+- Image metadata and placeholders are managed in `src/app/lib/placeholder-images.json`.

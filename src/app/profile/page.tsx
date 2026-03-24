@@ -7,9 +7,9 @@ import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   return (
-    <div className="max-w-4xl mx-auto py-12 px-6 space-y-10">
+    <div className="max-w-6xl mx-auto py-12 px-6 space-y-10">
       {/* Profile Header */}
-      <header className="relative bg-white p-10 rounded-[3rem] shadow-xl border overflow-hidden">
+      <header className="relative bg-white p-10 rounded-[2rem] shadow-xl border overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-5">
            <Zap className="w-48 h-48 text-primary" />
         </div>
@@ -53,12 +53,12 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Quick Stats Sidebar */}
         <div className="space-y-8">
-           <Card className="border-none shadow-lg rounded-[2.5rem] bg-white">
+           <Card className="border-none shadow-lg rounded-[2rem] bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="font-headline text-lg">Aspirant Stats</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-1xl">
                 <div className="flex items-center gap-3">
                   <Zap className="w-5 h-5 text-yellow-500 fill-current" />
                   <span className="text-sm font-bold">12 Day Streak</span>
@@ -76,7 +76,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg rounded-[2.5rem] bg-accent text-white p-8 overflow-hidden relative">
+          <Card className="border-none shadow-lg rounded-[2rem] bg-accent text-white p-8 overflow-hidden relative">
             <div className="relative z-10 space-y-2">
                <h3 className="font-headline font-bold text-xl uppercase tracking-tighter">Top 12%</h3>
                <p className="text-white/80 text-xs font-medium uppercase tracking-widest">Global Ranking</p>
@@ -87,7 +87,7 @@ export default function ProfilePage() {
 
         {/* Achievements and History */}
         <div className="md:col-span-2 space-y-8">
-          <Card className="border-none shadow-lg rounded-[2.5rem] bg-white">
+          <Card className="border-none shadow-lg rounded-[2rem] bg-white">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -117,7 +117,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg rounded-[2.5rem] bg-white overflow-hidden">
+          <Card className="border-none shadow-lg rounded-[2rem] bg-white overflow-hidden">
             <CardHeader className="bg-muted/30 border-b">
               <CardTitle className="font-headline text-xl flex items-center gap-2">
                 <History className="w-5 h-5 text-muted-foreground" />
