@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Swords, Shield, Skull, Zap, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -11,8 +13,14 @@ import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { STATIC_QUESTIONS } from '@/lib/static-questions';
 import { cn } from '@/lib/utils';
 
-const SUBJECT_METADATA: Record<string, { name: string; icon: any; color: string; enemy: string }> = {
-  "Clinical Chemistry": { name: "Clinical Chemistry", icon: FlaskConical, color: "bg-blue-500", enemy: "Hyperglycemic Specter" },
+const SUBJECT_METADATA: Record<string, { name: string; icon: any; color: string; enemy: string; imageUrl?: string }> = {
+  "Clinical Chemistry": { 
+    name: "Clinical Chemistry", 
+    icon: FlaskConical, 
+    color: "bg-blue-500", 
+    enemy: "Hyperglycemic Specter",
+    imageUrl: "/images/island1.png"
+  },
   "Hematology": { name: "Hematology", icon: Microscope, color: "bg-red-500", enemy: "Sickle-Cell Reaper" },
   "Microbiology": { name: "Microbiology", icon: Database, color: "bg-green-500", enemy: "Biohazard Overlord" },
   "Immunohematology": { name: "Immunohematology", icon: Stethoscope, color: "bg-purple-500", enemy: "Anti-Serum Hydra" },
@@ -189,28 +197,41 @@ export default function LearningQuest() {
                 key={subject}
                 onClick={() => setSelectedSubject(subject)}
                 className={cn(
-                  "flex-shrink-0 snap-center transition-all duration-500 ease-out transform",
+                  "flex-shrink-0 snap-center transition-all duration-500 ease-out transform outline-none",
                   isSelected ? "scale-110 w-64" : "scale-90 w-48 opacity-60 grayscale blur-[2px]"
                 )}
               >
                 <div className={cn(
                   "aspect-[3/4] rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
-                  meta.color
+                  meta.imageUrl ? "bg-black" : meta.color
                 )}>
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  {meta.imageUrl && (
+                    <div className="absolute inset-0">
+                      <Image 
+                        src={meta.imageUrl} 
+                        alt={subject}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        priority={isSelected}
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                    </div>
+                  )}
                   
-                  <div className="mt-8">
-                    <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md shadow-inner">
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  
+                  <div className="mt-8 relative z-10">
+                    <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md shadow-inner border border-white/30">
                       <Icon className="w-12 h-12" />
                     </div>
                   </div>
 
                   <div className="text-center z-10 space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Region</p>
-                    <h3 className="text-xl font-bold leading-tight font-headline">{subject}</h3>
+                    <h3 className="text-xl font-bold leading-tight font-headline drop-shadow-md">{subject}</h3>
                   </div>
 
-                  <div className="mb-4">
+                  <div className="mb-4 relative z-10">
                      <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
                        {STATIC_QUESTIONS[subject]?.length || 0} Battles
                      </Badge>
