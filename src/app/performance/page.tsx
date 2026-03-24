@@ -30,6 +30,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 const masteryData = [
   { subject: 'Chemistry', proficiency: 78, fullMark: 100 },
@@ -148,7 +149,7 @@ export default function PerformancePage() {
                       "p-3 rounded-2xl transition-colors",
                       item.val >= 75 ? "bg-green-100 text-green-600" : item.val >= 50 ? "bg-blue-100 text-blue-600" : "bg-red-100 text-red-600"
                     )}>
-                      <Icon className="w-6 h-6" />
+                      <Icon className="h-6 w-6" />
                     </div>
                     <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tighter">
                       {item.status}

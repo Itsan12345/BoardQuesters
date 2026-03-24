@@ -1,8 +1,9 @@
-import { User, Settings, Award, Shield, History, MapPin, Calendar, Mail, Zap } from 'lucide-react';
+import { User, Settings, Award, Shield, History, MapPin, Calendar, Mail, Zap, Trophy, Swords, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   return (
@@ -136,7 +137,7 @@ export default function ProfilePage() {
                         "p-2 rounded-xl",
                         item.type === 'quest' ? "bg-blue-100 text-blue-600" : item.type === 'exam' ? "bg-primary/10 text-primary" : "bg-yellow-100 text-yellow-600"
                       )}>
-                        {item.type === 'quest' ? <Sword className="w-4 h-4" /> : item.type === 'exam' ? <ClipboardCheck className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                        {item.type === 'quest' ? <Swords className="w-4 h-4" /> : item.type === 'exam' ? <ClipboardCheck className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                       </div>
                       <div>
                         <p className="font-bold text-sm leading-tight">{item.task}</p>
