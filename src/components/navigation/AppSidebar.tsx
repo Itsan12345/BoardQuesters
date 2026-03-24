@@ -49,7 +49,7 @@ const navGroups = [
     label: "ANALYTICS & RANKING",
     items: [
       { name: 'Leaderboard', icon: Trophy, href: '/ranks' },
-      { name: 'Performance Mastery', icon: Medal, href: '/profile' },
+      { name: 'Performance Mastery', icon: Medal, href: '/performance' },
     ]
   },
   {
@@ -99,7 +99,7 @@ export function AppSidebar() {
                         className={cn(
                           "transition-all duration-200",
                           isCollapsed 
-                            ? "!h-14 !w-14 flex items-center justify-center !p-0 mx-auto rounded-xl" 
+                            ? "!h-16 !w-16 flex items-center justify-center !p-0 mx-auto rounded-xl" 
                             : "h-10 px-4 rounded-lg",
                           isActive 
                             ? "bg-primary/10 text-primary font-bold shadow-sm" 
@@ -109,7 +109,7 @@ export function AppSidebar() {
                         <Link href={item.href} className="flex items-center gap-3">
                           <Icon className={cn(
                             "shrink-0 transition-transform", 
-                            isCollapsed ? "h-7 w-7" : "h-4 w-4",
+                            isCollapsed ? "h-8 w-8" : "h-4 w-4",
                             isActive ? "text-primary" : "text-muted-foreground"
                           )} />
                           {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}
