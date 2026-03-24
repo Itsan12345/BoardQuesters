@@ -182,10 +182,10 @@ export default function LearningQuest() {
         <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">Master each laboratory science</p>
       </header>
 
-      <div className="flex-1 flex flex-col justify-center overflow-hidden py-12">
+      <div className="flex-1 flex flex-col justify-center py-20 relative overflow-hidden">
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto overflow-y-hidden gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center"
+          className="flex overflow-x-auto gap-12 px-12 no-scrollbar snap-x snap-mandatory items-center min-h-[500px]"
         >
           {SUBJECT_AREAS.map((subject) => {
             const meta = SUBJECT_METADATA[subject];
@@ -198,7 +198,7 @@ export default function LearningQuest() {
                 onClick={() => setSelectedSubject(subject)}
                 className={cn(
                   "flex-shrink-0 snap-center transition-all duration-500 ease-out transform outline-none flex flex-col items-center",
-                  isSelected ? "scale-110 w-64" : "scale-90 w-48 opacity-60 grayscale blur-[2px]"
+                  isSelected ? "scale-110 w-72" : "scale-90 w-48 opacity-40 grayscale blur-[1px]"
                 )}
               >
                 <div className="relative w-full flex flex-col items-center justify-center">
@@ -218,7 +218,7 @@ export default function LearningQuest() {
                       />
                       {/* Shadow below the floating element */}
                       <div className={cn(
-                        "absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-4 bg-black/10 blur-xl rounded-[100%] transition-transform duration-700",
+                        "absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-4 bg-black/10 blur-xl rounded-[100%] transition-transform duration-700",
                         isSelected ? "scale-110 opacity-40" : "scale-100 opacity-20"
                       )} />
                     </div>
@@ -247,10 +247,13 @@ export default function LearningQuest() {
 
                   {/* Legend/Info for Floating Image Style */}
                   {meta.imageUrl && (
-                    <div className="mt-2 text-center space-y-2">
+                    <div className={cn(
+                      "mt-8 text-center space-y-2 transition-all duration-500",
+                      isSelected ? "opacity-100 translate-y-0" : "opacity-40 translate-y-2"
+                    )}>
                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Region</p>
                        <h3 className="text-2xl font-black font-headline text-foreground">{subject}</h3>
-                       <Badge variant="outline" className="border-primary/20 text-primary font-bold">
+                       <Badge variant="outline" className="border-primary/20 text-primary font-bold px-4 py-1">
                          {STATIC_QUESTIONS[subject]?.length || 0} Missions
                        </Badge>
                     </div>
@@ -262,11 +265,11 @@ export default function LearningQuest() {
         </div>
       </div>
 
-      <div className="px-6">
+      <div className="px-6 mt-4">
         <Button 
           size="lg" 
           onClick={startQuest} 
-          className="w-full h-16 rounded-2xl bg-primary text-xl font-black shadow-xl shadow-primary/20"
+          className="w-full h-16 rounded-2xl bg-primary text-xl font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
         >
           Enter Battle Arena
         </Button>
