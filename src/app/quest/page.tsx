@@ -185,7 +185,7 @@ export default function LearningQuest() {
       <div className="flex-1 flex flex-col justify-center overflow-hidden py-12">
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto gap-6 px-12 no-scrollbar snap-x snap-mandatory"
+          className="flex overflow-x-auto gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center"
         >
           {SUBJECT_AREAS.map((subject) => {
             const meta = SUBJECT_METADATA[subject];
@@ -197,45 +197,64 @@ export default function LearningQuest() {
                 key={subject}
                 onClick={() => setSelectedSubject(subject)}
                 className={cn(
-                  "flex-shrink-0 snap-center transition-all duration-500 ease-out transform outline-none",
+                  "flex-shrink-0 snap-center transition-all duration-500 ease-out transform outline-none flex flex-col items-center",
                   isSelected ? "scale-110 w-64" : "scale-90 w-48 opacity-60 grayscale blur-[2px]"
                 )}
               >
-                <div className={cn(
-                  "aspect-[3/4] rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
-                  meta.imageUrl ? "bg-black" : meta.color
-                )}>
-                  {meta.imageUrl && (
-                    <div className="absolute inset-0">
+                <div className="relative w-full aspect-[4/5] flex flex-col items-center justify-center">
+                  {meta.imageUrl ? (
+                    /* Floating Image Representation */
+                    <div className={cn(
+                      "relative w-full aspect-square transition-all duration-700",
+                      isSelected ? "animate-bounce-slow drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)]" : "drop-shadow-lg"
+                    )}>
                       <Image 
                         src={meta.imageUrl} 
                         alt={subject}
                         fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="object-contain"
                         priority={isSelected}
+                        data-ai-hint="floating island"
                       />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                      {/* Shadow below the floating element */}
+                      <div className={cn(
+                        "absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-4 bg-black/10 blur-xl rounded-[100%] transition-transform duration-700",
+                        isSelected ? "scale-110 opacity-40" : "scale-100 opacity-20"
+                      )} />
+                    </div>
+                  ) : (
+                    /* Standard Themed Card for regions without images */
+                    <div className={cn(
+                      "w-full h-full rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
+                      meta.color
+                    )}>
+                      <div className="mt-8 relative z-10">
+                        <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md shadow-inner border border-white/30">
+                          <Icon className="w-12 h-12" />
+                        </div>
+                      </div>
+                      <div className="text-center z-10 space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Region</p>
+                        <h3 className="text-xl font-bold leading-tight font-headline drop-shadow-md">{subject}</h3>
+                      </div>
+                      <div className="mb-4 relative z-10">
+                         <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
+                           {STATIC_QUESTIONS[subject]?.length || 0} Battles
+                         </Badge>
+                      </div>
                     </div>
                   )}
-                  
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  
-                  <div className="mt-8 relative z-10">
-                    <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md shadow-inner border border-white/30">
-                      <Icon className="w-12 h-12" />
+
+                  {/* Legend/Info for Floating Image Style */}
+                  {meta.imageUrl && (
+                    <div className="mt-6 text-center space-y-2">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Region</p>
+                       <h3 className="text-2xl font-black font-headline text-foreground">{subject}</h3>
+                       <Badge variant="outline" className="border-primary/20 text-primary font-bold">
+                         {STATIC_QUESTIONS[subject]?.length || 0} Missions
+                       </Badge>
                     </div>
-                  </div>
-
-                  <div className="text-center z-10 space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Region</p>
-                    <h3 className="text-xl font-bold leading-tight font-headline drop-shadow-md">{subject}</h3>
-                  </div>
-
-                  <div className="mb-4 relative z-10">
-                     <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
-                       {STATIC_QUESTIONS[subject]?.length || 0} Battles
-                     </Badge>
-                  </div>
+                  )}
                 </div>
               </button>
             );
@@ -252,6 +271,16 @@ export default function LearningQuest() {
           Enter Battle Arena
         </Button>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 4s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
