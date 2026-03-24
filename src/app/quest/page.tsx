@@ -185,7 +185,7 @@ export default function LearningQuest() {
       <div className="flex-1 flex flex-col justify-center overflow-hidden py-12">
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center"
+          className="flex overflow-x-auto overflow-y-hidden gap-8 px-12 no-scrollbar snap-x snap-mandatory items-center"
         >
           {SUBJECT_AREAS.map((subject) => {
             const meta = SUBJECT_METADATA[subject];
@@ -201,7 +201,7 @@ export default function LearningQuest() {
                   isSelected ? "scale-110 w-64" : "scale-90 w-48 opacity-60 grayscale blur-[2px]"
                 )}
               >
-                <div className="relative w-full aspect-[4/5] flex flex-col items-center justify-center">
+                <div className="relative w-full flex flex-col items-center justify-center">
                   {meta.imageUrl ? (
                     /* Floating Image Representation */
                     <div className={cn(
@@ -225,7 +225,7 @@ export default function LearningQuest() {
                   ) : (
                     /* Standard Themed Card for regions without images */
                     <div className={cn(
-                      "w-full h-full rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
+                      "w-full aspect-[4/5] rounded-[2.5rem] p-6 flex flex-col items-center justify-between text-white shadow-2xl relative overflow-hidden group",
                       meta.color
                     )}>
                       <div className="mt-8 relative z-10">
@@ -247,7 +247,7 @@ export default function LearningQuest() {
 
                   {/* Legend/Info for Floating Image Style */}
                   {meta.imageUrl && (
-                    <div className="mt-6 text-center space-y-2">
+                    <div className="mt-2 text-center space-y-2">
                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Region</p>
                        <h3 className="text-2xl font-black font-headline text-foreground">{subject}</h3>
                        <Badge variant="outline" className="border-primary/20 text-primary font-bold">
