@@ -133,7 +133,7 @@ export default function LearningQuest() {
     setIsFinished(true);
   };
 
-  const subjectMeta = SUBJECT_METADATA[selectedSubject];
+  const subjectMeta = SUBJECT_AREAS.includes(selectedSubject) ? SUBJECT_METADATA[selectedSubject] : SUBJECT_METADATA[SUBJECT_AREAS[0]];
   const EnemyIcon = subjectMeta.icon;
 
   if (isFinished) {
@@ -253,16 +253,14 @@ export default function LearningQuest() {
         <div className="absolute bottom-[20%] left-[15%] animate-cloud-slow opacity-15"><Wind className="w-24 h-24 text-slate-100" /></div>
       </div>
 
-      <header className="px-8 pt-12 pb-2 space-y-2 relative z-10">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] tracking-widest uppercase">
-            Map Exploration
-          </Badge>
-        </div>
-        <h1 className="text-4xl font-black font-headline leading-none tracking-tighter text-slate-900">
-          Sky Archipelago
+      <header className="px-8 pt-12 pb-2 space-y-1 relative z-10">
+        <h1 className="text-4xl font-black font-headline leading-tight tracking-tight text-slate-900">
+          Select Your <br />
+          <span className="text-primary">Quest Region</span>
         </h1>
-        <p className="text-sm text-slate-500 font-medium">Select a floating island to begin your quest</p>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">
+          Master Each Laboratory Science
+        </p>
       </header>
 
       <div className="flex-1 flex flex-col justify-center py-10 relative z-10 overflow-hidden">
