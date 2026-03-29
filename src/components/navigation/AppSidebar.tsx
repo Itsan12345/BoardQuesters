@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { 
   User,
   Trophy, 
-  ClipboardCheck,
   LayoutDashboard,
   GraduationCap,
   Sword,
@@ -37,12 +36,6 @@ const navGroups = [
     items: [
       { name: 'Study Curriculum', icon: GraduationCap, href: '/study' },
       { name: 'Quest Arena', icon: Sword, href: '/quest' },
-    ]
-  },
-  {
-    label: "ASSESSMENT",
-    items: [
-      { name: 'Mock Board Exam', icon: ClipboardCheck, href: '/exam' },
     ]
   },
   {
@@ -100,7 +93,7 @@ export function AppSidebar() {
                           "transition-all duration-200",
                           isCollapsed 
                             ? "!h-16 !w-16 flex items-center justify-center !p-0 mx-auto rounded-xl" 
-                            : "h-10 px-4 rounded-lg",
+                            : "h-14 px-4 rounded-lg",
                           isActive 
                             ? "bg-primary/10 text-primary font-bold shadow-sm" 
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -109,7 +102,7 @@ export function AppSidebar() {
                         <Link href={item.href} className="flex items-center gap-3">
                           <Icon className={cn(
                             "shrink-0 transition-transform", 
-                            isCollapsed ? "h-8 w-8" : "h-4 w-4",
+                            isCollapsed ? "h-8 w-8" : "h-6 w-6",
                             isActive ? "text-primary" : "text-muted-foreground"
                           )} />
                           {!isCollapsed && <span className="text-sm truncate">{item.name}</span>}

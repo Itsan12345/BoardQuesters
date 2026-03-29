@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -17,7 +16,7 @@ export type Question = {
 interface QuizInterfaceProps {
   questions: Question[];
   onFinish: (score: number) => void;
-  onAnswer?: (isCorrect: boolean) => void;
+  onAnswer?: (isCorrect: boolean, index: number, selectedLetter: string) => void;
   isLoading: boolean;
   isMockExam?: boolean;
 }
@@ -31,8 +30,14 @@ export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMock
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground font-medium animate-pulse">Initializing Battle Session...</p>
+        <div className="relative">
+          <Loader2 className="w-16 h-16 text-primary animate-spin" />
+          <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-primary/50" />
+        </div>
+        <div className="text-center">
+          <p className="text-primary font-black uppercase tracking-widest text-sm">Adaptive Engine Loading</p>
+          <p className="text-muted-foreground text-[10px] font-bold mt-1">AI IS CRAFTING YOUR CHALLENGE...</p>
+        </div>
       </div>
     );
   }
@@ -52,9 +57,9 @@ export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMock
     setIsAnswered(true);
     
     if (isCorrect) setScore(s => s + 1);
-    if (onAnswer) onAnswer(isCorrect);
+    if (onAnswer) onAnswer(isCorrect, currentIndex, letter);
 
-    // Auto-advance after a delay for a better flow
+    // AI Tutor provides insight before auto-advancing
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
         setCurrentIndex(currentIndex + 1);
@@ -63,18 +68,18 @@ export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMock
       } else {
         onFinish(isCorrect ? score + 1 : score);
       }
-    }, 1500);
+    }, 4000); // Longer delay to allow reading AI Tutor feedback
   };
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col h-full overflow-y-auto pb-20 no-scrollbar">
       {/* Progress Bar Top */}
       <div className="px-6 pt-6 flex justify-between items-center mb-4">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-           Challenge {currentIndex + 1} of {questions.length}
+           Quest {currentIndex + 1} of {questions.length}
         </span>
         <div className="flex gap-2">
-           {isMockExam && <Badge className="bg-orange-500 h-4 text-[8px] uppercase">Adaptive</Badge>}
+           <Badge className="bg-primary h-4 text-[8px] uppercase tracking-tighter">AI Adaptive</Badge>
         </div>
       </div>
 
@@ -86,7 +91,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMock
       </div>
 
       {/* Options Grid */}
-      <div className="px-6 pb-12 space-y-3">
+      <div className="px-6 space-y-3">
         {currentQuestion.options.map((option, idx) => {
           const letter = optionLetters[idx];
           const isSelected = selectedAnswer === letter;
@@ -126,15 +131,28 @@ export function QuizInterface({ questions, onFinish, onAnswer, isLoading, isMock
         })}
       </div>
 
-      {/* Footer Insight */}
-      {isAnswered && currentQuestion.explanation && (
-        <div className="mx-6 mb-8 p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 animate-in fade-in slide-in-from-bottom-2">
-           <p className="text-[10px] font-bold text-primary uppercase mb-1 flex items-center gap-1">
-             <Sparkles className="w-3 h-3" /> Tutor Insight
-           </p>
-           <p className="text-xs text-muted-foreground italic leading-relaxed">
-             {currentQuestion.explanation}
-           </p>
+      {/* AI Tutor Insight */}
+      {isAnswered && (
+        <div className="mx-6 mt-8 p-5 bg-primary/5 rounded-2xl border-2 border-dashed border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="flex items-center gap-2 mb-3">
+             <div className="bg-primary/10 p-1.5 rounded-lg">
+               <Sparkles className="w-4 h-4 text-primary" />
+             </div>
+             <p className="text-[10px] font-black text-primary uppercase tracking-widest">
+               AI Tutor Logic Analysis
+             </p>
+           </div>
+           
+           {currentQuestion.explanation ? (
+             <p className="text-xs text-muted-foreground italic leading-relaxed">
+               {currentQuestion.explanation}
+             </p>
+           ) : (
+             <div className="flex items-center gap-3 py-2">
+               <Loader2 className="w-3 h-3 text-primary animate-spin" />
+               <p className="text-[10px] font-bold text-primary animate-pulse">GENERATING TAILORED FEEDBACK...</p>
+             </div>
+           )}
         </div>
       )}
     </div>

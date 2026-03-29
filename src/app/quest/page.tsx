@@ -17,14 +17,18 @@ import {
   Star,
   Cloud,
   Wind,
-  Target
+  Target,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { QuizInterface } from '@/components/quiz/QuizInterface';
+import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
-import { STATIC_QUESTIONS } from '@/lib/static-questions';
+import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questions';
+import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const SUBJECT_METADATA: Record<string, { 
@@ -95,9 +99,11 @@ const SUBJECT_METADATA: Record<string, {
 };
 
 export default function LearningQuest() {
-  const [questions, setQuestions] = useState<any[]>([]);
+  const { toast } = useToast();
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -107,17 +113,34 @@ export default function LearningQuest() {
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isAnimating, setIsAnimating] = useState<"player" | "enemy" | null>(null);
 
-  const startQuest = () => {
-    const subjectQuestions = STATIC_QUESTIONS[selectedSubject] || [];
-    setQuestions(subjectQuestions);
-    setPlayerHealth(100);
-    setEnemyHealth(100);
-    setIsStarted(true);
-    setIsFinished(false);
+  const startQuest = async () => {
+    setIsLoading(true);
+    try {
+      const result = await generateMockExamQuestions({
+        subjectArea: selectedSubject,
+        numberOfQuestions: 5
+      });
+      // @ts-ignore
+      setQuestions(result.questions);
+      setPlayerHealth(100);
+      setEnemyHealth(100);
+      setIsStarted(true);
+      setIsFinished(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Island Storm Detected",
+        description: "The AI spirits are busy. Try landing in another archipelago in a few seconds.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAnswer = (isCorrect: boolean) => {
+  const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string) => {
     const damage = 100 / (questions.length || 5);
+    
+    // RPG Visual Effects
     if (isCorrect) {
       setIsAnimating("enemy");
       setEnemyHealth(prev => Math.max(0, prev - damage));
@@ -125,6 +148,27 @@ export default function LearningQuest() {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.max(0, prev - damage));
     }
+    
+    // AI Tutor Logic: Fetch explanation if not present (Real-time Adaptive Feedback)
+    if (!questions[index].explanation) {
+      try {
+        const feedback = await provideExamFeedback({
+          question: questions[index].question,
+          correctAnswer: questions[index].correctAnswer,
+          userAnswer: selectedLetter
+        });
+        
+        const updatedQuestions = [...questions];
+        updatedQuestions[index] = {
+          ...updatedQuestions[index],
+          explanation: feedback.explanation
+        };
+        setQuestions(updatedQuestions);
+      } catch (e) {
+        // Fallback or silent fail for explanation
+      }
+    }
+
     setTimeout(() => setIsAnimating(null), 500);
   };
 
@@ -163,7 +207,6 @@ export default function LearningQuest() {
   if (isStarted) {
     return (
       <div className="min-h-full flex flex-col">
-        {/* Battle Header */}
         <header className="bg-white px-4 py-4 flex items-center justify-between border-b sticky top-0 z-50">
           <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full">
             <ChevronLeft className="h-6 w-6 text-primary" />
@@ -171,22 +214,19 @@ export default function LearningQuest() {
           <div className="text-center">
             <h1 className="text-primary font-black font-headline text-lg uppercase leading-none">{selectedSubject}</h1>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              {subjectMeta.biome}
+              Adaptive Quest Arena
             </p>
           </div>
           <div className="w-10" />
         </header>
 
         <main className="flex-1 flex flex-col">
-          {/* RPG Battle Arena - Maroon Themed Sky */}
           <div className="relative h-[35vh] bg-gradient-to-b from-primary to-black overflow-hidden border-b">
-            {/* Animated Sky Elements */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-10 left-[10%] animate-pulse"><Cloud className="w-20 h-20 text-white" /></div>
               <div className="absolute top-20 right-[20%] animate-pulse delay-700"><Cloud className="w-24 h-24 text-white" /></div>
             </div>
             
-            {/* Enemy Side */}
             <div className={cn(
               "absolute top-8 right-8 transition-all duration-300",
               isAnimating === "enemy" && "animate-shake scale-110"
@@ -208,7 +248,6 @@ export default function LearningQuest() {
               </div>
             </div>
 
-            {/* Player Side */}
             <div className={cn(
               "absolute bottom-6 left-8 transition-all duration-300",
               isAnimating === "player" && "animate-shake scale-110"
@@ -235,8 +274,8 @@ export default function LearningQuest() {
              <QuizInterface 
                questions={questions} 
                onFinish={handleFinish} 
-               onAnswer={handleAnswer}
-               isLoading={false} 
+               onAnswer={(correct, idx, letter) => handleAnswer(correct, idx, letter)}
+               isLoading={isLoading} 
              />
           </div>
         </main>
@@ -246,7 +285,6 @@ export default function LearningQuest() {
 
   return (
     <div className="min-h-full flex flex-col pb-12 bg-white overflow-hidden relative">
-      {/* Dynamic Sky Background - White and Soft Gray */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] left-[5%] animate-cloud-slow opacity-20"><Cloud className="w-32 h-32 text-slate-200" /></div>
         <div className="absolute top-[40%] right-[10%] animate-cloud-fast opacity-10"><Cloud className="w-40 h-40 text-slate-300" /></div>
@@ -254,11 +292,11 @@ export default function LearningQuest() {
       </div>
 
       <header className="px-8 pt-12 pb-2 space-y-1 relative z-10">
-        <h1 className="text-4xl font-black font-headline leading-tight tracking-tight text-slate-900">
+        <h1 className="text-5xl font-black font-headline leading-tight tracking-tight text-slate-900">
           Select Your <br />
           <span className="text-primary">Quest Region</span>
         </h1>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">
+        <p className="text-s font-bold text-slate-500 uppercase tracking-[0.15em]">
           Master Each Laboratory Science
         </p>
       </header>
@@ -283,7 +321,6 @@ export default function LearningQuest() {
                 )}
               >
                 <div className="relative w-full flex flex-col items-center">
-                  {/* Floating Island Container */}
                   <div className={cn(
                     "relative w-full aspect-square transition-all duration-700",
                     isSelected ? "animate-float drop-shadow-[0_30px_35px_rgba(0,0,0,0.15)]" : "drop-shadow-sm"
@@ -313,14 +350,12 @@ export default function LearningQuest() {
                       </div>
                     )}
                     
-                    {/* Shadow below */}
                     <div className={cn(
                       "absolute -bottom-10 left-1/2 -translate-x-1/2 w-1/2 h-6 bg-primary/5 blur-2xl rounded-[100%] transition-all duration-700",
                       isSelected ? "scale-125 opacity-40" : "scale-100 opacity-20"
                     )} />
                   </div>
 
-                  {/* Island Stats & Details */}
                   <div className={cn(
                     "mt-12 text-center space-y-4 transition-all duration-700",
                     isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -351,8 +386,8 @@ export default function LearningQuest() {
                          <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold px-3 py-1 flex items-center gap-1">
                            <Target className="w-3 h-3" /> {meta.enemy}
                          </Badge>
-                         <Badge className="bg-primary text-white font-bold px-3 py-1">
-                           {STATIC_QUESTIONS[subject]?.length || 0} QUESTS
+                         <Badge className="bg-primary text-white font-bold px-3 py-1 flex items-center gap-1">
+                           <Sparkles className="w-3 h-3" /> AI ADAPTIVE
                          </Badge>
                        </div>
                      </div>
@@ -368,10 +403,11 @@ export default function LearningQuest() {
         <Button 
           size="lg" 
           onClick={startQuest} 
+          disabled={isLoading}
           className="w-full h-20 rounded-[2rem] bg-primary hover:bg-primary/90 text-xl font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 text-white flex items-center justify-center gap-4"
         >
-          <Zap className="w-6 h-6 fill-white text-white" />
-          Enter Battle Arena
+          {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6 fill-white text-white" />}
+          {isLoading ? "Generating Battle..." : "Enter Battle Arena"}
         </Button>
       </div>
 
