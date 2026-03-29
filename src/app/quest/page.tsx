@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -19,11 +19,18 @@ import {
   Wind,
   Target,
   Loader2,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { generateMockExamQuestions } from '@/ai/flows/generate-mock-exam-questions';
@@ -98,6 +105,12 @@ const SUBJECT_METADATA: Record<string, {
   }
 };
 
+type UserAnswerRecord = {
+  questionIndex: number;
+  selectedLetter: string;
+  isCorrect: boolean;
+};
+
 export default function LearningQuest() {
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -106,6 +119,7 @@ export default function LearningQuest() {
   const [isLoading, setIsLoading] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
+  const [userAnswers, setUserAnswers] = useState<UserAnswerRecord[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // RPG States
@@ -115,6 +129,7 @@ export default function LearningQuest() {
 
   const startQuest = async () => {
     setIsLoading(true);
+    setUserAnswers([]);
     try {
       const result = await generateMockExamQuestions({
         subjectArea: selectedSubject,
@@ -140,6 +155,9 @@ export default function LearningQuest() {
   const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string) => {
     const damage = 100 / (questions.length || 5);
     
+    // Track user answer for the summary
+    setUserAnswers(prev => [...prev, { questionIndex: index, selectedLetter, isCorrect }]);
+
     // RPG Visual Effects
     if (isCorrect) {
       setIsAnimating("enemy");
@@ -183,22 +201,135 @@ export default function LearningQuest() {
   if (isFinished) {
     const isVictor = enemyHealth <= 0 || (score > questions.length / 2);
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-8 animate-in fade-in zoom-in duration-300">
-        <div className="relative inline-block">
-          <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-150 animate-pulse" />
-          <div className="relative w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
-            {isVictor ? <Swords className="w-16 h-16 text-primary" /> : <Skull className="w-16 h-16 text-muted-foreground" />}
+      <div className="max-w-4xl mx-auto py-12 px-6 space-y-12 animate-in fade-in zoom-in duration-500">
+        <header className="text-center space-y-6">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-150 animate-pulse" />
+            <div className="relative w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
+              {isVictor ? <Swords className="w-16 h-16 text-primary" /> : <Skull className="w-16 h-16 text-muted-foreground" />}
+            </div>
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h2 className="text-4xl font-bold font-headline text-primary">{isVictor ? "Victory!" : "Defeat..."}</h2>
-          <p className="text-muted-foreground">You earned {score * XP_PER_QUESTION} XP towards your license.</p>
-        </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-5xl font-black font-headline text-primary tracking-tighter">
+              {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
+            </h2>
+            <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">
+              Expedition Result for {selectedSubject}
+            </p>
+          </div>
 
-        <div className="flex flex-col gap-3">
-          <Button size="lg" onClick={() => setIsStarted(false)} className="h-14 rounded-2xl text-lg font-bold">Return to Archipelago</Button>
-          <Link href="/"><Button variant="ghost" className="font-bold text-primary">Back to Dashboard</Button></Link>
+          <div className="flex justify-center items-center gap-12 py-4">
+             <div className="text-center">
+               <div className="text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
+               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+             </div>
+             <div className="h-12 w-px bg-border" />
+             <div className="text-center">
+               <div className="text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+             </div>
+          </div>
+        </header>
+
+        {/* AI Tutor Summary Section */}
+        <Card className="border-none shadow-2xl bg-white overflow-hidden rounded-[2rem]">
+          <CardHeader className="bg-muted/30 border-b p-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                  Battle Log & AI Rationale
+                </CardTitle>
+                <CardDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Analyzing your situational decision-making patterns
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="border-primary/20 text-primary bg-white px-4 py-1">
+                Lvl 24 Aspirant
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Accordion type="single" collapsible className="w-full">
+              {questions.map((q, idx) => {
+                const userAns = userAnswers.find(ua => ua.questionIndex === idx);
+                const isCorrect = userAns?.isCorrect;
+                
+                return (
+                  <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-4">
+                    <AccordionTrigger className="hover:no-underline py-6 px-4">
+                      <div className="flex items-start text-left gap-6">
+                        <div className="mt-1">
+                          {isCorrect ? (
+                            <div className="bg-green-100 p-2 rounded-xl"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
+                          ) : (
+                            <div className="bg-red-100 p-2 rounded-xl"><XCircle className="w-5 h-5 text-red-600" /></div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm leading-snug line-clamp-2 max-w-xl">{q.question}</p>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[9px] h-4 font-black uppercase tracking-tighter">
+                              {isCorrect ? "Mastered" : "Review Required"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-8 pt-2">
+                      <div className="bg-muted/30 rounded-3xl p-8 space-y-6 border border-primary/5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="p-5 bg-white rounded-2xl border shadow-sm">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground mb-2 tracking-widest">Your Selection</p>
+                            <p className={cn("font-bold text-base", isCorrect ? "text-green-600" : "text-red-600")}>
+                              Option {userAns?.selectedLetter || 'None'}
+                            </p>
+                          </div>
+                          <div className="p-5 bg-white rounded-2xl border shadow-sm">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground mb-2 tracking-widest">Correct Path</p>
+                            <p className="font-bold text-base text-primary">
+                              Option {q.correctAnswer}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="font-black font-headline text-primary flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <Sparkles className="w-4 h-4" />
+                            AI LOGICAL ANALYSIS
+                          </h4>
+                          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-dashed border-primary/10 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5"><Zap className="w-12 h-12 text-primary" /></div>
+                            <p className="text-sm leading-relaxed text-muted-foreground italic relative z-10">
+                              {q.explanation || "AI analysis processing..."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col sm:flex-row justify-center gap-4 pb-12">
+          <Button 
+            size="lg" 
+            onClick={() => {
+              setIsStarted(false);
+              setIsFinished(false);
+            }} 
+            className="h-16 px-10 rounded-2xl text-lg font-black shadow-xl hover:scale-105 transition-transform"
+          >
+            Return to Archipelago
+          </Button>
+          <Link href="/">
+            <Button variant="outline" size="lg" className="h-16 px-10 rounded-2xl text-lg font-bold border-2">
+              Back to Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     );
