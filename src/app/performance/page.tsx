@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Radar, 
   RadarChart, 
@@ -9,7 +8,6 @@ import {
   PolarAngleAxis, 
   PolarRadiusAxis,
   ResponsiveContainer,
-  Tooltip as ChartTooltip
 } from 'recharts';
 import { 
   TrendingUp, 
@@ -53,7 +51,13 @@ const subjectDetails = [
 ];
 
 export default function PerformancePage() {
-  const [studyDate, setStudyDate] = useState<Date | undefined>(new Date());
+  const [studyDate, setStudyDate] = useState<Date | undefined>(undefined);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setStudyDate(new Date());
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto py-12 px-6 space-y-10">
@@ -68,7 +72,7 @@ export default function PerformancePage() {
               <CalendarIcon className="w-5 h-5 text-primary" />
               <div className="text-left">
                 <p className="text-[8px] font-black uppercase text-muted-foreground">Self-Pacing Goal</p>
-                <p className="text-xs font-bold">{studyDate ? format(studyDate, "PPP") : "Set Timeline"}</p>
+                <p className="text-xs font-bold">{mounted && studyDate ? format(studyDate, "PPP") : "Set Timeline"}</p>
               </div>
             </Button>
           </PopoverTrigger>
@@ -118,7 +122,7 @@ export default function PerformancePage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold">
                   <span>Threshold: 75% Avg</span>
-                  <span>Goal: {studyDate ? format(studyDate, "MMM dd") : 'Set Date'}</span>
+                  <span>Goal: {mounted && studyDate ? format(studyDate, "MMM dd") : 'Set Date'}</span>
                 </div>
                 <Progress value={67.4} className="h-2 bg-white/20" />
               </div>
@@ -131,7 +135,7 @@ export default function PerformancePage() {
               Strategist Insight
             </h3>
             <p className="text-sm text-muted-foreground italic leading-relaxed">
-              "You have failed to reach Mastery in Microbiology (Current: 45%). Your timeline indicates you must resolve this by {studyDate ? format(studyDate, "MMM dd") : 'next week'}."
+              "You have failed to reach Mastery in Microbiology (Current: 45%). Your timeline indicates you must resolve this by {mounted && studyDate ? format(studyDate, "MMM dd") : 'next week'}."
             </p>
           </Card>
         </div>

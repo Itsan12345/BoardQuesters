@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,7 +20,13 @@ const leaderboardUsers = [
 ];
 
 export default function Dashboard() {
-  const [studyDate, setStudyDate] = useState<Date | undefined>(new Date());
+  const [studyDate, setStudyDate] = useState<Date | undefined>(undefined);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setStudyDate(new Date());
+  }, []);
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
@@ -81,7 +87,7 @@ export default function Dashboard() {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-10 px-4 rounded-xl border-2 flex gap-2 w-full lg:w-auto justify-start">
                       <CalendarIcon className="w-4 h-4 text-primary" />
-                      {studyDate ? format(studyDate, "PPP") : "Set Timeline"}
+                      {mounted && studyDate ? format(studyDate, "PPP") : "Set Timeline"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
@@ -97,7 +103,7 @@ export default function Dashboard() {
                     <Target className="w-4 h-4 text-primary" />
                   </div>
                   <span className="flex-1">Next Target: <span className="font-bold">Hematology Mastery</span></span>
-                  <span className="text-[10px] lg:text-xs text-muted-foreground">Due {studyDate ? format(studyDate, "MMM dd") : 'Soon'}</span>
+                  <span className="text-[10px] lg:text-xs text-muted-foreground">Due {mounted && studyDate ? format(studyDate, "MMM dd") : 'Soon'}</span>
                 </div>
                 <div className="p-4 bg-primary/5 rounded-xl border-l-4 border-primary">
                   <div className="flex gap-3">
