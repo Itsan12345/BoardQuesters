@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 // Mastery Helper Logic: average >= 75 and no score < 50
 const calculateMasteryStatus = (scores: number[]) => {
-  if (scores.length === 0) return { mastery: 0, status: 'Not Started' };
+  if (scores.length === 0) return { proficiency: 0, status: 'Not Started', isMastered: false };
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   const min = Math.min(...scores);
   const isMastered = avg >= 75 && min >= 50;
@@ -43,7 +43,7 @@ const MT_CURRICULUM = [
     id: "clinical-chemistry",
     title: "Clinical Chemistry",
     icon: FlaskConical,
-    scores: [85, 78, 92, 60], // Sample scores
+    scores: [85, 78, 92, 60],
     lessons: [
       { id: "cc1", title: "Carbohydrate Metabolism & Disorders", duration: "45m", status: "completed" },
       { id: "cc2", title: "Lipid Profile & Lipoproteins", duration: "60m", status: "in-progress" },
@@ -55,7 +55,7 @@ const MT_CURRICULUM = [
     id: "hematology",
     title: "Hematology & Coagulation",
     icon: Microscope,
-    scores: [70, 45, 80], // Fails mastery due to 45
+    scores: [70, 45, 80],
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
       { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" },
@@ -66,11 +66,44 @@ const MT_CURRICULUM = [
     id: "microbiology",
     title: "Clinical Microbiology",
     icon: Database,
-    scores: [],
+    scores: [45, 50],
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
       { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" },
       { id: "mic3", title: "Mycology & Virology Overview", duration: "40m", status: "not-started" }
+    ]
+  },
+  {
+    id: "immunohematology",
+    title: "Immunohematology (Blood Bank)",
+    icon: Stethoscope,
+    scores: [82, 75, 88],
+    lessons: [
+      { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
+      { id: "bb2", title: "Compatibility Testing & Crossmatching", duration: "45m", status: "completed" },
+      { id: "bb3", title: "Blood Component Therapy & Transfusion", duration: "50m", status: "not-started" }
+    ]
+  },
+  {
+    id: "clinical-microscopy",
+    title: "Clinical Microscopy",
+    icon: FlaskConical,
+    scores: [72, 68, 75],
+    lessons: [
+      { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },
+      { id: "cm2", title: "Microscopic Examination of Sediments", duration: "60m", status: "in-progress" },
+      { id: "cm3", title: "CSF & Other Body Fluids Analysis", duration: "50m", status: "not-started" }
+    ]
+  },
+  {
+    id: "histopath-laws",
+    title: "Histopathology & MT Laws",
+    icon: ShieldAlert,
+    scores: [58, 62],
+    lessons: [
+      { id: "hp1", title: "Tissue Fixation & Processing", duration: "50m", status: "completed" },
+      { id: "hp2", title: "Staining Techniques & Microtomy", duration: "70m", status: "not-started" },
+      { id: "law1", title: "RA 5527: Phil MedTech Act of 1969", duration: "45m", status: "not-started" }
     ]
   }
 ];
@@ -147,7 +180,7 @@ export default function StudyPage() {
               </div>
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                  <span>Proficiency Metrics (Mastery Logic: Avg $\ge$ 75%, Min $\ge$ 50%)</span>
+                  <span>Proficiency Metrics (Mastery Logic: Avg &ge; 75%, Min &ge; 50%)</span>
                   <span>{isMastered ? 'Mastered' : 'Deficit Identified'}</span>
                 </div>
                 <Progress value={proficiency} className="h-2" />
