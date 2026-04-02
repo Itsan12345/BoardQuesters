@@ -11,8 +11,8 @@ export function BottomNav() {
   const navItems = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Study', icon: BookOpen, href: '/study' },
-    { name: 'Ranks', icon: Trophy, href: '/ranks' },
     { name: 'Quest', icon: Send, href: '/quest' },
+    { name: 'Ranks', icon: Trophy, href: '/ranks' },
     { name: 'Profile', icon: User, href: '/profile' },
   ];
 
@@ -26,16 +26,16 @@ export function BottomNav() {
           <Link 
             key={item.name} 
             href={item.href} 
-            className="flex flex-col items-center gap-1 group"
+            className="flex flex-col items-center gap-1 group flex-1"
           >
             <div className={cn(
               "p-2 rounded-xl transition-colors",
               isActive ? "bg-primary text-white" : "text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
             )}>
-              <Icon className="h-6 w-6" />
+              <Icon className="h-5 w-5" />
             </div>
             <span className={cn(
-              "text-[10px] font-bold",
+              "text-[9px] font-bold uppercase tracking-tighter",
               isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary"
             )}>
               {item.name}

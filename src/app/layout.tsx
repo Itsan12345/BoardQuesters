@@ -3,6 +3,7 @@ import './globals.css';
 import {Toaster} from '@/components/ui/toaster';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
+import { BottomNav } from '@/components/navigation/BottomNav';
 import { ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -25,21 +26,21 @@ export default function RootLayer({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased min-h-screen bg-background">
+      <body className="font-body antialiased min-h-screen bg-background pb-20 md:pb-0">
         <SidebarProvider>
           <div className="relative flex flex-col min-h-screen w-full">
             {/* Professional Overlapping Top Navigation */}
             <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-white/95 backdrop-blur-md px-4 md:px-6 shadow-sm">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors" />
+                <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors hidden md:flex" />
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="bg-primary/10 p-1.5 rounded-lg">
                     <ShieldCheck className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-headline font-bold text-foreground leading-none text-lg">BoardQuest</span>
+                    <span className="font-headline font-bold text-foreground leading-none text-base md:text-lg">BoardQuest</span>
                     <div className="mt-0.5">
-                      <Badge variant="secondary" className="bg-primary/10 text-primary text-[8px] h-3.5 font-bold uppercase tracking-wider border-none px-1">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-[7px] md:text-[8px] h-3 md:h-3.5 font-bold uppercase tracking-wider border-none px-1">
                         Aspirant Mode
                       </Badge>
                     </div>
@@ -47,13 +48,13 @@ export default function RootLayer({
                 </Link>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end text-right hidden sm:flex">
-                  <span className="text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="flex flex-col items-end text-right hidden xs:flex">
+                  <span className="text-xs md:text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
+                  <span className="text-[9px] md:text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
                 </div>
                 <Link href="/profile">
-                  <Avatar className="h-9 w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
+                  <Avatar className="h-8 w-8 md:h-9 md:h-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
                     <AvatarImage src="https://picsum.photos/seed/alex/100/100" />
                     <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
                   </Avatar>
@@ -62,11 +63,18 @@ export default function RootLayer({
             </header>
 
             <div className="flex flex-1 pt-16">
-              {/* Sidebar starts below the overlapping top nav visually */}
-              <AppSidebar />
+              {/* Sidebar visible only on desktop */}
+              <div className="hidden md:block">
+                <AppSidebar />
+              </div>
               <main className="flex-1 overflow-y-auto">
                 {children}
               </main>
+            </div>
+
+            {/* Bottom Nav visible only on mobile */}
+            <div className="md:hidden">
+              <BottomNav />
             </div>
           </div>
           <Toaster />
