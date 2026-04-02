@@ -133,7 +133,7 @@ export default function PerformancePage() {
             <p className="text-sm text-muted-foreground italic leading-relaxed">
               "You have failed to reach Mastery in Microbiology (Current: 45%). Your timeline indicates you must resolve this by {studyDate ? format(studyDate, "MMM dd") : 'next week'}."
             </p>
-          </section>
+          </Card>
         </div>
       </div>
 
