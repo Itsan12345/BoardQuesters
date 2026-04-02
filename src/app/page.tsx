@@ -1,93 +1,154 @@
+
+"use client";
+
 import Link from 'next/link';
-import { Zap, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const leaderboardUsers = [
-  { name: "Cong Mercado Stefan", xp: "2,500 XP This Week", initial: "C" },
-  { name: "Ryan Go", xp: "2,500 XP This Week", initial: "R" },
-  { name: "Kevin Yap Gomez", xp: "2,500 XP This Week", initial: "K" },
+  { name: "Cong Mercado Stefan", xp: "2,500 XP", initial: "C" },
+  { name: "Ryan Go", xp: "2,480 XP", initial: "R" },
+  { name: "Kevin Yap Gomez", xp: "2,350 XP", initial: "K" },
 ];
 
 export default function Dashboard() {
+  const [studyDate, setStudyDate] = useState<Date | undefined>(new Date());
+
   return (
     <div className="min-h-full bg-[#f8f8f8] p-6 md:p-8 space-y-8">
-      {/* Hero Section */}
       <section className="space-y-6">
         <h1 className="text-3xl md:text-4xl font-black font-headline tracking-tight leading-tight text-[#1a1a1a]">
-          Master Your Boards, <br />
-          <span className="text-primary">Level Up Your Knowledge</span>
+          Aspirant Dashboard <br />
+          <span className="text-primary">Strategize Your Success</span>
         </h1>
-        <Link href="/quest" className="inline-block">
-          <Button size="lg" className="h-12 px-6 rounded-xl text-md font-bold shadow-lg bg-primary hover:bg-primary/90 transition-all flex items-center gap-2">
-            Start Quest <Zap className="h-4 w-4 fill-current" />
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/quest">
+            <Button size="lg" className="h-12 px-6 rounded-xl text-md font-bold shadow-lg bg-primary hover:bg-primary/90 transition-all flex items-center gap-2">
+              Start Quest <Zap className="h-4 w-4 fill-current" />
+            </Button>
+          </Link>
+        </div>
       </section>
 
-      {/* Section Title */}
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold font-headline text-[#1a1a1a]">Your Study Dashboard</h2>
-        <p className="text-sm text-muted-foreground font-medium">Real-time tracking of your journey to professional certification</p>
-      </div>
-
-      {/* Main Dashboard Content */}
-      <div className="space-y-6">
-        {/* CURRENT COURSE Card */}
-        <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardContent className="p-8 space-y-6">
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] font-headline">CURRENT COURSE</p>
-              <h3 className="text-xl font-bold text-[#1a1a1a]">MedTech Board Mastery</h3>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-end justify-between">
-                <span className="text-5xl font-black font-headline text-primary leading-none">67%</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pb-1">20/30 Modules Completed</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Stats & Progress */}
+        <div className="lg:col-span-8 space-y-6">
+          <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
+            <CardContent className="p-8 space-y-6">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] font-headline">BOARD READINESS</p>
+                  <h3 className="text-xl font-bold text-[#1a1a1a]">MedTech Licensure Mastery</h3>
+                </div>
+                <Badge className="bg-primary/10 text-primary border-none font-bold">Lvl 24</Badge>
               </div>
-              <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-                <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: '67%' }} />
+
+              <div className="space-y-2">
+                <div className="flex items-end justify-between">
+                  <span className="text-5xl font-black font-headline text-primary leading-none">67%</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pb-1">Mastery Verified (Avg &ge; 75%)</span>
+                </div>
+                <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+                  <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: '67%' }} />
+                </div>
               </div>
-            </div>
 
-            <Link href="/study" className="block">
-              <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
-                Continue: Clinical Chemistry: Carbohydrates
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+              <Link href="/study" className="block">
+                <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-3">
+                  Continue Review: Clinical Chemistry
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
 
-        {/* Weekly Leaderboard Header */}
-        <div className="flex items-center justify-center pt-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Weekly Leaderboard</p>
+          {/* Study Quest Scheduler (Self-Pacing) */}
+          <Card className="border-none shadow-sm rounded-2xl bg-white">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-headline text-lg">Study Quest Scheduler</CardTitle>
+                  <CardDescription>Align your review center timeline with BoardQuest.</CardDescription>
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-10 px-4 rounded-xl border-2 flex gap-2">
+                      <CalendarIcon className="w-4 h-4 text-primary" />
+                      {studyDate ? format(studyDate, "PPP") : "Set Timeline"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar mode="single" selected={studyDate} onSelect={setStudyDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/30 rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-4 text-sm font-medium">
+                  <div className="p-2 bg-white rounded-lg border-2 border-primary/10">
+                    <Target className="w-4 h-4 text-primary" />
+                  </div>
+                  <span>Next Target: <span className="font-bold">Hematology Mastery</span></span>
+                  <span className="ml-auto text-xs text-muted-foreground">Due {studyDate ? format(studyDate, "MMM dd") : 'Soon'}</span>
+                </div>
+                <div className="p-4 bg-primary/5 rounded-xl border-l-4 border-primary">
+                  <div className="flex gap-3">
+                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Strategist Tip: You have <span className="font-bold">12 days</span> until your review center's Hematology mock exam. Aim for 75% Mastery by then.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        
-        {/* Leaderboard Card */}
-        <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-6">
+
+        {/* Right Column: Social & Leaderboard */}
+        <div className="lg:col-span-4 space-y-6">
+           <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
+            <CardHeader className="pb-2">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Global Hall of Fame</p>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
               {leaderboardUsers.map((user, idx) => (
                 <div key={idx} className="flex items-center gap-4 group">
                   <div className="flex-shrink-0 w-6 text-center font-black text-muted-foreground text-sm italic">
                     #{idx + 1}
                   </div>
-                  <Avatar className="h-12 w-12 bg-accent border-none ring-offset-2 group-hover:ring-2 ring-accent/20 transition-all">
-                    <AvatarFallback className="bg-accent text-white text-md font-black">{user.initial}</AvatarFallback>
+                  <Avatar className="h-10 w-10 bg-accent border-none ring-offset-2 group-hover:ring-2 ring-accent/20 transition-all">
+                    <AvatarFallback className="bg-accent text-white text-xs font-black">{user.initial}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 space-y-0.5">
-                    <p className="text-md font-bold text-[#1a1a1a]">{user.name}</p>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">{user.xp}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-[#1a1a1a]">{user.name}</p>
+                    <p className="text-[9px] font-medium text-muted-foreground uppercase">{user.xp}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-30 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-30" />
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-none shadow-sm rounded-2xl bg-primary text-white p-6">
+             <div className="space-y-4">
+               <h4 className="font-headline font-bold">Quest Streak</h4>
+               <div className="flex items-center gap-4">
+                 <div className="text-4xl font-black">12</div>
+                 <div className="text-[10px] font-bold uppercase leading-tight opacity-80">Days Active <br/> Consistent Review</div>
+               </div>
+               <Progress value={85} className="h-1.5 bg-white/20" />
+             </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
