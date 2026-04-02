@@ -7,47 +7,47 @@ import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   return (
-    <div className="max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-10">
+    <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-10">
       {/* Profile Header Card */}
-      <header className="relative bg-white p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl border overflow-hidden">
+      <header className="relative bg-white p-6 lg:p-10 rounded-[1.5rem] lg:rounded-[2.5rem] shadow-xl border overflow-hidden">
         {/* Decorative Background Element */}
-        <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] pointer-events-none">
-          <Zap className="w-32 h-32 md:w-64 md:h-64 text-primary" />
+        <div className="absolute top-0 right-0 p-4 lg:p-8 opacity-[0.03] pointer-events-none">
+          <Zap className="w-32 h-32 lg:w-64 lg:h-64 text-primary" />
         </div>
         
-        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 relative z-10">
+        <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-10 relative z-10">
           <div className="relative group">
-            <Avatar className="h-32 w-32 md:h-44 md:w-44 border-4 md:border-8 border-primary/5 shadow-2xl transition-transform group-hover:scale-105 duration-500">
+            <Avatar className="h-32 w-32 lg:h-44 lg:w-44 border-4 lg:border-8 border-primary/5 shadow-2xl transition-transform group-hover:scale-105 duration-500">
               <AvatarImage src="https://picsum.photos/seed/alex-v2/300/300" />
-              <AvatarFallback className="bg-primary text-white text-4xl md:text-6xl font-black">AR</AvatarFallback>
+              <AvatarFallback className="bg-primary text-white text-4xl lg:text-6xl font-black">AR</AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-accent text-white p-2 md:p-3 rounded-xl md:rounded-2xl shadow-lg border-2 md:border-4 border-white">
-              <Shield className="w-5 h-5 md:w-7 md:h-7" />
+            <div className="absolute -bottom-1 -right-1 lg:-bottom-2 lg:-right-2 bg-accent text-white p-2 lg:p-3 rounded-xl lg:rounded-2xl shadow-lg border-2 lg:border-4 border-white">
+              <Shield className="w-5 h-5 lg:w-7 lg:h-7" />
             </div>
           </div>
 
-          <div className="flex-1 text-center md:text-left space-y-4 md:space-y-6">
-            <div className="space-y-1 md:space-y-2">
-              <h1 className="text-3xl md:text-5xl font-black font-headline tracking-tight text-slate-900">Alex Rivera</h1>
-              <p className="text-muted-foreground font-bold flex items-center justify-center md:justify-start gap-2 text-sm uppercase tracking-widest">
+          <div className="flex-1 text-center lg:text-left space-y-4 lg:space-y-6">
+            <div className="space-y-1 lg:space-y-2">
+              <h1 className="text-3xl lg:text-5xl font-black font-headline tracking-tight text-slate-900">Alex Rivera</h1>
+              <p className="text-muted-foreground font-bold flex items-center justify-center lg:justify-start gap-2 text-sm uppercase tracking-widest">
                 <MapPin className="w-4 h-4 text-primary" /> Manila, Philippines
               </p>
             </div>
             
-            <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
-              <Badge className="bg-primary text-white px-3 md:px-5 py-1 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.1em] shadow-sm">
+            <div className="flex flex-wrap justify-center lg:justify-start gap-2 lg:gap-3">
+              <Badge className="bg-primary text-white px-3 lg:px-5 py-1 lg:py-2 rounded-full text-[10px] lg:text-xs font-black uppercase tracking-[0.1em] shadow-sm">
                 Lvl 24 Aspirant
               </Badge>
-              <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5 px-3 md:px-5 py-1 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.1em]">
+              <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5 px-3 lg:px-5 py-1 lg:py-2 rounded-full text-[10px] lg:text-xs font-black uppercase tracking-[0.1em]">
                 MedTech Class of 2024
               </Badge>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 w-full sm:w-auto">
-              <Button className="h-12 md:h-14 px-6 md:px-10 rounded-xl md:rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 w-full sm:w-auto">
+              <Button className="h-12 lg:h-14 px-6 lg:px-10 rounded-xl lg:rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
                 <Settings className="w-4 h-4 mr-2" /> Account Settings
               </Button>
-              <Button variant="outline" className="h-12 md:h-14 px-6 md:px-10 rounded-xl md:rounded-2xl font-black text-sm uppercase tracking-wider border-2 border-primary/20 text-primary hover:bg-primary/5 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
+              <Button variant="outline" className="h-12 lg:h-14 px-6 lg:px-10 rounded-xl lg:rounded-2xl font-black text-sm uppercase tracking-wider border-2 border-primary/20 text-primary hover:bg-primary/5 transition-all hover:scale-[1.02] active:scale-95 w-full sm:w-auto">
                 Edit Persona
               </Button>
             </div>
@@ -55,10 +55,10 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Stats Sidebar */}
-        <div className="space-y-6 md:space-y-8">
-          <Card className="border-none shadow-lg rounded-[1.5rem] md:rounded-[2rem] bg-white">
+        <div className="space-y-6 lg:space-y-8">
+          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="font-headline text-lg uppercase tracking-tight font-black">Aspirant Vitals</CardTitle>
             </CardHeader>
@@ -73,11 +73,11 @@ export default function ProfilePage() {
                 <Badge className="bg-primary text-white border-none font-black text-[10px]">+20% XP</Badge>
               </div>
               <div className="space-y-4 px-1">
-                <div className="flex items-center gap-4 text-xs md:text-sm font-bold text-muted-foreground group">
+                <div className="flex items-center gap-4 text-xs lg:text-sm font-bold text-muted-foreground group">
                   <Mail className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> 
                   alex.rivera@medu.edu
                 </div>
-                <div className="flex items-center gap-4 text-xs md:text-sm font-bold text-muted-foreground group">
+                <div className="flex items-center gap-4 text-xs lg:text-sm font-bold text-muted-foreground group">
                   <Calendar className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> 
                   Joined February 2024
                 </div>
@@ -85,22 +85,22 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg rounded-[1.5rem] md:rounded-[2rem] bg-primary text-white p-8 md:p-10 overflow-hidden relative group">
+          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-primary text-white p-8 lg:p-10 overflow-hidden relative group">
             <div className="relative z-10 space-y-2">
-               <h3 className="font-headline font-black text-2xl md:text-3xl uppercase tracking-tighter">Top 12%</h3>
-               <p className="text-white/80 text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">Global Aspirant Rank</p>
+               <h3 className="font-headline font-black text-2xl lg:text-3xl uppercase tracking-tighter">Top 12%</h3>
+               <p className="text-white/80 text-[10px] lg:text-xs font-black uppercase tracking-[0.2em]">Global Aspirant Rank</p>
             </div>
-            <Trophy className="absolute bottom-0 right-0 w-32 h-32 md:w-40 md:h-40 -mb-8 -mr-8 opacity-20 text-white transform group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700" />
+            <Trophy className="absolute bottom-0 right-0 w-32 h-32 lg:w-40 lg:h-40 -mb-8 -mr-8 opacity-20 text-white transform group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700" />
           </Card>
         </div>
 
         {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-6 md:space-y-8">
-          <Card className="border-none shadow-lg rounded-[1.5rem] md:rounded-[2rem] bg-white">
+        <div className="lg:col-span-2 space-y-6 lg:space-y-8">
+          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-white">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="font-headline text-xl md:text-2xl font-black flex items-center gap-3 uppercase tracking-tight">
+                  <CardTitle className="font-headline text-xl lg:text-2xl font-black flex items-center gap-3 uppercase tracking-tight">
                     <Award className="w-6 h-6 text-primary" />
                     Achievements
                   </CardTitle>
@@ -113,7 +113,7 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-5 gap-4 md:gap-6">
+            <CardContent className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-5 gap-4 lg:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                 <div key={i} className="group relative">
                   <div className={cn(
@@ -137,9 +137,9 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg rounded-[1.5rem] md:rounded-[2rem] bg-white overflow-hidden">
-            <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
-              <CardTitle className="font-headline text-lg md:text-xl font-black flex items-center gap-2 uppercase tracking-tight">
+          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-white overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b p-6 lg:p-8">
+              <CardTitle className="font-headline text-lg lg:text-xl font-black flex items-center gap-2 uppercase tracking-tight">
                 <History className="w-5 h-5 text-primary" />
                 Battle Expedition Log
               </CardTitle>

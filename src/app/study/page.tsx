@@ -113,9 +113,9 @@ export default function StudyPage() {
 
   return (
     <div className="min-h-full pb-12">
-      <header className="bg-white border-b px-4 md:px-6 py-6 md:py-8">
+      <header className="bg-white border-b px-4 lg:px-6 py-6 lg:py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-xl md:text-2xl font-black font-headline text-primary uppercase tracking-tight">BoardQuest Curriculum</h1>
+          <h1 className="text-xl lg:text-2xl font-black font-headline text-primary uppercase tracking-tight">BoardQuest Curriculum</h1>
           <Badge variant="outline" className="font-bold border-primary text-primary">Aspirant Mode</Badge>
         </div>
         <div className="relative">
@@ -140,14 +140,14 @@ export default function StudyPage() {
                   onClick={() => setSelectedCategory(cat)}
                   className={cn(
                     "w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-left border-2",
-                    isActive ? "bg-white border-primary shadow-md translate-x-1" : "hover:bg-white/50 border-transparent bg-muted/20 sm:bg-transparent"
+                    isActive ? "bg-white border-primary shadow-md lg:translate-x-1" : "hover:bg-white/50 border-transparent bg-muted/20 sm:bg-transparent"
                   )}
                 >
                   <div className={cn("p-3 rounded-xl shrink-0", isActive ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("font-bold text-xs md:text-sm truncate", isActive ? "text-primary" : "text-foreground")}>{cat.title}</p>
+                    <p className={cn("font-bold text-xs lg:text-sm truncate", isActive ? "text-primary" : "text-foreground")}>{cat.title}</p>
                     <div className="flex flex-wrap items-center gap-2">
                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{completedCount}/{cat.lessons.length} Finished</span>
                        {catMastered && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[8px] h-3 px-1">Mastery Achieved</Badge>}
@@ -164,19 +164,19 @@ export default function StudyPage() {
             <CardHeader className="bg-white border-b p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="space-y-1">
-                  <CardTitle className="font-headline text-lg md:text-xl">{selectedCategory.title}</CardTitle>
-                  <CardDescription className="text-xs md:text-sm">Targeting Board Mastery via Active Recall.</CardDescription>
+                  <CardTitle className="font-headline text-lg lg:text-xl">{selectedCategory.title}</CardTitle>
+                  <CardDescription className="text-xs lg:text-sm">Targeting Board Mastery via Active Recall.</CardDescription>
                 </div>
                 <div className="flex flex-col items-end w-full sm:w-auto">
                    <div className="flex items-center gap-2">
-                     <span className="text-2xl md:text-3xl font-black text-primary">{proficiency}%</span>
+                     <span className="text-2xl lg:text-3xl font-black text-primary">{proficiency}%</span>
                      {isMastered ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-orange-400" />}
                    </div>
                    <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-widest">{status}</Badge>
                 </div>
               </div>
               <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-[9px] md:text-[10px] font-bold uppercase text-muted-foreground">
+                <div className="flex justify-between text-[9px] lg:text-[10px] font-bold uppercase text-muted-foreground">
                   <span>Proficiency Metrics</span>
                   <span>{isMastered ? 'Mastered' : 'In Training'}</span>
                 </div>
@@ -184,25 +184,25 @@ export default function StudyPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[300px] md:h-[400px]">
+              <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div className="divide-y">
                   {selectedCategory.lessons.map((lesson, idx) => (
-                    <div key={lesson.id} className="p-4 md:p-6 flex items-center gap-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted font-bold text-muted-foreground text-xs md:text-sm">
+                    <div key={lesson.id} className="p-4 lg:p-6 flex items-center gap-4 hover:bg-muted/30 transition-colors">
+                      <div className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full border-2 border-muted font-bold text-muted-foreground text-xs lg:text-sm">
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h4 className="font-bold text-xs md:text-sm truncate max-w-[150px] sm:max-w-none">{lesson.title}</h4>
-                          {lesson.status === 'completed' && <Badge className="bg-accent h-4 text-[8px] md:text-[9px] uppercase">Finished</Badge>}
+                          <h4 className="font-bold text-xs lg:text-sm truncate max-w-[150px] sm:max-w-none">{lesson.title}</h4>
+                          {lesson.status === 'completed' && <Badge className="bg-accent h-4 text-[8px] lg:text-[9px] uppercase">Finished</Badge>}
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] md:text-xs text-muted-foreground font-medium">
+                        <div className="flex items-center gap-4 text-[10px] lg:text-xs text-muted-foreground font-medium">
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {lesson.duration}</span>
-                          <span className="uppercase tracking-wider text-[8px] md:text-[10px] font-bold hidden sm:inline">Concept Module</span>
+                          <span className="uppercase tracking-wider text-[8px] lg:text-[10px] font-bold hidden sm:inline">Concept Module</span>
                         </div>
                       </div>
                       <button className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shrink-0">
-                        <PlayCircle className="h-5 w-5 md:h-6 md:w-6" />
+                        <PlayCircle className="h-5 w-5 lg:h-6 lg:w-6" />
                       </button>
                     </div>
                   ))}
@@ -211,7 +211,7 @@ export default function StudyPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm rounded-3xl bg-primary text-white p-6 md:p-8">
+          <Card className="border-none shadow-sm rounded-3xl bg-primary text-white p-6 lg:p-8">
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="p-4 bg-white/20 rounded-2xl hidden sm:block">
                 <Trophy className="h-8 w-8" />
