@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Trophy, Send, User } from 'lucide-react';
+import { Home, BookOpen, Trophy, Send, User, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNav() {
@@ -12,12 +13,13 @@ export function BottomNav() {
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Study', icon: BookOpen, href: '/study' },
     { name: 'Quest', icon: Send, href: '/quest' },
+    { name: 'Mastery', icon: Medal, href: '/performance' },
     { name: 'Ranks', icon: Trophy, href: '/ranks' },
     { name: 'Profile', icon: User, href: '/profile' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t flex items-center justify-around px-2 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t flex items-center justify-around px-1 z-50">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         const Icon = item.icon;
@@ -26,7 +28,7 @@ export function BottomNav() {
           <Link 
             key={item.name} 
             href={item.href} 
-            className="flex flex-col items-center gap-1 group flex-1"
+            className="flex flex-col items-center gap-1 group flex-1 min-w-0"
           >
             <div className={cn(
               "p-2 rounded-xl transition-colors",
@@ -35,7 +37,7 @@ export function BottomNav() {
               <Icon className="h-5 w-5" />
             </div>
             <span className={cn(
-              "text-[9px] font-bold uppercase tracking-tighter",
+              "text-[8px] font-black uppercase tracking-tighter truncate w-full text-center px-1",
               isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary"
             )}>
               {item.name}
