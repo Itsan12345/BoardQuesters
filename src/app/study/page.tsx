@@ -18,8 +18,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
-  Sparkles,
-  BrainCircuit
+  Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -47,7 +46,6 @@ const MT_CURRICULUM = [
     title: "Clinical Chemistry",
     icon: FlaskConical,
     scores: [85, 78, 92, 60],
-    intel: "Focus on metabolic pathways and enzymatic markers. High-yield: Jaffe reaction mechanics and Glucose-6-Phosphate Dehydrogenase deficiency impacts.",
     lessons: [
       { id: "cc1", title: "Carbohydrate Metabolism & Disorders", duration: "45m", status: "completed" },
       { id: "cc2", title: "Lipid Profile & Lipoproteins", duration: "60m", status: "in-progress" },
@@ -60,7 +58,6 @@ const MT_CURRICULUM = [
     title: "Hematology & Coagulation",
     icon: Microscope,
     scores: [70, 45, 80],
-    intel: "Master the granulocytic series. Critical: Differential diagnosis of anemias using MCV/MCHC and identifying abnormal RBC morphologies.",
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
       { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" },
@@ -72,7 +69,6 @@ const MT_CURRICULUM = [
     title: "Clinical Microbiology",
     icon: Database,
     scores: [45, 50],
-    intel: "Invisible dangers. Prioritize biochemical test reactions for Enterobacteriaceae and the identification of Gram-positive cocci clusters.",
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
       { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" },
@@ -84,7 +80,6 @@ const MT_CURRICULUM = [
     title: "Immunohematology",
     icon: Stethoscope,
     scores: [82, 75, 88],
-    intel: "The Serum Sea. Deep dive into ABO/Rh systems and the Coombs test (Direct vs Indirect) for identifying hemolytic transfusion reactions.",
     lessons: [
       { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
       { id: "bb2", title: "Compatibility Testing & Crossmatching", duration: "45m", status: "completed" },
@@ -96,7 +91,6 @@ const MT_CURRICULUM = [
     title: "Clinical Microscopy",
     icon: FlaskConical,
     scores: [72, 68, 75],
-    intel: "Microscopic truths. Focus on sediment identification (Casts, Crystals) and the physical-chemical correlation in routine urinalysis.",
     lessons: [
       { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },
       { id: "cm2", title: "Microscopic Examination of Sediments", duration: "60m", status: "in-progress" },
@@ -108,7 +102,6 @@ const MT_CURRICULUM = [
     title: "Histopathology & MT Laws",
     icon: ShieldAlert,
     scores: [58, 62],
-    intel: "Ethics and Tissues. Memorize RA 5527 key sections and the sequential steps of tissue processing (Fixation to Mounting).",
     lessons: [
       { id: "hp1", title: "Tissue Fixation & Processing", duration: "50m", status: "completed" },
       { id: "hp2", title: "Staining Techniques & Microtomy", duration: "70m", status: "not-started" },
@@ -149,7 +142,7 @@ export default function StudyPage() {
       </header>
 
       <main className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
-        {/* Navigation Sidebar (Stacked on mobile/tablet) */}
+        {/* Navigation Sidebar */}
         <aside className="lg:col-span-4 space-y-4">
           <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Laboratory Disciplines</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
@@ -166,7 +159,7 @@ export default function StudyPage() {
                   className={cn(
                     "w-full flex items-center gap-4 p-5 rounded-3xl transition-all text-left border-2",
                     isActive 
-                      ? "bg-white border-primary shadow-xl lg:translate-x-2" 
+                      ? "bg-white border-primary shadow-xl" 
                       : "hover:bg-slate-50 border-slate-100 bg-white"
                   )}
                 >
@@ -202,7 +195,7 @@ export default function StudyPage() {
 
         {/* Content Area */}
         <section className="lg:col-span-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Subject Mastery Overview */}
             <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-slate-50 border-2 border-slate-100">
               <CardHeader className="pb-4">
@@ -240,27 +233,6 @@ export default function StudyPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* High-Yield AI Intel */}
-            <Card className="border-none shadow-sm rounded-[2rem] bg-primary text-white p-8 relative overflow-hidden group">
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="bg-white/20 p-2 rounded-xl">
-                    <BrainCircuit className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-headline font-black text-lg uppercase tracking-tight">High-Yield Intel</h3>
-                </div>
-                <p className="text-sm font-medium leading-relaxed italic opacity-90">
-                  "{selectedCategory.intel}"
-                </p>
-                <div className="pt-2">
-                   <Badge className="bg-white text-primary border-none font-black text-[9px] uppercase px-3">
-                     AI Strategic Insights
-                   </Badge>
-                </div>
-              </div>
-              <Sparkles className="absolute -bottom-4 -right-4 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform duration-700" />
-            </Card>
           </div>
 
           {/* Module List */}
@@ -296,7 +268,6 @@ export default function StudyPage() {
                         </div>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {lesson.duration} Intel</span>
-                          <span className="hidden sm:inline-flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-primary" /> Conceptual Core</span>
                         </div>
                       </div>
                       <button className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
@@ -312,7 +283,7 @@ export default function StudyPage() {
           {/* Call to Action */}
           <Card className="border-none shadow-xl rounded-[2rem] bg-slate-900 text-white p-8 lg:p-10 overflow-hidden relative">
             <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-              <div className="p-5 bg-primary rounded-3xl shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
+              <div className="p-5 bg-primary rounded-3xl shadow-lg rotate-3 transition-transform">
                 <Trophy className="h-10 w-10 text-white" />
               </div>
               <div className="space-y-2 text-center md:text-left">
@@ -334,4 +305,3 @@ export default function StudyPage() {
     </div>
   );
 }
-
