@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { 
   User,
@@ -9,7 +9,8 @@ import {
   LayoutDashboard,
   GraduationCap,
   Sword,
-  Medal
+  Medal,
+  LogOut
 } from 'lucide-react';
 import {
   Sidebar,
@@ -20,9 +21,12 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
+import { logout } from '@/app/actions/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const navGroups = [
   {
@@ -55,6 +59,8 @@ const navGroups = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const { state } = useSidebar();
   const [mounted, setMounted] = useState(false);
 
@@ -63,6 +69,16 @@ export function AppSidebar() {
   }, []);
 
   const isCollapsed = mounted ? state === "collapsed" : false;
+
+  async function handleLogout() {
+    await logout();
+    toast({
+      title: "Mission Concluded",
+      description: "Session terminated. Awaiting your return, Aspirant.",
+    });
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white shadow-none">
@@ -116,6 +132,26 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      <SidebarFooter className="p-4 border-t">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              tooltip="Terminate Session"
+              className={cn(
+                "transition-all duration-200 text-destructive hover:bg-destructive/10 hover:text-destructive",
+                isCollapsed ? "!h-16 !w-16 flex items-center justify-center mx-auto rounded-xl" : "h-12 px-4 rounded-lg"
+              )}
+            >
+              <LogOut className={cn(
+                "shrink-0",
+                isCollapsed ? "h-8 w-8" : "h-5 w-5"
+              )} />
+              {!isCollapsed && <span className="text-sm font-bold uppercase tracking-wider">Mission Exit</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

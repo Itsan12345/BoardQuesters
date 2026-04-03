@@ -1,7 +1,6 @@
-
 "use client";
 
-import { User, Settings, Award, Shield, History, MapPin, Calendar as CalendarIcon, Mail, Zap, Trophy, Swords, ClipboardCheck, Edit2, ChevronRight } from 'lucide-react';
+import { User, Settings, Award, Shield, History, MapPin, Calendar as CalendarIcon, Mail, Zap, Trophy, Swords, ClipboardCheck, Edit2, ChevronRight, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { logout } from '@/app/actions/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const STUDY_SCHEDULE = [
   { subject: "Clinical Chemistry", date: "Mar 15, 2025", progress: 85 },
@@ -20,6 +22,19 @@ const STUDY_SCHEDULE = [
 ];
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  async function handleLogout() {
+    await logout();
+    toast({
+      title: "Tactical Withdrawal",
+      description: "Logout successful. See you at the next briefing.",
+    });
+    router.push('/login');
+    router.refresh();
+  }
+
   return (
     <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-10">
       {/* Profile Header */}
@@ -40,11 +55,21 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex-1 text-center lg:text-left space-y-4 lg:space-y-6">
-            <div className="space-y-1 lg:space-y-2">
-              <h1 className="text-3xl lg:text-5xl font-black font-headline tracking-tight text-slate-900">Alex Rivera</h1>
-              <p className="text-muted-foreground font-bold flex items-center justify-center lg:justify-start gap-2 text-sm uppercase tracking-widest">
-                <MapPin className="w-4 h-4 text-primary" /> Manila, Philippines
-              </p>
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 lg:space-y-2">
+                <h1 className="text-3xl lg:text-5xl font-black font-headline tracking-tight text-slate-900">Alex Rivera</h1>
+                <p className="text-muted-foreground font-bold flex items-center justify-center lg:justify-start gap-2 text-sm uppercase tracking-widest">
+                  <MapPin className="w-4 h-4 text-primary" /> Manila, Philippines
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl font-bold border-primary text-primary">
+                  <Settings className="w-4 h-4 mr-2" /> Settings
+                </Button>
+                <Button variant="destructive" size="sm" className="rounded-xl font-bold" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4 mr-2" /> Terminate Session
+                </Button>
+              </div>
             </div>
             
             <div className="flex flex-wrap justify-center lg:justify-start gap-2 lg:gap-3">
