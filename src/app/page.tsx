@@ -1,16 +1,14 @@
+
 "use client";
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info } from 'lucide-react';
+import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info, Rocket, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const leaderboardUsers = [
@@ -20,16 +18,40 @@ const leaderboardUsers = [
 ];
 
 export default function Dashboard() {
-  const [studyDate, setStudyDate] = useState<Date | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setStudyDate(new Date());
   }, []);
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
+      {/* Daily Mission Widget */}
+      <section className="bg-slate-900 rounded-[2rem] p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Rocket className="w-32 h-32" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <Badge className="bg-primary text-white border-none font-black text-[10px] uppercase">Active Mission</Badge>
+              <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">Today's Target</span>
+            </div>
+            <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">
+              Finish 2 <span className="text-primary">Hematology</span> modules today
+            </h2>
+            <p className="text-white/60 text-sm font-medium">
+              to stay on track for your March 15 deadline.
+            </p>
+          </div>
+          <Link href="/study">
+            <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
+              Initiate Lesson
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       <section className="space-y-4 lg:space-y-6">
         <h1 className="text-2xl lg:text-4xl font-black font-headline tracking-tight leading-tight text-[#1a1a1a]">
           Aspirant Dashboard <br />
@@ -72,48 +94,6 @@ export default function Dashboard() {
                   Continue Review: Clinical Chemistry
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
-
-          {/* Study Quest Scheduler */}
-          <Card className="border-none shadow-sm rounded-2xl bg-white">
-            <CardHeader className="pb-4 space-y-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="font-headline text-lg">Study Quest Scheduler</CardTitle>
-                  <CardDescription>Align your review center timeline with BoardQuest.</CardDescription>
-                </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-10 px-4 rounded-xl border-2 flex gap-2 w-full lg:w-auto justify-start">
-                      <CalendarIcon className="w-4 h-4 text-primary" />
-                      {mounted && studyDate ? format(studyDate, "PPP") : "Set Timeline"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar mode="single" selected={studyDate} onSelect={setStudyDate} initialFocus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted/30 rounded-2xl p-4 lg:p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 lg:gap-4 text-sm font-medium">
-                  <div className="p-2 bg-white rounded-lg border-2 border-primary/10 w-fit">
-                    <Target className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="flex-1">Next Target: <span className="font-bold">Hematology Mastery</span></span>
-                  <span className="text-[10px] lg:text-xs text-muted-foreground">Due {mounted && studyDate ? format(studyDate, "MMM dd") : 'Soon'}</span>
-                </div>
-                <div className="p-4 bg-primary/5 rounded-xl border-l-4 border-primary">
-                  <div className="flex gap-3">
-                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[11px] lg:text-xs text-muted-foreground leading-relaxed">
-                      Strategist Tip: You have <span className="font-bold">12 days</span> until your review center's Hematology mock exam. Aim for 75% Mastery by then.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

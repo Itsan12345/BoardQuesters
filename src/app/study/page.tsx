@@ -18,27 +18,17 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
-  Sparkles
+  Sparkles,
+  Calendar as CalendarIcon,
+  Edit2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-// Mastery Helper Logic: average >= 75 and no score < 50
-const calculateMasteryStatus = (scores: number[]) => {
-  if (scores.length === 0) return { proficiency: 0, status: 'Not Started', isMastered: false };
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const min = Math.min(...scores);
-  const isMastered = avg >= 75 && min >= 50;
-  return { 
-    proficiency: Math.round(avg), 
-    isMastered, 
-    status: isMastered ? 'Mastered' : 'In Training' 
-  };
-};
 
 const MT_CURRICULUM = [
   {
@@ -46,6 +36,7 @@ const MT_CURRICULUM = [
     title: "Clinical Chemistry",
     icon: FlaskConical,
     scores: [85, 78, 92, 60],
+    targetDate: "Mar 15, 2025",
     lessons: [
       { id: "cc1", title: "Carbohydrate Metabolism & Disorders", duration: "45m", status: "completed" },
       { id: "cc2", title: "Lipid Profile & Lipoproteins", duration: "60m", status: "in-progress" },
@@ -58,6 +49,7 @@ const MT_CURRICULUM = [
     title: "Hematology & Coagulation",
     icon: Microscope,
     scores: [70, 45, 80],
+    targetDate: "Apr 05, 2025",
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
       { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" },
@@ -69,6 +61,7 @@ const MT_CURRICULUM = [
     title: "Clinical Microbiology",
     icon: Database,
     scores: [45, 50],
+    targetDate: "Apr 30, 2025",
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
       { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" },
@@ -80,6 +73,7 @@ const MT_CURRICULUM = [
     title: "Immunohematology",
     icon: Stethoscope,
     scores: [82, 75, 88],
+    targetDate: "May 10, 2025",
     lessons: [
       { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
       { id: "bb2", title: "Compatibility Testing & Crossmatching", duration: "45m", status: "completed" },
@@ -91,6 +85,7 @@ const MT_CURRICULUM = [
     title: "Clinical Microscopy",
     icon: FlaskConical,
     scores: [72, 68, 75],
+    targetDate: "May 25, 2025",
     lessons: [
       { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },
       { id: "cm2", title: "Microscopic Examination of Sediments", duration: "60m", status: "in-progress" },
@@ -102,6 +97,7 @@ const MT_CURRICULUM = [
     title: "Histopathology & MT Laws",
     icon: ShieldAlert,
     scores: [58, 62],
+    targetDate: "Jun 15, 2025",
     lessons: [
       { id: "hp1", title: "Tissue Fixation & Processing", duration: "50m", status: "completed" },
       { id: "hp2", title: "Staining Techniques & Microtomy", duration: "70m", status: "not-started" },
@@ -112,7 +108,6 @@ const MT_CURRICULUM = [
 
 export default function StudyPage() {
   const [selectedCategory, setSelectedCategory] = useState(MT_CURRICULUM[0]);
-  const { proficiency, isMastered, status } = calculateMasteryStatus(selectedCategory.scores);
 
   return (
     <div className="min-h-full pb-20 lg:pb-12 bg-white">
@@ -127,9 +122,13 @@ export default function StudyPage() {
                 Intel Gathering & Concept Mastery
               </p>
             </div>
-            <Badge variant="outline" className="font-black border-primary text-primary px-3 py-1 text-[10px] uppercase bg-primary/5">
-              Aspirant Mode: Level 24
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Link href="/onboarding">
+                <Button variant="outline" size="sm" className="rounded-xl border-primary text-primary font-bold">
+                  <Edit2 className="w-3 h-3 mr-2" /> Edit Global Schedule
+                </Button>
+              </Link>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -142,15 +141,12 @@ export default function StudyPage() {
       </header>
 
       <main className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
-        {/* Navigation Sidebar */}
         <aside className="lg:col-span-4 space-y-4">
           <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Laboratory Disciplines</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {MT_CURRICULUM.map((cat) => {
               const Icon = cat.icon;
               const isActive = selectedCategory.id === cat.id;
-              const completedCount = cat.lessons.filter(l => l.status === 'completed').length;
-              const { isMastered: catMastered } = calculateMasteryStatus(cat.scores);
 
               return (
                 <button
@@ -176,15 +172,9 @@ export default function StudyPage() {
                     )}>
                       {cat.title}
                     </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                         {completedCount}/{cat.lessons.length} Modules Finished
-                       </span>
-                       {catMastered && (
-                         <Badge className="bg-accent text-white border-none text-[8px] h-3.5 px-1.5 font-black uppercase">
-                           Mastery Verified
-                         </Badge>
-                       )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <CalendarIcon className="w-3 h-3 text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Target: {cat.targetDate}</span>
                     </div>
                   </div>
                 </button>
@@ -193,49 +183,33 @@ export default function StudyPage() {
           </div>
         </aside>
 
-        {/* Content Area */}
         <section className="lg:col-span-8 space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Subject Mastery Overview */}
-            <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-slate-50 border-2 border-slate-100">
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="font-headline font-black text-xl lg:text-2xl text-slate-900 uppercase">
-                      {selectedCategory.title}
-                    </CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                      Technical Readiness Analytics
-                    </CardDescription>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-2xl shadow-sm">
-                    {isMastered ? <CheckCircle2 className="w-6 h-6 text-accent" /> : <AlertCircle className="w-6 h-6 text-primary" />}
+          <Card className="border-none shadow-sm rounded-[2rem] bg-slate-50 border-2 border-slate-100 overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <CardTitle className="font-headline font-black text-xl lg:text-2xl text-slate-900 uppercase">
+                    {selectedCategory.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] font-black uppercase text-primary tracking-widest">
+                      Completion Target: {selectedCategory.targetDate}
+                    </span>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-end gap-3">
-                   <span className="text-5xl font-black font-headline text-primary leading-none">{proficiency}%</span>
-                   <div className="flex flex-col pb-1">
-                     <span className="text-[10px] font-black uppercase text-slate-400 leading-none">Proficiency</span>
-                     <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[8px] h-4 mt-1 font-black uppercase">
-                       {status}
-                     </Badge>
-                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Progress value={proficiency} className="h-2.5 bg-slate-200" />
-                  <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
-                    <span>Initiate (0%)</span>
-                    <span>Aspirant (75%)</span>
-                    <span>Master (100%)</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Link href="/onboarding">
+                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-primary">
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Progress value={45} className="h-2.5 bg-slate-200" />
+            </CardContent>
+          </Card>
 
-          {/* Module List */}
           <Card className="border-none shadow-sm rounded-[2rem] bg-white border-2 border-slate-100 overflow-hidden">
             <CardHeader className="bg-slate-50 border-b p-6 lg:p-8">
               <CardTitle className="font-headline text-lg font-black uppercase tracking-tight flex items-center gap-3">
@@ -257,15 +231,7 @@ export default function StudyPage() {
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h4 className="font-bold text-sm lg:text-base text-slate-900 truncate">{lesson.title}</h4>
-                          {lesson.status === 'completed' && (
-                            <Badge className="bg-accent text-white h-4 text-[8px] font-black uppercase px-2">Verified</Badge>
-                          )}
-                          {lesson.status === 'in-progress' && (
-                            <Badge variant="outline" className="border-primary/20 text-primary h-4 text-[8px] font-black uppercase px-2 bg-primary/5">Active</Badge>
-                          )}
-                        </div>
+                        <h4 className="font-bold text-sm lg:text-base text-slate-900 truncate">{lesson.title}</h4>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {lesson.duration} Intel</span>
                         </div>
@@ -278,27 +244,6 @@ export default function StudyPage() {
                 </div>
               </ScrollArea>
             </CardContent>
-          </Card>
-
-          {/* Call to Action */}
-          <Card className="border-none shadow-xl rounded-[2rem] bg-slate-900 text-white p-8 lg:p-10 overflow-hidden relative">
-            <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-              <div className="p-5 bg-primary rounded-3xl shadow-lg rotate-3 transition-transform">
-                <Trophy className="h-10 w-10 text-white" />
-              </div>
-              <div className="space-y-2 text-center md:text-left">
-                <h3 className="font-headline font-black text-2xl lg:text-3xl uppercase tracking-tight">Deploy to Arena</h3>
-                <p className="text-slate-400 text-sm font-medium max-w-md">
-                  Validated your {selectedCategory.title} intel? It's time to face adaptive situational challenges in the Quest Arena.
-                </p>
-              </div>
-              <Link href="/quest" className="w-full md:ml-auto md:w-auto">
-                <button className="w-full bg-primary text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                  Initiate Quest
-                </button>
-              </Link>
-            </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl" />
           </Card>
         </section>
       </main>
