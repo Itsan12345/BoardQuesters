@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -21,11 +20,18 @@ export default function Onboarding() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
+  const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
 
   const handleDateSelect = (subject: string, date: Date | undefined) => {
     if (date) {
       setTargets(prev => ({ ...prev, [subject]: date }));
+      // Close the popover after selection
+      setOpenStates(prev => ({ ...prev, [subject]: false }));
     }
+  };
+
+  const togglePopover = (subject: string, open: boolean) => {
+    setOpenStates(prev => ({ ...prev, [subject]: open }));
   };
 
   const isComplete = SUBJECT_AREAS.every(s => targets[s]);
@@ -35,6 +41,7 @@ export default function Onboarding() {
     
     const sanitizedTargets: Record<string, Date> = {};
     Object.entries(targets).forEach(([sub, date]) => {
+      // Ensure we only save the date part
       sanitizedTargets[sub] = startOfDay(date);
     });
 
@@ -51,7 +58,7 @@ export default function Onboarding() {
         toast({
           variant: "destructive",
           title: "Sync Error",
-          description: result.error || "Could not save your plan. Please check your connection.",
+          description: result.error || "Could not save your plan. Please ensure you ran 'npx prisma db push'.",
         });
       }
     } catch (error) {
@@ -66,7 +73,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4 py-12">
       <Card className="max-w-2xl w-full border-none shadow-2xl rounded-[2rem] overflow-hidden bg-white">
         <div className="h-2 bg-primary" />
         <CardHeader className="p-8 lg:p-12 text-center space-y-4">
@@ -95,11 +102,11 @@ export default function Onboarding() {
               {SUBJECT_AREAS.map((subject) => (
                 <div key={subject} className="space-y-2">
                   <label className="text-xs font-bold text-slate-600 uppercase">{subject}</label>
-                  <Popover>
+                  <Popover open={openStates[subject]} onOpenChange={(open) => togglePopover(subject, open)}>
                     <PopoverTrigger asChild>
                       <button className={cn(
-                        "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all",
-                        !targets[subject] && "text-muted-foreground border-slate-200",
+                        "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all outline-none",
+                        !targets[subject] && "text-muted-foreground border-slate-200 hover:border-primary/30",
                         targets[subject] && "border-primary/20 bg-primary/5 text-primary"
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -127,7 +134,7 @@ export default function Onboarding() {
           </div>
 
           <Button 
-            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-black uppercase tracking-widest shadow-xl group text-white"
+            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-black uppercase tracking-widest shadow-xl group text-white mt-4"
             disabled={!isComplete || isSubmitting}
             onClick={finalizePlan}
           >
