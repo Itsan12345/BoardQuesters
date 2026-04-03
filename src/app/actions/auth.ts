@@ -1,3 +1,4 @@
+
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -20,20 +21,19 @@ export async function signUp(formData: FormData) {
     const user = await prisma.user.create({
       data: {
         email,
-        password, // In a production app, always hash the password with bcrypt
+        password, // In a production app, always hash the password
         name,
-        level: 24, // Starting level for the MVP as per UI designs
+        level: 24,
         xp: 12450,
       },
     });
 
-    // Simple session simulation for MVP
     (await cookies()).set('user_id', user.id);
     
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Signup error:', error);
-    return { success: false, error: 'Failed to create account.' };
+    return { success: false, error: 'Database connection failed. Please check MongoDB Network Access.' };
   }
 }
 
@@ -55,7 +55,7 @@ export async function login(formData: FormData) {
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Login error:', error);
-    return { success: false, error: 'Failed to log in.' };
+    return { success: false, error: 'Authentication service unavailable.' };
   }
 }
 
