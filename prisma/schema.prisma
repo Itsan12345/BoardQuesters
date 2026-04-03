@@ -1,44 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  email         String?   @unique
-  name          String?
-  level         Int       @default(1)
-  xp            Int       @default(0)
-  streak        Int       @default(0)
-  lastActive    DateTime? @default(now())
-  studyPlan     StudyPlan?
-  progress      SubjectProgress[]
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  level     Int      @default(1)
+  xp        Int      @default(0)
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plans     StudyPlan[]
 }
 
 model StudyPlan {
-  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId                  String   @unique @db.ObjectId
-  user                    User     @relation(fields: [userId], references: [id])
-  clinicalChemistryTarget DateTime
-  hematologyTarget        DateTime
-  microbiologyTarget      DateTime
-  immunohematologyTarget  DateTime
-  clinicalMicroscopyTarget DateTime
-  histopathLawsTarget     DateTime
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-}
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  subject     String
+  targetDate  DateTime
+  progress    Int      @default(0)
+  status      String   @default("not-started") // not-started, in-progress, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-model SubjectProgress {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String @db.ObjectId
-  user      User   @relation(fields: [userId], references: [id])
-  subject   String
-  mastery   Int    @default(0)
-  lessonsCompleted Int @default(0)
+  @@unique([userId, subject])
 }

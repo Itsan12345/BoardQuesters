@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -11,11 +10,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SUBJECT_AREAS } from '@/lib/game-logic';
+import { saveStudyPlan } from '@/app/actions/study-plan';
+import { useToast } from '@/hooks/use-toast';
 
 const FACULTY_DEADLINE = new Date(2025, 5, 30); // June 30, 2025
 
 export default function Onboarding() {
   const router = useRouter();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
 
@@ -29,11 +31,25 @@ export default function Onboarding() {
 
   const finalizePlan = async () => {
     setIsSubmitting(true);
-    // Simulation of database persistence
-    setTimeout(() => {
-      console.log("Plan deployed to MongoDB via Prisma:", targets);
+    // In a real app, we'd have the auth userId here. For MVP, we simulate.
+    const mockUserId = "65f1a2b3c4d5e6f7a8b9c0d1"; 
+    
+    const result = await saveStudyPlan(mockUserId, targets);
+    
+    if (result.success) {
+      toast({
+        title: "Strategy Deployed",
+        description: "Your personalized study timeline is now synced with your dashboard.",
+      });
       router.push('/');
-    }, 1500);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Sync Error",
+        description: "Could not save your plan to the central server. Please try again.",
+      });
+    }
+    setIsSubmitting(false);
   };
 
   return (
