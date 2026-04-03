@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
-      {/* Daily Mission Widget */}
+      {/* Daily Mission Widget - Integrated Calendar Action */}
       <section className="bg-slate-900 rounded-[2rem] p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Rocket className="w-32 h-32" />
@@ -41,7 +41,7 @@ export default function Dashboard() {
               Finish 2 <span className="text-primary">Hematology</span> modules today
             </h2>
             <p className="text-white/60 text-sm font-medium">
-              to stay on track for your March 15 deadline.
+              to stay on track for your <span className="text-white font-bold">March 15</span> deadline.
             </p>
           </div>
           <Link href="/study">

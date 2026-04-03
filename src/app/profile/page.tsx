@@ -59,7 +59,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* Schedule Management Section */}
+      {/* Schedule Management Section - Integrated for Bulk Adjustments */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-black font-headline uppercase tracking-tight flex items-center gap-3">

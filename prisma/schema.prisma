@@ -1,40 +1,44 @@
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
 model User {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  email         String    @unique
+  email         String?   @unique
   name          String?
   level         Int       @default(1)
   xp            Int       @default(0)
   streak        Int       @default(0)
-  targets       SubjectTarget[]
-  progress      StudyProgress[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  lastActive    DateTime? @default(now())
+  studyPlan     StudyPlan?
+  progress      SubjectProgress[]
 }
 
-model SubjectTarget {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
-  subjectName String
-  targetDate  DateTime
-  isCompleted Boolean  @default(false)
+model StudyPlan {
+  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                  String   @unique @db.ObjectId
+  user                    User     @relation(fields: [userId], references: [id])
+  clinicalChemistryTarget DateTime
+  hematologyTarget        DateTime
+  microbiologyTarget      DateTime
+  immunohematologyTarget  DateTime
+  clinicalMicroscopyTarget DateTime
+  histopathLawsTarget     DateTime
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
-model StudyProgress {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
-  subjectName String
-  moduleCount Int
-  mastery     Float
+model SubjectProgress {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
+  user      User   @relation(fields: [userId], references: [id])
+  subject   String
+  mastery   Int    @default(0)
+  lessonsCompleted Int @default(0)
 }

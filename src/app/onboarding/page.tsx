@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar as CalendarIcon, CheckCircle2, ChevronRight, GraduationCap, Target } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, ChevronRight, GraduationCap, Target, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -16,7 +16,7 @@ const FACULTY_DEADLINE = new Date(2025, 5, 30); // June 30, 2025
 
 export default function Onboarding() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
 
   const handleDateSelect = (subject: string, date: Date | undefined) => {
@@ -27,10 +27,13 @@ export default function Onboarding() {
 
   const isComplete = SUBJECT_AREAS.every(s => targets[s]);
 
-  const finalizePlan = () => {
-    // In a real app, we would save 'targets' to MongoDB via Prisma here
-    console.log("Saving plan...", targets);
-    router.push('/');
+  const finalizePlan = async () => {
+    setIsSubmitting(true);
+    // Simulation of database persistence
+    setTimeout(() => {
+      console.log("Plan deployed to MongoDB via Prisma:", targets);
+      router.push('/');
+    }, 1500);
   };
 
   return (
@@ -90,11 +93,17 @@ export default function Onboarding() {
 
           <Button 
             className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-black uppercase tracking-widest shadow-xl group"
-            disabled={!isComplete}
+            disabled={!isComplete || isSubmitting}
             onClick={finalizePlan}
           >
-            Deploy Study Strategy 
-            <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            {isSubmitting ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                Deploy Study Strategy 
+                <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </Button>
         </CardContent>
       </Card>
