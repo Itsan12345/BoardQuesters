@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Settings, Award, Shield, History, MapPin, Calendar as CalendarIcon, Mail, Zap, Trophy, Swords, ClipboardCheck, Edit2, ChevronRight, LogOut } from 'lucide-react';
+import { User, Settings, Award, Shield, History, MapPin, Calendar as CalendarIcon, Mail, Zap, Trophy, Swords, ClipboardCheck, Edit2, ChevronRight, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
