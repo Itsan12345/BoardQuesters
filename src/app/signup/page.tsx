@@ -25,9 +25,10 @@ export default function SignupPage() {
     if (result.success) {
       toast({
         title: "Account Created",
-        description: "Welcome to BoardQuest. Let's set up your mission.",
+        description: "Welcome to BoardQuest. Expedition initialized.",
       });
-      router.push('/onboarding');
+      router.push('/');
+      router.refresh();
     } else {
       toast({
         variant: "destructive",

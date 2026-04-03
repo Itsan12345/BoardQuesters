@@ -1,10 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { 
-  ChevronRight, 
   BookMarked, 
   Clock, 
   PlayCircle,
@@ -14,122 +11,121 @@ import {
   Stethoscope,
   ShieldAlert,
   Search,
-  Trophy,
-  CheckCircle2,
-  AlertCircle,
-  Zap,
-  Sparkles,
   Calendar as CalendarIcon,
-  Edit2,
   Loader2
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { getStudyPlans } from '@/app/actions/study-plan';
-import { format } from 'date-fns';
+import { getStudyPlans, saveStudyPlan } from '@/app/actions/study-plan';
+import { format, startOfDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 const INITIAL_CURRICULUM = [
   {
     id: "clinical-chemistry",
     title: "Clinical Chemistry",
     icon: FlaskConical,
-    scores: [85, 78, 92, 60],
-    targetDate: null,
     lessons: [
       { id: "cc1", title: "Carbohydrate Metabolism & Disorders", duration: "45m", status: "completed" },
       { id: "cc2", title: "Lipid Profile & Lipoproteins", duration: "60m", status: "in-progress" },
-      { id: "cc3", title: "Renal Function Tests & NPNs", duration: "40m", status: "not-started" },
-      { id: "cc4", title: "Enzymology & Cardiac Markers", duration: "55m", status: "not-started" }
+      { id: "cc3", title: "Renal Function Tests & NPNs", duration: "40m", status: "not-started" }
     ]
   },
   {
     id: "hematology",
     title: "Hematology & Coagulation",
     icon: Microscope,
-    scores: [70, 45, 80],
-    targetDate: null,
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
-      { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" },
-      { id: "hem3", title: "Hemostasis & Platelet Function", duration: "45m", status: "not-started" }
+      { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" }
     ]
   },
   {
     id: "microbiology",
     title: "Clinical Microbiology",
     icon: Database,
-    scores: [45, 50],
-    targetDate: null,
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
-      { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" },
-      { id: "mic3", title: "Mycology & Virology Overview", duration: "40m", status: "not-started" }
+      { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" }
     ]
   },
   {
     id: "immunohematology",
     title: "Immunohematology",
     icon: Stethoscope,
-    scores: [82, 75, 88],
-    targetDate: null,
     lessons: [
       { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
-      { id: "bb2", title: "Compatibility Testing & Crossmatching", duration: "45m", status: "completed" },
-      { id: "bb3", title: "Blood Component Therapy", duration: "50m", status: "not-started" }
+      { id: "bb2", title: "Blood Component Therapy", duration: "50m", status: "not-started" }
     ]
   },
   {
     id: "clinical-microscopy",
     title: "Clinical Microscopy",
     icon: FlaskConical,
-    scores: [72, 68, 75],
-    targetDate: null,
     lessons: [
       { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },
-      { id: "cm2", title: "Microscopic Examination of Sediments", duration: "60m", status: "in-progress" },
-      { id: "cm3", title: "CSF & Other Body Fluids Analysis", duration: "50m", status: "not-started" }
+      { id: "cm2", title: "CSF & Other Body Fluids Analysis", duration: "50m", status: "not-started" }
     ]
   },
   {
     id: "histopathology-mt-laws",
     title: "Histopathology & MT Laws",
     icon: ShieldAlert,
-    scores: [58, 62],
-    targetDate: null,
     lessons: [
       { id: "hp1", title: "Tissue Fixation & Processing", duration: "50m", status: "completed" },
-      { id: "hp2", title: "Staining Techniques & Microtomy", duration: "70m", status: "not-started" },
       { id: "law1", title: "RA 5527: Phil MedTech Act of 1969", duration: "45m", status: "not-started" }
     ]
   }
 ];
 
 export default function StudyPage() {
+  const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
   const [curriculum, setCurriculum] = useState(INITIAL_CURRICULUM);
-  const [selectedCategory, setSelectedCategory] = useState(INITIAL_CURRICULUM[0]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(INITIAL_CURRICULUM[0].id);
+  const [targetDates, setTargetDates] = useState<Record<string, Date>>({});
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState<string | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     async function loadPlans() {
       const plans = await getStudyPlans();
-      const updatedCurriculum = INITIAL_CURRICULUM.map(cat => {
-        const plan = plans.find(p => p.subject.includes(cat.title.split(' ')[0]));
-        return {
-          ...cat,
-          targetDate: plan ? new Date(plan.targetDate) : null
-        };
+      const dates: Record<string, Date> = {};
+      plans.forEach(p => {
+        dates[p.subject] = new Date(p.targetDate);
       });
-      setCurriculum(updatedCurriculum);
-      setSelectedCategory(updatedCurriculum[0]);
+      setTargetDates(dates);
       setLoading(false);
     }
     loadPlans();
   }, []);
+
+  const handleSetDate = async (subject: string, date: Date | undefined) => {
+    if (!date) return;
+    
+    setIsSaving(subject);
+    try {
+      const result = await saveStudyPlan({ [subject]: date });
+      if (result.success) {
+        setTargetDates(prev => ({ ...prev, [subject]: date }));
+        toast({ title: "Target Synchronized", description: `${subject} deadline set for ${format(date, "PPP")}.` });
+      } else {
+        toast({ variant: "destructive", title: "Sync Failed", description: result.error });
+      }
+    } finally {
+      setIsSaving(null);
+    }
+  };
+
+  const selectedCategory = curriculum.find(c => c.id === selectedCategoryId) || curriculum[0];
+  const selectedDate = targetDates[selectedCategory.title];
 
   return (
     <div className="min-h-full pb-20 lg:pb-12 bg-white">
@@ -143,13 +139,6 @@ export default function StudyPage() {
               <p className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
                 Intel Gathering & Concept Mastery
               </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/onboarding">
-                <Button variant="outline" size="sm" className="rounded-xl border-primary text-primary font-bold">
-                  <Edit2 className="w-3 h-3 mr-2" /> Edit Global Schedule
-                </Button>
-              </Link>
             </div>
           </div>
           <div className="relative">
@@ -168,12 +157,13 @@ export default function StudyPage() {
           <div className="grid grid-cols-1 gap-3">
             {curriculum.map((cat) => {
               const Icon = cat.icon;
-              const isActive = selectedCategory.id === cat.id;
+              const isActive = selectedCategoryId === cat.id;
+              const catDate = targetDates[cat.title];
 
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => setSelectedCategoryId(cat.id)}
                   className={cn(
                     "w-full flex items-center gap-4 p-5 rounded-3xl transition-all text-left border-2",
                     isActive 
@@ -197,7 +187,7 @@ export default function StudyPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <CalendarIcon className="w-3 h-3 text-slate-400" />
                       <span className="text-[10px] font-bold text-slate-500 uppercase">
-                        Target: {cat.targetDate ? format(cat.targetDate, "MMM dd, yyyy") : "Not Set"}
+                        {mounted && catDate ? format(catDate, "MMM dd, yyyy") : "No target set"}
                       </span>
                     </div>
                   </div>
@@ -209,29 +199,57 @@ export default function StudyPage() {
 
         <section className="lg:col-span-8 space-y-6">
           <Card className="border-none shadow-sm rounded-[2rem] bg-slate-50 border-2 border-slate-100 overflow-hidden">
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-start">
+            <CardHeader className="pb-4 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1">
                   <CardTitle className="font-headline font-black text-xl lg:text-2xl text-slate-900 uppercase">
                     {selectedCategory.title}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-[10px] font-black uppercase text-primary tracking-widest">
-                      Completion Target: {selectedCategory.targetDate ? format(selectedCategory.targetDate, "MMMM dd, yyyy") : "TBD"}
-                    </span>
-                  </div>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Discipline Parameters</p>
                 </div>
-                <Link href="/onboarding">
-                  <Button variant="ghost" size="icon" className="text-slate-400 hover:text-primary">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </Link>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className={cn(
+                        "rounded-xl border-2 h-12 px-6 flex items-center gap-3 transition-all",
+                        selectedDate ? "border-primary/20 bg-primary/5 text-primary" : "border-slate-200"
+                      )}
+                      disabled={isSaving === selectedCategory.title}
+                    >
+                      {isSaving === selectedCategory.title ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CalendarIcon className="w-4 h-4" />
+                      )}
+                      <div className="text-left">
+                        <p className="text-[8px] font-black uppercase text-muted-foreground leading-none mb-1">Target Date</p>
+                        <p className="text-xs font-bold leading-none">
+                          {mounted && selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Set Target"}
+                        </p>
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => handleSetDate(selectedCategory.title, date)}
+                      disabled={(date) => date < startOfDay(new Date())}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between items-end">
+                  <span className="text-xs font-black uppercase text-primary">Mastery Progress</span>
+                  <span className="text-xs font-bold text-slate-900">45%</span>
+                </div>
+                <Progress value={45} className="h-2.5 bg-slate-200" />
               </div>
             </CardHeader>
-            <CardContent>
-              <Progress value={45} className="h-2.5 bg-slate-200" />
-            </CardContent>
           </Card>
 
           <Card className="border-none shadow-sm rounded-[2rem] bg-white border-2 border-slate-100 overflow-hidden">
