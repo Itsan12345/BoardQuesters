@@ -14,6 +14,7 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
       return { success: false, error: 'Aspirant session not found. Please log in.' };
     }
 
+    // Use a transaction for reliability
     const operations = Object.entries(targets).map(([subject, date]) => {
       return prisma.studyPlan.upsert({
         where: {
@@ -42,7 +43,7 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
     return { success: true };
   } catch (error) {
     console.error('Failed to save study plan:', error);
-    return { success: false, error: 'Tactical sync failed. Please ensure database connectivity.' };
+    return { success: false, error: 'Tactical sync failed. Ensure you ran npx prisma db push.' };
   }
 }
 
