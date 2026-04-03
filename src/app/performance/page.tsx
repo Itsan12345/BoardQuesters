@@ -122,37 +122,37 @@ export default function PerformancePage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-none shadow-lg rounded-[2rem] bg-slate-900 text-white p-6 lg:p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-              <Target className="w-24 h-24" />
+          <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 lg:p-8 relative overflow-hidden border-t-4 border-primary">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
+              <Target className="w-24 h-24 text-primary" />
             </div>
             
             <div className="space-y-6 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary rounded-lg">
-                  <Target className="w-5 h-5 text-white" />
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Target className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Dailies / Objectives</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900/90">Dailies / Objectives</h3>
               </div>
 
               {nextObjective ? (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Active Objective</p>
-                    <p className="text-xl font-black font-headline text-white leading-tight">{nextObjective.subject}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Active Objective</p>
+                    <p className="text-xl font-black font-headline text-slate-900 leading-tight">{nextObjective.subject}</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold uppercase text-white/50">Target Date</p>
-                      <div className="flex items-center gap-2 text-xs font-bold">
-                        <CalendarIcon className="w-3 h-3 text-primary" />
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground">Target Date</p>
+                      <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                        <CalendarIcon className="w-3 h-3" />
                         {format(new Date(nextObjective.targetDate), "MMM dd")}
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold uppercase text-white/50">Intel Session</p>
-                      <div className="flex items-center gap-2 text-xs font-bold">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground">Intel Session</p>
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
                         <Clock className="w-3 h-3 text-primary" />
                         90 mins
                       </div>
@@ -161,15 +161,15 @@ export default function PerformancePage() {
 
                   <div className="pt-2 space-y-2">
                     <div className="flex justify-between items-center text-[10px] font-bold uppercase">
-                      <span className="text-white/60">Completion Buffer</span>
+                      <span className="text-muted-foreground">Completion Buffer</span>
                       <span className="text-primary">{daysRemaining} Days Left</span>
                     </div>
-                    <Progress value={Math.max(10, 100 - (daysRemaining * 10))} className="h-1.5 bg-white/10" />
+                    <Progress value={Math.max(10, 100 - (daysRemaining * 10))} className="h-1.5 bg-primary/5" />
                   </div>
                 </div>
               ) : (
                 <div className="py-6 text-center space-y-3">
-                  <p className="text-xs font-medium text-white/60">No objectives deployed. Visit the Curriculum to set your mission targets.</p>
+                  <p className="text-xs font-medium text-muted-foreground italic">No objectives deployed. Visit the Curriculum to set your mission targets.</p>
                 </div>
               )}
             </div>
