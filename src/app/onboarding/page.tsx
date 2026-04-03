@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar as CalendarIcon, CheckCircle2, ChevronRight, GraduationCap, Target, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,18 +21,16 @@ export default function Onboarding() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
-  const [openStates, setOpenStates] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleDateSelect = (subject: string, date: Date | undefined) => {
     if (date) {
       setTargets(prev => ({ ...prev, [subject]: date }));
-      // Close the popover after selection
-      setOpenStates(prev => ({ ...prev, [subject]: false }));
     }
-  };
-
-  const togglePopover = (subject: string, open: boolean) => {
-    setOpenStates(prev => ({ ...prev, [subject]: open }));
   };
 
   const isComplete = SUBJECT_AREAS.every(s => targets[s]);
@@ -41,7 +40,6 @@ export default function Onboarding() {
     
     const sanitizedTargets: Record<string, Date> = {};
     Object.entries(targets).forEach(([sub, date]) => {
-      // Ensure we only save the date part
       sanitizedTargets[sub] = startOfDay(date);
     });
 
@@ -102,7 +100,7 @@ export default function Onboarding() {
               {SUBJECT_AREAS.map((subject) => (
                 <div key={subject} className="space-y-2">
                   <label className="text-xs font-bold text-slate-600 uppercase">{subject}</label>
-                  <Popover open={openStates[subject]} onOpenChange={(open) => togglePopover(subject, open)}>
+                  <Popover>
                     <PopoverTrigger asChild>
                       <button className={cn(
                         "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all outline-none",
@@ -111,7 +109,7 @@ export default function Onboarding() {
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         <span className="text-sm font-medium">
-                          {targets[subject] ? format(targets[subject], "PPP") : "Set Target Date"}
+                          {mounted && targets[subject] ? format(targets[subject], "PPP") : "Set Target Date"}
                         </span>
                       </button>
                     </PopoverTrigger>
