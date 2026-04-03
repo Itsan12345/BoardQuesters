@@ -1,3 +1,4 @@
+
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -13,8 +14,6 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
       return { success: false, error: 'Aspirant session not found. Please log in.' };
     }
 
-    // Process each subject individually using the compound unique key defined in schema.prisma
-    // @@unique([userId, subject])
     const operations = Object.entries(targets).map(([subject, date]) => {
       return prisma.studyPlan.upsert({
         where: {

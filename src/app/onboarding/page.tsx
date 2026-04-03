@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -20,18 +21,11 @@ export default function Onboarding() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
-  const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
 
   const handleDateSelect = (subject: string, date: Date | undefined) => {
     if (date) {
       setTargets(prev => ({ ...prev, [subject]: date }));
-      // Close popover after selection
-      setOpenPopovers(prev => ({ ...prev, [subject]: false }));
     }
-  };
-
-  const togglePopover = (subject: string, isOpen: boolean) => {
-    setOpenPopovers(prev => ({ ...prev, [subject]: isOpen }));
   };
 
   const isComplete = SUBJECT_AREAS.every(s => targets[s]);
@@ -39,7 +33,6 @@ export default function Onboarding() {
   const finalizePlan = async () => {
     setIsSubmitting(true);
     
-    // Ensure all dates are stored as start of day for consistency
     const sanitizedTargets: Record<string, Date> = {};
     Object.entries(targets).forEach(([sub, date]) => {
       sanitizedTargets[sub] = startOfDay(date);
@@ -102,10 +95,7 @@ export default function Onboarding() {
               {SUBJECT_AREAS.map((subject) => (
                 <div key={subject} className="space-y-2">
                   <label className="text-xs font-bold text-slate-600 uppercase">{subject}</label>
-                  <Popover 
-                    open={openPopovers[subject]} 
-                    onOpenChange={(open) => togglePopover(subject, open)}
-                  >
+                  <Popover>
                     <PopoverTrigger asChild>
                       <button className={cn(
                         "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all",
@@ -125,7 +115,6 @@ export default function Onboarding() {
                         onSelect={(date) => handleDateSelect(subject, date)}
                         disabled={(date) => {
                           const today = startOfDay(new Date());
-                          // Allow selection from today up to faculty deadline
                           return date < today || date > FACULTY_DEADLINE;
                         }}
                         initialFocus
