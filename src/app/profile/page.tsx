@@ -11,19 +11,24 @@ import Link from 'next/link';
 import { logout } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-
-const STUDY_SCHEDULE = [
-  { subject: "Clinical Chemistry", date: "Mar 15, 2025", progress: 85 },
-  { subject: "Hematology", date: "Apr 05, 2025", progress: 65 },
-  { subject: "Microbiology", date: "Apr 30, 2025", progress: 45 },
-  { subject: "Immunohematology", date: "May 10, 2025", progress: 82 },
-  { subject: "Clinical Microscopy", date: "May 25, 2025", progress: 72 },
-  { subject: "Histopathology", date: "Jun 15, 2025", progress: 58 },
-];
+import { useState, useEffect } from 'react';
+import { getStudyPlans } from '@/app/actions/study-plan';
+import { format } from 'date-fns';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [studyPlans, setStudyPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPlans() {
+      const plans = await getStudyPlans();
+      setStudyPlans(plans);
+      setLoading(false);
+    }
+    loadPlans();
+  }, []);
 
   async function handleLogout() {
     await logout();
@@ -84,36 +89,42 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* Schedule Management Section - Integrated for Bulk Adjustments */}
+      {/* Schedule Management Section */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-black font-headline uppercase tracking-tight flex items-center gap-3">
             <CalendarIcon className="w-6 h-6 text-primary" />
             Study Expedition Timeline
           </h2>
-          <Link href="/onboarding">
+          <Link href="/study">
             <Button variant="outline" className="rounded-xl border-primary text-primary font-bold">
-              <Edit2 className="w-4 h-4 mr-2" /> Bulk Adjust
+              <Edit2 className="w-4 h-4 mr-2" /> Adjust Timeline
             </Button>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {STUDY_SCHEDULE.map((item) => (
-            <Card key={item.subject} className="border-none shadow-md rounded-2xl bg-white overflow-hidden">
-              <div className="p-6 space-y-4">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-black text-sm uppercase tracking-tight text-slate-900">{item.subject}</h4>
-                  <Badge variant="secondary" className="text-[9px] font-black uppercase">{item.progress}%</Badge>
+          {loading ? (
+             <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+          ) : studyPlans.length > 0 ? (
+            studyPlans.map((item) => (
+              <Card key={item.subject} className="border-none shadow-md rounded-2xl bg-white overflow-hidden">
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-black text-sm uppercase tracking-tight text-slate-900">{item.subject}</h4>
+                    <Badge variant="secondary" className="text-[9px] font-black uppercase">Active</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    Target: {format(new Date(item.targetDate), "MMM dd, yyyy")}
+                  </div>
+                  <Progress value={65} className="h-1.5" />
                 </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                  <CalendarIcon className="w-3.5 h-3.5" />
-                  Target: {item.date}
-                </div>
-                <Progress value={item.progress} className="h-1.5" />
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full py-12 text-center text-muted-foreground font-medium">No target dates set yet. Visit the Study Curriculum to initiate your timeline.</div>
+          )}
         </div>
       </section>
 

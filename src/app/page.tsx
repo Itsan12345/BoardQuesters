@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -46,7 +45,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
-      {/* Daily Mission Widget - Integrated Calendar Action */}
+      {/* Daily Mission Widget */}
       <section className="bg-slate-900 rounded-[2rem] p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl min-h-[180px] flex items-center">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Rocket className="w-32 h-32" />
@@ -79,12 +78,12 @@ export default function Dashboard() {
         ) : (
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
             <div className="space-y-2 text-center md:text-left">
-              <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">Setup Your Study Expedition</h2>
-              <p className="text-white/60 text-sm font-medium">No active mission detected. Initialize your study plan now.</p>
+              <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">Strategize Your Success</h2>
+              <p className="text-white/60 text-sm font-medium">No active mission detected. Set target dates in the Study Curriculum.</p>
             </div>
-            <Link href="/onboarding">
+            <Link href="/study">
               <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
-                Setup Plan
+                View Curriculum
               </Button>
             </Link>
           </div>
@@ -94,7 +93,7 @@ export default function Dashboard() {
       <section className="space-y-4 lg:space-y-6">
         <h1 className="text-2xl lg:text-4xl font-black font-headline tracking-tight leading-tight text-[#1a1a1a]">
           Aspirant Dashboard <br />
-          <span className="text-primary">Strategize Your Success</span>
+          <span className="text-primary">Master the Lab Sciences</span>
         </h1>
         <div className="flex flex-wrap gap-4">
           <Link href="/quest" className="w-full sm:w-auto">

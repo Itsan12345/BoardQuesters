@@ -27,6 +27,7 @@ export default function SignupPage() {
         title: "Account Created",
         description: "Welcome to BoardQuest. Expedition initialized.",
       });
+      // Redirect directly to dashboard instead of onboarding
       router.push('/');
       router.refresh();
     } else {
