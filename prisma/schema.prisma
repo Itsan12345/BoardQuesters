@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,13 +12,15 @@ datasource db {
 
 model User {
   id            String          @id @default(auto()) @map("_id") @db.ObjectId
-  email         String?         @unique
-  name          String?
-  xp            Int             @default(0)
+  email         String          @unique
+  password      String
+  name          String
   level         Int             @default(1)
+  xp            Int             @default(0)
   streak        Int             @default(0)
+  lastActive    DateTime        @default(now())
   studyPlans    StudyPlan[]
-  progress      SubjectProgress[]
+  achievements  Achievement[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -23,20 +28,23 @@ model User {
 model StudyPlan {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
   subject     String
   targetDate  DateTime
-  user        User     @relation(fields: [userId], references: [id])
+  progress    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, subject])
 }
 
-model SubjectProgress {
+model Achievement {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
-  subject     String
-  mastery     Float    @default(0)
-  minScore    Float    @default(0)
   user        User     @relation(fields: [userId], references: [id])
-
-  @@unique([userId, subject])
+  title       String
+  description String
+  type        String   // "quest", "exam", "streak"
+  xpEarned    Int
+  createdAt   DateTime @default(now())
 }
