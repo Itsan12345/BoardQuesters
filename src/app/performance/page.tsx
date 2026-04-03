@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { getUserStats } from '@/app/actions/user';
+import { SUBJECT_AREAS } from '@/lib/game-logic';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, any> = {
@@ -44,14 +45,26 @@ export default function PerformancePage() {
     );
   }
 
-  const masteryData = user?.mastery.map((m: any) => ({
-    subject: m.subject.split(' ')[0], // Short name for chart
+  // Ensure we always have all 6 subjects even if user has no mastery records yet
+  const fullMastery = SUBJECT_AREAS.map(subjectName => {
+    const existing = user?.mastery?.find((m: any) => m.subject === subjectName);
+    return {
+      subject: subjectName,
+      shortName: subjectName.split(' ')[0], // Short name for chart
+      proficiency: existing?.proficiency || 0,
+      status: existing?.status || "In Training",
+      fullMark: 100
+    };
+  });
+
+  const masteryData = fullMastery.map(m => ({
+    subject: m.shortName,
     proficiency: m.proficiency,
     fullMark: 100
-  })) || [];
+  }));
 
-  const avgMastery = user?.mastery.length > 0 
-    ? (user.mastery.reduce((acc: number, m: any) => acc + m.proficiency, 0) / user.mastery.length).toFixed(1)
+  const avgMastery = fullMastery.length > 0 
+    ? (fullMastery.reduce((acc: number, m: any) => acc + m.proficiency, 0) / fullMastery.length).toFixed(1)
     : "0.0";
 
   return (
@@ -114,7 +127,7 @@ export default function PerformancePage() {
           Technical Breakdown
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {user?.mastery.map((item: any) => {
+          {fullMastery.map((item: any) => {
             const Icon = ICON_MAP[item.subject] || Database;
             return (
               <Card key={item.subject} className="border-none shadow-md rounded-[2rem] bg-white border-t-4 border-primary/20 p-6 space-y-4">
