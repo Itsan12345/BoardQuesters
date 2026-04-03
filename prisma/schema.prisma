@@ -8,27 +8,35 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  name      String?
-  level     Int      @default(1)
-  xp        Int      @default(0)
-  streak    Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  plans     StudyPlan[]
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  email         String?         @unique
+  name          String?
+  xp            Int             @default(0)
+  level         Int             @default(1)
+  streak        Int             @default(0)
+  studyPlans    StudyPlan[]
+  progress      SubjectProgress[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model StudyPlan {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
   subject     String
   targetDate  DateTime
-  progress    Int      @default(0)
-  status      String   @default("not-started") // not-started, in-progress, completed
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, subject])
+}
+
+model SubjectProgress {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  subject     String
+  mastery     Float    @default(0)
+  minScore    Float    @default(0)
+  user        User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, subject])
 }
