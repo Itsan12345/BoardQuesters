@@ -1,4 +1,3 @@
-
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -14,7 +13,8 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
       return { success: false, error: 'Aspirant session not found. Please log in.' };
     }
 
-    // Process each subject individually to ensure upsert works correctly with compound unique key
+    // Process each subject individually using the compound unique key defined in schema.prisma
+    // @@unique([userId, subject])
     const operations = Object.entries(targets).map(([subject, date]) => {
       return prisma.studyPlan.upsert({
         where: {
@@ -24,12 +24,12 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
           },
         },
         update: {
-          targetDate: date,
+          targetDate: new Date(date),
         },
         create: {
           userId,
           subject,
-          targetDate: date,
+          targetDate: new Date(date),
         },
       });
     });
@@ -43,7 +43,7 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
     return { success: true };
   } catch (error) {
     console.error('Failed to save study plan:', error);
-    return { success: false, error: 'Tactical sync failed. Check database connection.' };
+    return { success: false, error: 'Tactical sync failed. Please ensure database connectivity.' };
   }
 }
 

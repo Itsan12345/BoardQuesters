@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -21,11 +20,18 @@ export default function Onboarding() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [targets, setTargets] = useState<Record<string, Date>>({});
+  const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
 
   const handleDateSelect = (subject: string, date: Date | undefined) => {
     if (date) {
       setTargets(prev => ({ ...prev, [subject]: date }));
+      // Close popover after selection
+      setOpenPopovers(prev => ({ ...prev, [subject]: false }));
     }
+  };
+
+  const togglePopover = (subject: string, isOpen: boolean) => {
+    setOpenPopovers(prev => ({ ...prev, [subject]: isOpen }));
   };
 
   const isComplete = SUBJECT_AREAS.every(s => targets[s]);
@@ -39,33 +45,42 @@ export default function Onboarding() {
       sanitizedTargets[sub] = startOfDay(date);
     });
 
-    const result = await saveStudyPlan(sanitizedTargets);
-    
-    if (result.success) {
-      toast({
-        title: "Strategy Deployed",
-        description: "Your personalized study timeline is now synced with your dashboard.",
-      });
-      router.push('/');
-    } else {
+    try {
+      const result = await saveStudyPlan(sanitizedTargets);
+      
+      if (result.success) {
+        toast({
+          title: "Strategy Deployed",
+          description: "Your personalized study timeline is now synced with your dashboard.",
+        });
+        router.push('/');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Sync Error",
+          description: result.error || "Could not save your plan. Please check your connection.",
+        });
+      }
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "Sync Error",
-        description: result.error || "Could not save your plan. Please check your connection.",
+        title: "Tactical Error",
+        description: "An unexpected error occurred during mission deployment.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full border-none shadow-2xl rounded-[2rem] overflow-hidden">
+      <Card className="max-w-2xl w-full border-none shadow-2xl rounded-[2rem] overflow-hidden bg-white">
         <div className="h-2 bg-primary" />
         <CardHeader className="p-8 lg:p-12 text-center space-y-4">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-black font-headline uppercase tracking-tight">
+          <CardTitle className="text-3xl font-black font-headline uppercase tracking-tight text-slate-900">
             Setup Your Study Plan
           </CardTitle>
           <CardDescription className="text-base font-medium">
@@ -87,16 +102,21 @@ export default function Onboarding() {
               {SUBJECT_AREAS.map((subject) => (
                 <div key={subject} className="space-y-2">
                   <label className="text-xs font-bold text-slate-600 uppercase">{subject}</label>
-                  <Popover>
+                  <Popover 
+                    open={openPopovers[subject]} 
+                    onOpenChange={(open) => togglePopover(subject, open)}
+                  >
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn(
-                        "w-full justify-start text-left font-normal rounded-xl h-12 border-2 transition-all",
-                        !targets[subject] && "text-muted-foreground",
+                      <button className={cn(
+                        "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all",
+                        !targets[subject] && "text-muted-foreground border-slate-200",
                         targets[subject] && "border-primary/20 bg-primary/5 text-primary"
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {targets[subject] ? format(targets[subject], "PPP") : "Set Target Date"}
-                      </Button>
+                        <span className="text-sm font-medium">
+                          {targets[subject] ? format(targets[subject], "PPP") : "Set Target Date"}
+                        </span>
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
@@ -105,6 +125,7 @@ export default function Onboarding() {
                         onSelect={(date) => handleDateSelect(subject, date)}
                         disabled={(date) => {
                           const today = startOfDay(new Date());
+                          // Allow selection from today up to faculty deadline
                           return date < today || date > FACULTY_DEADLINE;
                         }}
                         initialFocus
@@ -117,7 +138,7 @@ export default function Onboarding() {
           </div>
 
           <Button 
-            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-black uppercase tracking-widest shadow-xl group"
+            className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-lg font-black uppercase tracking-widest shadow-xl group text-white"
             disabled={!isComplete || isSubmitting}
             onClick={finalizePlan}
           >
