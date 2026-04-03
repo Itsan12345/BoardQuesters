@@ -3,96 +3,68 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Radar, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis,
-  ResponsiveContainer,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
 } from 'recharts';
 import { 
-  TrendingUp, 
-  Target, 
-  Award, 
-  FlaskConical, 
-  Microscope, 
-  Database, 
-  Stethoscope, 
-  ShieldAlert, 
-  AlertCircle,
-  CheckCircle2,
-  Sparkles,
-  Calendar as CalendarIcon
+  TrendingUp, Target, Award, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, Sparkles, Loader2 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { getUserStats } from '@/app/actions/user';
 import { cn } from '@/lib/utils';
 
-const masteryData = [
-  { subject: 'Chemistry', proficiency: 78, fullMark: 100 },
-  { subject: 'Hematology', proficiency: 65, fullMark: 100 },
-  { subject: 'Microbiology', proficiency: 45, fullMark: 100 },
-  { subject: 'Blood Bank', proficiency: 82, fullMark: 100 },
-  { subject: 'Clinical Micro', proficiency: 72, fullMark: 100 },
-  { subject: 'Histopath', proficiency: 58, fullMark: 100 },
-];
-
-const subjectDetails = [
-  { label: "Clinical Chemistry", val: 78, min: 60, icon: FlaskConical, status: "Mastered" },
-  { label: "Hematology", val: 65, min: 45, icon: Microscope, status: "Review Needed" },
-  { label: "Microbiology", val: 45, min: 30, icon: Database, status: "Critical" },
-  { label: "Blood Bank", val: 82, min: 70, icon: Stethoscope, status: "Mastered" },
-  { label: "Clinical Microscopy", val: 72, min: 55, icon: FlaskConical, status: "In Training" },
-  { label: "Histopathology & MT Laws", val: 58, min: 50, icon: ShieldAlert, status: "In Training" }
-];
+const ICON_MAP: Record<string, any> = {
+  "Clinical Chemistry": FlaskConical,
+  "Hematology": Microscope,
+  "Microbiology": Database,
+  "Immunohematology": Stethoscope,
+  "Clinical Microscopy": FlaskConical,
+  "Histopathology & MT Laws": ShieldAlert
+};
 
 export default function PerformancePage() {
-  const [studyDate, setStudyDate] = useState<Date | undefined>(undefined);
-  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    setStudyDate(new Date());
+    async function loadData() {
+      const stats = await getUserStats();
+      setUser(stats);
+      setLoading(false);
+    }
+    loadData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const masteryData = user?.mastery.map((m: any) => ({
+    subject: m.subject.split(' ')[0], // Short name for chart
+    proficiency: m.proficiency,
+    fullMark: 100
+  })) || [];
+
+  const avgMastery = user?.mastery.length > 0 
+    ? (user.mastery.reduce((acc: number, m: any) => acc + m.proficiency, 0) / user.mastery.length).toFixed(1)
+    : "0.0";
 
   return (
     <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-10 pb-24 lg:pb-12">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl lg:text-4xl font-black font-headline tracking-tight leading-tight">Technical Mastery</h1>
-          <p className="text-muted-foreground text-sm lg:text-lg">Active analytics based on the 75/50 proficiency formula.</p>
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="h-12 px-6 rounded-2xl border-2 flex gap-2 w-full sm:w-auto">
-              <CalendarIcon className="w-5 h-5 text-primary" />
-              <div className="text-left">
-                <p className="text-[8px] font-black uppercase text-muted-foreground">Self-Pacing Goal</p>
-                <p className="text-xs font-bold">{mounted && studyDate ? format(studyDate, "PPP") : "Set Timeline"}</p>
-              </div>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar mode="single" selected={studyDate} onSelect={setStudyDate} initialFocus />
-          </PopoverContent>
-        </Popover>
+      <header className="space-y-2">
+        <h1 className="text-3xl lg:text-4xl font-black font-headline tracking-tight leading-tight">Technical Mastery</h1>
+        <p className="text-muted-foreground text-sm lg:text-lg">Real-time analytics based on your quest performance.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
           <CardHeader className="bg-muted/30 border-b pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="font-headline text-lg lg:text-xl font-black uppercase tracking-tight">Proficiency Radar</CardTitle>
-                <CardDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Domain analysis for board readiness.</CardDescription>
-              </div>
-              <Target className="w-8 h-8 text-primary opacity-20" />
-            </div>
+            <CardTitle className="font-headline text-lg lg:text-xl font-black uppercase tracking-tight">Proficiency Radar</CardTitle>
           </CardHeader>
           <CardContent className="p-4 lg:p-8">
             <div className="h-[300px] lg:h-[400px] w-full">
@@ -112,31 +84,25 @@ export default function PerformancePage() {
           <Card className="border-none shadow-lg rounded-[2rem] bg-primary text-white p-6 lg:p-8">
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/20 rounded-2xl">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
+                <TrendingUp className="w-8 h-8" />
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Mastery Rating</p>
-                  <p className="text-3xl font-black font-headline tracking-tighter">67.4%</p>
+                  <p className="text-3xl font-black font-headline tracking-tighter">{avgMastery}%</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                  <span>Threshold: 75% Avg</span>
-                  <span className="opacity-80">Goal: {mounted && studyDate ? format(studyDate, "MMM dd") : 'Set Date'}</span>
-                </div>
-                <Progress value={67.4} className="h-2 bg-white/20" />
-              </div>
+              <Progress value={parseFloat(avgMastery)} className="h-2 bg-white/20" />
             </div>
           </Card>
 
-          <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 lg:p-8 space-y-4 border-l-4 border-primary">
+          <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 border-l-4 border-primary">
             <h3 className="font-black font-headline text-lg flex items-center gap-2 uppercase tracking-tight">
               <Sparkles className="w-5 h-5 text-primary" />
               Strategist Insight
             </h3>
             <p className="text-sm text-muted-foreground italic leading-relaxed">
-              "You have failed to reach Mastery in Microbiology (Current: 45%). Your timeline indicates you must resolve this by {mounted && studyDate ? format(studyDate, "MMM dd") : 'next week'}."
+              {parseFloat(avgMastery) < 75 
+                ? "Your current average is below board standards. Focus on subjects with proficiency under 50%." 
+                : "You are maintaining board-standard accuracy. Keep this consistency for the mock exam phase."}
             </p>
           </Card>
         </div>
@@ -145,33 +111,22 @@ export default function PerformancePage() {
       <section className="space-y-6">
         <h2 className="text-2xl font-black font-headline flex items-center gap-3 uppercase tracking-tight">
           <Award className="w-6 h-6 text-primary" />
-          Technical Breakdown (75/50 Formula)
+          Technical Breakdown
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjectDetails.map((item) => {
-            const Icon = item.icon;
-            const isMastered = item.val >= 75 && item.min >= 50;
+          {user?.mastery.map((item: any) => {
+            const Icon = ICON_MAP[item.subject] || Database;
             return (
-              <Card key={item.label} className={cn("border-none shadow-md rounded-[2rem] bg-white overflow-hidden border-t-4", isMastered ? "border-green-500" : "border-primary/20")}>
-                <div className="p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className={cn("p-3 rounded-2xl", isMastered ? "bg-green-100 text-green-600" : "bg-primary/5 text-primary")}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest">{item.status}</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="font-black text-sm uppercase tracking-tight">{item.label}</h4>
-                    <div className="flex items-end justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-2xl font-black font-headline text-primary">{item.val}% <span className="text-[10px] text-muted-foreground uppercase font-bold">Avg</span></span>
-                        <span className="text-xs font-bold text-muted-foreground">{item.min}% <span className="text-[8px] uppercase">Min</span></span>
-                      </div>
-                      {isMastered ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <AlertCircle className="w-6 h-6 text-primary" />}
-                    </div>
-                  </div>
-                  <Progress value={item.val} className="h-1.5" />
+              <Card key={item.subject} className="border-none shadow-md rounded-[2rem] bg-white border-t-4 border-primary/20 p-6 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="p-3 bg-primary/5 text-primary rounded-2xl"><Icon className="h-6 w-6" /></div>
+                  <Badge variant="outline" className="text-[9px] font-black uppercase">{item.status}</Badge>
                 </div>
+                <div>
+                  <h4 className="font-black text-sm uppercase tracking-tight truncate">{item.subject}</h4>
+                  <p className="text-2xl font-black font-headline text-primary">{item.proficiency}% <span className="text-[10px] text-muted-foreground uppercase font-bold">Avg</span></p>
+                </div>
+                <Progress value={item.proficiency} className="h-1.5" />
               </Card>
             );
           })}

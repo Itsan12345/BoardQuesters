@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,16 +9,33 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  email      String   @unique
-  password   String
-  name       String
-  level      Int      @default(1)
-  xp         Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
-  studyPlans StudyPlan[]
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  password  String
+  name      String
+  level     Int      @default(1)
+  xp        Int      @default(0)
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  studyPlans      StudyPlan[]
+  mastery         SubjectMastery[]
+  achievements    Achievement[]
+  examResults     ExamResult[]
+}
+
+model SubjectMastery {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  subject     String
+  proficiency Int      @default(0)
+  minScore    Int      @default(0)
+  status      String   @default("In Training")
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
 }
 
 model StudyPlan {
@@ -25,10 +43,31 @@ model StudyPlan {
   userId     String   @db.ObjectId
   subject    String
   targetDate DateTime
-  createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user       User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subject])
+}
+
+model Achievement {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  task      String
+  type      String   // 'quest' | 'exam'
+  xp        Int
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ExamResult {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  score     Int
+  total     Int
+  accuracy  Float
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

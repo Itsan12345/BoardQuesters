@@ -1,47 +1,59 @@
+
 "use client";
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info, Rocket, CheckCircle2, Loader2 } from 'lucide-react';
+import { Zap, ChevronRight, Rocket, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { getUserStats, getLeaderboard } from '@/app/actions/user';
 import { getStudyPlans } from '@/app/actions/study-plan';
 import { format } from 'date-fns';
 
-const leaderboardUsers = [
-  { name: "Stefan Cong", xp: "2,500 XP", initial: "C" },
-  { name: "Ryan Go", xp: "2,480 XP", initial: "R" },
-  { name: "Kevin Yap Gomez", xp: "2,350 XP", initial: "K" },
-];
-
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [nextMilestone, setNextMilestone] = useState<{ subject: string; date: Date } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    async function loadPlan() {
-      const plans = await getStudyPlans();
+    async function loadData() {
+      const [stats, leaders, plans] = await Promise.all([
+        getUserStats(),
+        getLeaderboard(),
+        getStudyPlans()
+      ]);
+      
+      setUser(stats);
+      setLeaderboard(leaders);
+
       if (plans && plans.length > 0) {
-        // Find the next milestone (first plan that is in the future or closest to today)
         const today = new Date();
         const futurePlans = plans.filter(p => new Date(p.targetDate) >= today);
         const activePlan = futurePlans.length > 0 ? futurePlans[0] : plans[plans.length - 1];
-        
-        setNextMilestone({
-          subject: activePlan.subject,
-          date: new Date(activePlan.targetDate)
-        });
+        setNextMilestone({ subject: activePlan.subject, date: new Date(activePlan.targetDate) });
       }
       setLoading(false);
     }
-    loadPlan();
+    loadData();
   }, []);
+
+  const totalMastery = user?.mastery?.length > 0 
+    ? Math.round(user.mastery.reduce((acc: number, m: any) => acc + m.proficiency, 0) / user.mastery.length)
+    : 0;
+
+  if (!mounted || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
@@ -51,11 +63,7 @@ export default function Dashboard() {
           <Rocket className="w-32 h-32" />
         </div>
         
-        {loading ? (
-          <div className="w-full flex justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : nextMilestone ? (
+        {nextMilestone ? (
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
             <div className="space-y-2 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
@@ -76,14 +84,14 @@ export default function Dashboard() {
             </Link>
           </div>
         ) : (
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
-            <div className="space-y-2 text-center md:text-left">
-              <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">Strategize Your Success</h2>
-              <p className="text-white/60 text-sm font-medium">No active mission detected. Set target dates in the Study Curriculum.</p>
-            </div>
-            <Link href="/study">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full text-center md:text-left">
+             <div className="space-y-2">
+                <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">Strategize Your Success</h2>
+                <p className="text-white/60 text-sm font-medium">No target dates set. Visit the Study Curriculum to initiate your timeline.</p>
+             </div>
+             <Link href="/study">
               <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
-                View Curriculum
+                Set Targets
               </Button>
             </Link>
           </div>
@@ -95,13 +103,11 @@ export default function Dashboard() {
           Aspirant Dashboard <br />
           <span className="text-primary">Master the Lab Sciences</span>
         </h1>
-        <div className="flex flex-wrap gap-4">
-          <Link href="/quest" className="w-full sm:w-auto">
-            <Button size="lg" className="w-full h-12 px-6 rounded-xl text-md font-bold shadow-lg bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
-              Start Quest <Zap className="h-4 w-4 fill-current" />
-            </Button>
-          </Link>
-        </div>
+        <Link href="/quest">
+          <Button size="lg" className="w-full sm:w-auto h-12 px-6 rounded-xl text-md font-bold shadow-lg bg-primary hover:bg-primary/90 flex items-center justify-center gap-2">
+            Start Quest <Zap className="h-4 w-4 fill-current" />
+          </Button>
+        </Link>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -113,22 +119,22 @@ export default function Dashboard() {
                   <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] font-headline">BOARD READINESS</p>
                   <h3 className="text-lg lg:text-xl font-bold text-[#1a1a1a]">MedTech Licensure Mastery</h3>
                 </div>
-                <Badge className="bg-primary/10 text-primary border-none font-bold">Lvl 24</Badge>
+                <Badge className="bg-primary/10 text-primary border-none font-bold">Lvl {user?.level || 1}</Badge>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-end justify-between">
-                  <span className="text-4xl lg:text-5xl font-black font-headline text-primary leading-none">67%</span>
-                  <span className="text-[9px] lg:text-[10px] font-bold text-muted-foreground uppercase tracking-widest pb-1">Mastery Verified (Avg &ge; 75%)</span>
+                  <span className="text-4xl lg:text-5xl font-black font-headline text-primary leading-none">{totalMastery}%</span>
+                  <span className="text-[9px] lg:text-[10px] font-bold text-muted-foreground uppercase tracking-widest pb-1">Verified (Avg &ge; 75%)</span>
                 </div>
                 <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: '67%' }} />
+                  <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: `${totalMastery}%` }} />
                 </div>
               </div>
 
               <Link href="/study" className="block">
                 <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-white rounded-xl text-xs lg:text-sm font-bold flex items-center justify-center gap-3">
-                  Continue Review: Clinical Chemistry
+                  Continue Review Curriculum
                 </Button>
               </Link>
             </CardContent>
@@ -141,19 +147,16 @@ export default function Dashboard() {
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Global Hall of Fame</p>
             </CardHeader>
             <CardContent className="p-4 lg:p-6 space-y-6">
-              {leaderboardUsers.map((user, idx) => (
+              {leaderboard.map((u, idx) => (
                 <div key={idx} className="flex items-center gap-4 group">
-                  <div className="flex-shrink-0 w-6 text-center font-black text-muted-foreground text-sm italic">
-                    #{idx + 1}
-                  </div>
+                  <div className="flex-shrink-0 w-6 text-center font-black text-muted-foreground text-sm italic">#{idx + 1}</div>
                   <Avatar className="h-10 w-10 bg-accent border-none ring-offset-2 group-hover:ring-2 ring-accent/20 transition-all">
-                    <AvatarFallback className="bg-accent text-white text-xs font-black">{user.initial}</AvatarFallback>
+                    <AvatarFallback className="bg-accent text-white text-xs font-black">{u.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-[#1a1a1a] truncate">{user.name}</p>
-                    <p className="text-[9px] font-medium text-muted-foreground uppercase">{user.xp}</p>
+                    <p className="text-sm font-bold text-[#1a1a1a] truncate">{u.name}</p>
+                    <p className="text-[9px] font-medium text-muted-foreground uppercase">{u.xp.toLocaleString()} XP</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-30" />
                 </div>
               ))}
             </CardContent>
@@ -163,10 +166,9 @@ export default function Dashboard() {
              <div className="space-y-4">
                <h4 className="font-headline font-bold">Quest Streak</h4>
                <div className="flex items-center gap-4">
-                 <div className="text-4xl font-black">12</div>
+                 <div className="text-4xl font-black">{user?.streak || 0}</div>
                  <div className="text-[10px] font-bold uppercase leading-tight opacity-80">Days Active <br/> Consistent Review</div>
                </div>
-               <Progress value={85} className="h-1.5 bg-white/20" />
              </div>
           </Card>
         </div>

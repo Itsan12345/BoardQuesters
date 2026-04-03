@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { SUBJECT_AREAS } from '@/lib/game-logic';
 
 export async function signUp(formData: FormData) {
   const email = formData.get('email') as string;
@@ -18,14 +19,27 @@ export async function signUp(formData: FormData) {
       return { success: false, error: 'Email already in use.' };
     }
 
+    // Create user with Level 1, 0 XP
     const user = await prisma.user.create({
       data: {
         email,
-        password, // In a production app, always hash the password
+        password, // In production, hash this
         name,
-        level: 24,
-        xp: 12450,
+        level: 1,
+        xp: 0,
+        streak: 0,
       },
+    });
+
+    // Initialize Subject Mastery for all 6 areas at 0%
+    await prisma.subjectMastery.createMany({
+      data: SUBJECT_AREAS.map(subject => ({
+        userId: user.id,
+        subject,
+        proficiency: 0,
+        minScore: 0,
+        status: "In Training"
+      }))
     });
 
     (await cookies()).set('user_id', user.id);
@@ -33,7 +47,7 @@ export async function signUp(formData: FormData) {
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Signup error:', error);
-    return { success: false, error: 'Database connection failed. Please check MongoDB Network Access.' };
+    return { success: false, error: 'Database connection failed.' };
   }
 }
 
