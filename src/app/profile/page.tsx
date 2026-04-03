@@ -67,7 +67,7 @@ export default function ProfilePage() {
                   <Settings className="w-4 h-4 mr-2" /> Settings
                 </Button>
                 <Button variant="destructive" size="sm" className="rounded-xl font-bold" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4 mr-2" /> Terminate Session
+                  <LogOut className="w-4 h-4 mr-2" /> Logout
                 </Button>
               </div>
             </div>
