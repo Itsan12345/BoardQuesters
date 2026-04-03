@@ -31,10 +31,8 @@ export default function Onboarding() {
 
   const finalizePlan = async () => {
     setIsSubmitting(true);
-    // In a real app, we'd have the auth userId here. For MVP, we simulate.
-    const mockUserId = "65f1a2b3c4d5e6f7a8b9c0d1"; 
     
-    const result = await saveStudyPlan(mockUserId, targets);
+    const result = await saveStudyPlan(targets);
     
     if (result.success) {
       toast({
@@ -46,7 +44,7 @@ export default function Onboarding() {
       toast({
         variant: "destructive",
         title: "Sync Error",
-        description: "Could not save your plan to the central server. Please try again.",
+        description: result.error || "Could not save your plan. Please check your connection.",
       });
     }
     setIsSubmitting(false);
@@ -85,8 +83,9 @@ export default function Onboarding() {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn(
-                        "w-full justify-start text-left font-normal rounded-xl h-12 border-2",
-                        !targets[subject] && "text-muted-foreground"
+                        "w-full justify-start text-left font-normal rounded-xl h-12 border-2 transition-all",
+                        !targets[subject] && "text-muted-foreground",
+                        targets[subject] && "border-primary/20 bg-primary/5 text-primary"
                       )}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {targets[subject] ? format(targets[subject], "PPP") : "Set Target Date"}

@@ -1,14 +1,10 @@
-
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -16,13 +12,11 @@ model User {
   email     String   @unique
   password  String
   name      String
-  level     Int      @default(24)
-  xp        Int      @default(12450)
+  level     Int      @default(1)
+  xp        Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  studyPlans      StudyPlan[]
-  subjectProgress SubjectProgress[]
+  studyPlans StudyPlan[]
 }
 
 model StudyPlan {
@@ -30,25 +24,7 @@ model StudyPlan {
   userId     String   @db.ObjectId
   subject    String
   targetDate DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, subject])
-}
-
-model SubjectProgress {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  subject     String
-  proficiency Float    @default(0)
-  minScore    Float    @default(0)
-  status      String   @default("Not Started")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, subject])
 }
