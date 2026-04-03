@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ChevronRight, 
@@ -20,7 +20,8 @@ import {
   Zap,
   Sparkles,
   Calendar as CalendarIcon,
-  Edit2
+  Edit2,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -29,14 +30,16 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getStudyPlans } from '@/app/actions/study-plan';
+import { format } from 'date-fns';
 
-const MT_CURRICULUM = [
+const INITIAL_CURRICULUM = [
   {
     id: "clinical-chemistry",
     title: "Clinical Chemistry",
     icon: FlaskConical,
     scores: [85, 78, 92, 60],
-    targetDate: "Mar 15, 2025",
+    targetDate: null,
     lessons: [
       { id: "cc1", title: "Carbohydrate Metabolism & Disorders", duration: "45m", status: "completed" },
       { id: "cc2", title: "Lipid Profile & Lipoproteins", duration: "60m", status: "in-progress" },
@@ -49,7 +52,7 @@ const MT_CURRICULUM = [
     title: "Hematology & Coagulation",
     icon: Microscope,
     scores: [70, 45, 80],
-    targetDate: "Apr 05, 2025",
+    targetDate: null,
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
       { id: "hem2", title: "WBC Disorders & Leukemias", duration: "75m", status: "not-started" },
@@ -61,7 +64,7 @@ const MT_CURRICULUM = [
     title: "Clinical Microbiology",
     icon: Database,
     scores: [45, 50],
-    targetDate: "Apr 30, 2025",
+    targetDate: null,
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
       { id: "mic2", title: "Enterobacteriaceae & Non-fermenters", duration: "90m", status: "not-started" },
@@ -73,7 +76,7 @@ const MT_CURRICULUM = [
     title: "Immunohematology",
     icon: Stethoscope,
     scores: [82, 75, 88],
-    targetDate: "May 10, 2025",
+    targetDate: null,
     lessons: [
       { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
       { id: "bb2", title: "Compatibility Testing & Crossmatching", duration: "45m", status: "completed" },
@@ -85,7 +88,7 @@ const MT_CURRICULUM = [
     title: "Clinical Microscopy",
     icon: FlaskConical,
     scores: [72, 68, 75],
-    targetDate: "May 25, 2025",
+    targetDate: null,
     lessons: [
       { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },
       { id: "cm2", title: "Microscopic Examination of Sediments", duration: "60m", status: "in-progress" },
@@ -93,11 +96,11 @@ const MT_CURRICULUM = [
     ]
   },
   {
-    id: "histopath-laws",
+    id: "histopathology-mt-laws",
     title: "Histopathology & MT Laws",
     icon: ShieldAlert,
     scores: [58, 62],
-    targetDate: "Jun 15, 2025",
+    targetDate: null,
     lessons: [
       { id: "hp1", title: "Tissue Fixation & Processing", duration: "50m", status: "completed" },
       { id: "hp2", title: "Staining Techniques & Microtomy", duration: "70m", status: "not-started" },
@@ -107,7 +110,26 @@ const MT_CURRICULUM = [
 ];
 
 export default function StudyPage() {
-  const [selectedCategory, setSelectedCategory] = useState(MT_CURRICULUM[0]);
+  const [curriculum, setCurriculum] = useState(INITIAL_CURRICULUM);
+  const [selectedCategory, setSelectedCategory] = useState(INITIAL_CURRICULUM[0]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPlans() {
+      const plans = await getStudyPlans();
+      const updatedCurriculum = INITIAL_CURRICULUM.map(cat => {
+        const plan = plans.find(p => p.subject.includes(cat.title.split(' ')[0]));
+        return {
+          ...cat,
+          targetDate: plan ? new Date(plan.targetDate) : null
+        };
+      });
+      setCurriculum(updatedCurriculum);
+      setSelectedCategory(updatedCurriculum[0]);
+      setLoading(false);
+    }
+    loadPlans();
+  }, []);
 
   return (
     <div className="min-h-full pb-20 lg:pb-12 bg-white">
@@ -144,7 +166,7 @@ export default function StudyPage() {
         <aside className="lg:col-span-4 space-y-4">
           <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Laboratory Disciplines</h2>
           <div className="grid grid-cols-1 gap-3">
-            {MT_CURRICULUM.map((cat) => {
+            {curriculum.map((cat) => {
               const Icon = cat.icon;
               const isActive = selectedCategory.id === cat.id;
 
@@ -174,7 +196,9 @@ export default function StudyPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <CalendarIcon className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Target: {cat.targetDate}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">
+                        Target: {cat.targetDate ? format(cat.targetDate, "MMM dd, yyyy") : "Not Set"}
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -194,7 +218,7 @@ export default function StudyPage() {
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="w-3.5 h-3.5 text-primary" />
                     <span className="text-[10px] font-black uppercase text-primary tracking-widest">
-                      Completion Target: {selectedCategory.targetDate}
+                      Completion Target: {selectedCategory.targetDate ? format(selectedCategory.targetDate, "MMMM dd, yyyy") : "TBD"}
                     </span>
                   </div>
                 </div>

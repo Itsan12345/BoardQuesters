@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SUBJECT_AREAS } from '@/lib/game-logic';
 import { saveStudyPlan } from '@/app/actions/study-plan';
@@ -32,7 +33,13 @@ export default function Onboarding() {
   const finalizePlan = async () => {
     setIsSubmitting(true);
     
-    const result = await saveStudyPlan(targets);
+    // Ensure all dates are stored as start of day for consistency
+    const sanitizedTargets: Record<string, Date> = {};
+    Object.entries(targets).forEach(([sub, date]) => {
+      sanitizedTargets[sub] = startOfDay(date);
+    });
+
+    const result = await saveStudyPlan(sanitizedTargets);
     
     if (result.success) {
       toast({
@@ -96,7 +103,10 @@ export default function Onboarding() {
                         mode="single"
                         selected={targets[subject]}
                         onSelect={(date) => handleDateSelect(subject, date)}
-                        disabled={(date) => date < new Date() || date > FACULTY_DEADLINE}
+                        disabled={(date) => {
+                          const today = startOfDay(new Date());
+                          return date < today || date > FACULTY_DEADLINE;
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

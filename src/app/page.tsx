@@ -1,14 +1,17 @@
+
 "use client";
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info, Rocket, CheckCircle2 } from 'lucide-react';
+import { Zap, ChevronRight, Calendar as CalendarIcon, Clock, Target, Info, Rocket, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getStudyPlans } from '@/app/actions/study-plan';
+import { format } from 'date-fns';
 
 const leaderboardUsers = [
   { name: "Stefan Cong", xp: "2,500 XP", initial: "C" },
@@ -18,37 +21,74 @@ const leaderboardUsers = [
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
+  const [nextMilestone, setNextMilestone] = useState<{ subject: string; date: Date } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    async function loadPlan() {
+      const plans = await getStudyPlans();
+      if (plans && plans.length > 0) {
+        // Find the next milestone (first plan that is in the future or closest to today)
+        const today = new Date();
+        const futurePlans = plans.filter(p => new Date(p.targetDate) >= today);
+        const activePlan = futurePlans.length > 0 ? futurePlans[0] : plans[plans.length - 1];
+        
+        setNextMilestone({
+          subject: activePlan.subject,
+          date: new Date(activePlan.targetDate)
+        });
+      }
+      setLoading(false);
+    }
+    loadPlan();
   }, []);
 
   return (
     <div className="min-h-full bg-[#f8f8f8] p-4 lg:p-8 space-y-6 lg:space-y-8">
       {/* Daily Mission Widget - Integrated Calendar Action */}
-      <section className="bg-slate-900 rounded-[2rem] p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl">
+      <section className="bg-slate-900 rounded-[2rem] p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl min-h-[180px] flex items-center">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Rocket className="w-32 h-32" />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2">
-              <Badge className="bg-primary text-white border-none font-black text-[10px] uppercase">Active Mission</Badge>
-              <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">Today's Target</span>
-            </div>
-            <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">
-              Finish 2 <span className="text-primary">Hematology</span> modules today
-            </h2>
-            <p className="text-white/60 text-sm font-medium">
-              to stay on track for your <span className="text-white font-bold">March 15</span> deadline.
-            </p>
+        
+        {loading ? (
+          <div className="w-full flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-          <Link href="/study">
-            <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
-              Initiate Lesson
-            </Button>
-          </Link>
-        </div>
+        ) : nextMilestone ? (
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Badge className="bg-primary text-white border-none font-black text-[10px] uppercase">Active Mission</Badge>
+                <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em]">Today's Target</span>
+              </div>
+              <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">
+                Finish <span className="text-primary">{nextMilestone.subject}</span> modules
+              </h2>
+              <p className="text-white/60 text-sm font-medium">
+                to stay on track for your <span className="text-white font-bold">{format(nextMilestone.date, "MMMM dd")}</span> deadline.
+              </p>
+            </div>
+            <Link href="/study">
+              <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
+                Initiate Lesson
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+            <div className="space-y-2 text-center md:text-left">
+              <h2 className="text-2xl lg:text-3xl font-black font-headline tracking-tight">Setup Your Study Expedition</h2>
+              <p className="text-white/60 text-sm font-medium">No active mission detected. Initialize your study plan now.</p>
+            </div>
+            <Link href="/onboarding">
+              <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl">
+                Setup Plan
+              </Button>
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className="space-y-4 lg:space-y-6">
@@ -66,7 +106,6 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Stats & Progress */}
         <div className="lg:col-span-8 space-y-6">
           <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
             <CardContent className="p-6 lg:p-8 space-y-6">
@@ -97,7 +136,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Right Column: Social & Leaderboard */}
         <div className="lg:col-span-4 space-y-6">
            <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
             <CardHeader className="pb-2">

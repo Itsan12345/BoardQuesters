@@ -1,3 +1,4 @@
+
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -13,6 +14,7 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
       return { success: false, error: 'Aspirant session not found. Please log in.' };
     }
 
+    // Process each subject individually to ensure upsert works correctly with compound unique key
     const operations = Object.entries(targets).map(([subject, date]) => {
       return prisma.studyPlan.upsert({
         where: {
@@ -46,12 +48,18 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
 }
 
 export async function getStudyPlans() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('user_id')?.value;
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
 
-  if (!userId) return [];
+    if (!userId) return [];
 
-  return prisma.studyPlan.findMany({
-    where: { userId },
-  });
+    return await prisma.studyPlan.findMany({
+      where: { userId },
+      orderBy: { targetDate: 'asc' }
+    });
+  } catch (error) {
+    console.error('Failed to fetch study plans:', error);
+    return [];
+  }
 }
