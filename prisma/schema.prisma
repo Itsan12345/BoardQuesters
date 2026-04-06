@@ -16,12 +16,14 @@ model User {
   level     Int      @default(1)
   xp        Int      @default(0)
   streak    Int      @default(0)
+  location  String?  @default("Philippines")
   createdAt DateTime @default(now())
 
-  studyPlans      StudyPlan[]
-  mastery         SubjectMastery[]
-  achievements    Achievement[]
-  examResults     ExamResult[]
+  studyPlans         StudyPlan[]
+  mastery            SubjectMastery[]
+  achievements       Achievement[]
+  examResults        ExamResult[]
+  lessonCompletions  LessonCompletion[]
 }
 
 model SubjectMastery {
@@ -38,6 +40,20 @@ model SubjectMastery {
   @@unique([userId, subject])
 }
 
+model LessonCompletion {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  subject   String   // Subject category (e.g., 'Clinical Chemistry')
+  lessonId  String   // Lesson ID (e.g., 'cc1')
+  status    String   // 'completed' | 'in-progress' | 'not-started'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
 model StudyPlan {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   userId     String   @db.ObjectId
@@ -51,12 +67,17 @@ model StudyPlan {
 }
 
 model Achievement {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  task      String
-  type      String   // 'quest' | 'exam'
-  xp        Int
-  timestamp DateTime @default(now())
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  task             String
+  type             String   // 'quest' | 'exam'
+  badge            String?  // Badge ID earned (e.g., 'gold', 'bronze', 'speed')
+  xp               Int
+  confidenceLevel  String?  // 'Shaky' | 'Steady' | 'Unyielding'
+  accuracy         Float?   // Percentage accuracy (0-100)
+  questMode        String?  // 'learning' | 'test'
+  subject          String?  // Subject for quest tracking (e.g., 'Clinical Chemistry')
+  timestamp        DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -67,6 +88,7 @@ model ExamResult {
   score     Int
   total     Int
   accuracy  Float
+  subject   String?  // Subject for quest tracking (e.g., 'Clinical Chemistry')
   timestamp DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

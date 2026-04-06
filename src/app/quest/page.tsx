@@ -3,16 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Swords, 
-  Shield, 
-  Skull, 
-  Zap, 
-  FlaskConical, 
-  Microscope, 
-  Database, 
-  Stethoscope, 
-  ShieldAlert, 
+import {
+  Swords,
+  Shield,
+  Skull,
+  Zap,
+  FlaskConical,
+  Microscope,
+  Database,
+  Stethoscope,
+  ShieldAlert,
   ChevronLeft,
   Star,
   Target,
@@ -21,11 +21,13 @@ import {
   CheckCircle2,
   XCircle,
   BrainCircuit,
-  Award
+  Award,
+  Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -33,6 +35,8 @@ import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
 import { STATIC_QUESTIONS } from '@/lib/static-questions';
+import { completeQuest } from '@/app/actions/quest';
+import { calculateEarnedBadges, type Badge as BadgeType } from '@/lib/badge-system';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -115,12 +119,19 @@ export default function LearningQuest() {
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingResults, setIsSavingResults] = useState(false);
   const [quizMode, setQuizMode] = useState<'learning' | 'test'>('learning');
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
   const [userAnswers, setUserAnswers] = useState<UserAnswerRecord[]>([]);
   const [confidence, setConfidence] = useState<string | null>(null);
-  
+  const [earnedBadges, setEarnedBadges] = useState<BadgeType[]>([]);
+  const [questStartTime, setQuestStartTime] = useState<number | null>(null);
+  const [questCompletionTime, setQuestCompletionTime] = useState<number>(0);
+  const [confidenceSubmitted, setConfidenceSubmitted] = useState(false);
+  const [confidenceDialogOpen, setConfidenceDialogOpen] = useState(false);
+  const [thankYouDialogOpen, setThankYouDialogOpen] = useState(false);
+
   // RPG States
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
@@ -130,10 +141,13 @@ export default function LearningQuest() {
     setIsLoading(true);
     setUserAnswers([]);
     setConfidence(null);
+    setEarnedBadges([]);
+    setConfidenceSubmitted(false);
+    setQuestStartTime(Date.now());
     try {
       const pool = STATIC_QUESTIONS[selectedSubject] || STATIC_QUESTIONS["Clinical Chemistry"];
       const selected = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
-      
+
       setQuestions(selected);
       setPlayerHealth(100);
       setEnemyHealth(100);
@@ -180,7 +194,75 @@ export default function LearningQuest() {
 
   const handleFinish = (finalScore: number) => {
     setScore(finalScore);
+    if (questStartTime) {
+      const completionTime = Math.floor((Date.now() - questStartTime) / 1000);
+      setQuestCompletionTime(completionTime);
+
+      // Calculate earned badges
+      const badges = calculateEarnedBadges({
+        score: finalScore,
+        totalQuestions: questions.length,
+        confidenceLevel: 'Shaky',
+        completionTime,
+        streak: 0,
+      });
+      setEarnedBadges(badges);
+    }
     setIsFinished(true);
+    // Auto-open confidence dialog
+    setTimeout(() => setConfidenceDialogOpen(true), 300);
+  };
+
+  const handleConfidenceSubmit = async (selectedLevel: string) => {
+    setConfidence(selectedLevel);
+    setConfidenceSubmitted(true);
+    setConfidenceDialogOpen(false);
+    setIsSavingResults(true);
+
+    try {
+      const result = await completeQuest({
+        score,
+        totalQuestions: questions.length,
+        confidenceLevel: selectedLevel as any,
+        completionTime: questCompletionTime,
+        questMode: quizMode,
+        subject: selectedSubject,
+      });
+
+      if (result.success) {
+        // Recalculate badges with actual confidence level
+        const updatedBadges = calculateEarnedBadges({
+          score,
+          totalQuestions: questions.length,
+          confidenceLevel: selectedLevel as any,
+          completionTime: questCompletionTime,
+          streak: 0,
+        });
+        setEarnedBadges(updatedBadges);
+
+        // Open thank you dialog after a short delay
+        setTimeout(() => setThankYouDialogOpen(true), 200);
+
+        toast({
+          title: "Quest Completed!",
+          description: result.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error || "Failed to save quest results.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsSavingResults(false);
+    }
   };
 
   const subjectMeta = SUBJECT_METADATA[selectedSubject];
@@ -220,28 +302,169 @@ export default function LearningQuest() {
           </div>
         </header>
 
-        {/* Confidence Check */}
-        <Card className="border-none shadow-xl bg-white rounded-2xl overflow-hidden border-2 border-primary/10">
-          <CardHeader className="text-center pb-2 px-4">
-            <CardTitle className="font-headline text-base md:text-lg">Aspirant's Resolution</CardTitle>
-            <CardDescription className="text-xs">How certain are you of your reasoning here?</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4 py-6 px-4">
-             {['Shaky', 'Steady', 'Unyielding'].map((level) => (
-               <Button 
-                key={level}
-                variant={confidence === level ? "default" : "outline"}
-                onClick={() => setConfidence(level)}
-                className={cn(
-                  "flex-1 rounded-xl h-12 md:h-14 font-bold border-2 text-sm",
-                  confidence === level ? "bg-primary text-white" : "text-primary border-primary/20"
-                )}
-               >
-                 {level}
-               </Button>
-             ))}
-          </CardContent>
-        </Card>
+        {score === 0 && (
+          <Card className="border-none shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
+            <CardContent className="p-6 md:p-8 text-center space-y-4">
+              <p className="text-lg md:text-xl font-black text-slate-900">Tough Expedition, Aspirant! 💪</p>
+              <p className="text-sm md:text-base text-slate-700 font-medium">
+                Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
+              </p>
+              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                💡 Tip: Review the topics from this quest and try again. Better luck next time!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {score > 0 && score < 3 && (
+          <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
+            <CardContent className="p-6 md:p-8 text-center space-y-4">
+              <p className="text-lg md:text-xl font-black text-slate-900">Nice Effort, Aspirant! 🌟</p>
+              <p className="text-sm md:text-base text-slate-700 font-medium">
+                You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
+              </p>
+              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                💡 Tip: Focus on the questions you missed—they're your learning opportunities!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {score >= 3 && score < 5 && (
+          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
+            <CardContent className="p-6 md:p-8 text-center space-y-4">
+              <p className="text-lg md:text-xl font-black text-slate-900">Great Job, Aspirant! 🚀</p>
+              <p className="text-sm md:text-base text-slate-700 font-medium">
+                You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
+              </p>
+              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                💡 Tip: You're almost there! One more push to achieve perfect mastery.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {score === 5 && (
+          <Card className="border-none shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
+            <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
+              <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
+              <p className="text-sm md:text-base text-slate-700 font-bold">
+                PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
+              </p>
+              <div className="flex justify-center gap-2 text-2xl animate-bounce">
+                🏆 ⭐ 🏆
+              </div>
+              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                You've earned extra respect in the BoardQuest arena!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Earned Badges Section */}
+        {earnedBadges.length > 0 && (
+          <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
+            <CardContent className="p-6 md:p-8">
+              <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {earnedBadges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
+                  >
+                    <div className="text-2xl">✨</div>
+                    <p className="font-bold text-xs md:text-sm text-slate-900">{badge.title}</p>
+                    <p className="text-[9px] text-slate-600">{badge.name}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Confidence Dialog */}
+        <Dialog open={confidenceDialogOpen} onOpenChange={setConfidenceDialogOpen}>
+          <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-white">
+            <DialogHeader className="text-center space-y-4">
+              <DialogTitle className="font-headline text-2xl">⚡ Aspirant's Conviction</DialogTitle>
+              <DialogDescription className="text-sm">How confident are you in your answers?</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-3 gap-3 py-6">
+              {[
+                {
+                  level: 'Shaky',
+                  emoji: '🔥',
+                  color: 'bg-red-50 border-red-200 hover:bg-red-100',
+                  selectedColor: 'bg-red-100 border-red-500 ring-2 ring-red-300',
+                  description: 'Low Confidence',
+                },
+                {
+                  level: 'Steady',
+                  emoji: '⚡',
+                  color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
+                  selectedColor: 'bg-yellow-100 border-yellow-500 ring-2 ring-yellow-300',
+                  description: 'Balanced Confidence',
+                },
+                {
+                  level: 'Unyielding',
+                  emoji: '💫',
+                  color: 'bg-primary/5 border-primary/30 hover:bg-primary/15',
+                  selectedColor: 'bg-primary/20 border-primary ring-2 ring-primary/50',
+                  description: 'High Confidence',
+                },
+              ].map((option) => (
+                <button
+                  key={option.level}
+                  onClick={() => {
+                    if (!confidenceSubmitted) {
+                      handleConfidenceSubmit(option.level);
+                    }
+                  }}
+                  className={cn(
+                    'relative p-4 rounded-xl border-2 transition-all duration-200 text-center transform',
+                    confidence === option.level ? option.selectedColor : option.color,
+                    !confidenceSubmitted && 'hover:scale-105'
+                  )}
+                  disabled={isSavingResults}
+                >
+                  <div className="space-y-2">
+                    <div className="text-3xl">{option.emoji}</div>
+                    <div className="font-black text-xs leading-tight">{option.level}</div>
+                    <div className="text-[9px] text-muted-foreground font-bold">{option.description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Thank You Dialog */}
+        <Dialog open={thankYouDialogOpen} onOpenChange={setThankYouDialogOpen}>
+          <DialogContent className="sm:max-w-md border-2 border-primary bg-gradient-to-br from-white via-slate-50 to-white animate-in fade-in zoom-in duration-500">
+            <DialogTitle className="sr-only">Quest Completion</DialogTitle>
+            <div className="space-y-6 text-center py-8 px-2">
+              {/* Trophy Animation */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                  <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/80 border-4 border-primary/30 shadow-2xl animate-bounce">
+                    <Trophy className="w-12 h-12 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Message */}
+              <div className="space-y-3">
+                <p className="text-3xl md:text-4xl font-black font-headline text-primary tracking-tight">
+                  Thank You, Aspirant!
+                </p>
+                <p className="text-sm md:text-base text-slate-700 font-bold leading-relaxed">
+                  Your conviction has been recorded and your quest success has been logged to your profile!
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* AI Tutor Summary */}
         <Card className="border-none shadow-xl bg-white overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">

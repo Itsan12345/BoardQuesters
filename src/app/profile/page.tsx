@@ -1,188 +1,295 @@
 "use client";
 
-import { User, Settings, Award, Shield, History, MapPin, Calendar as CalendarIcon, Mail, Zap, Trophy, Swords, ClipboardCheck, Edit2, ChevronRight, LogOut, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Settings, LogOut, MapPin, Mail, Calendar as CalendarIcon, Zap, Trophy, Clock, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { logout } from '@/app/actions/auth';
-import { useRouter } from 'next/navigation';
+import { getUserProfile } from '@/app/actions/user';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import { getStudyPlans } from '@/app/actions/study-plan';
+import { BADGES, BadgeId } from '@/lib/badge-system';
 import { format } from 'date-fns';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  level: number;
+  xp: number;
+  streak: number;
+  location: string;
+  createdAt: Date;
+  classString: string;
+  userRank: number;
+  rankingPercentage: number;
+  achievements: Array<{
+    id: string;
+    task: string;
+    type: string;
+    xp: number;
+    timestamp: Date;
+    badge?: string;
+    confidenceLevel?: string;
+    accuracy?: number;
+  }>;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [studyPlans, setStudyPlans] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadPlans() {
-      const plans = await getStudyPlans();
-      setStudyPlans(plans);
-      setLoading(false);
+    async function loadProfile() {
+      try {
+        const profile = await getUserProfile() as any;
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile data.",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
-    loadPlans();
-  }, []);
+    loadProfile();
+  }, [toast]);
 
   async function handleLogout() {
     await logout();
     toast({
-      title: "Tactical Withdrawal",
-      description: "Logout successful. See you at the next briefing.",
+      title: "Logged Out",
+      description: "See you next time!",
     });
     router.push('/login');
     router.refresh();
   }
 
-  return (
-    <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-10">
-      {/* Profile Header */}
-      <header className="relative bg-white p-6 lg:p-10 rounded-[1.5rem] lg:rounded-[2.5rem] shadow-xl border overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 lg:p-8 opacity-[0.03] pointer-events-none">
-          <Zap className="w-32 h-32 lg:w-64 lg:h-64 text-primary" />
-        </div>
-        
-        <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-10 relative z-10">
-          <div className="relative group">
-            <Avatar className="h-32 w-32 lg:h-44 lg:w-44 border-4 lg:border-8 border-primary/5 shadow-2xl transition-transform group-hover:scale-105 duration-500">
-              <AvatarImage src="https://picsum.photos/seed/alex-v2/300/300" />
-              <AvatarFallback className="bg-primary text-white text-4xl lg:text-6xl font-black">AR</AvatarFallback>
-            </Avatar>
-            <div className="absolute -bottom-1 -right-1 lg:-bottom-2 lg:-right-2 bg-accent text-white p-2 lg:p-3 rounded-xl lg:rounded-2xl shadow-lg border-2 lg:border-4 border-white">
-              <Shield className="w-5 h-5 lg:w-7 lg:h-7" />
-            </div>
-          </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-          <div className="flex-1 text-center lg:text-left space-y-4 lg:space-y-6">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-              <div className="space-y-1 lg:space-y-2">
-                <h1 className="text-3xl lg:text-5xl font-black font-headline tracking-tight text-slate-900">Alex Rivera</h1>
-                <p className="text-muted-foreground font-bold flex items-center justify-center lg:justify-start gap-2 text-sm uppercase tracking-widest">
-                  <MapPin className="w-4 h-4 text-primary" /> Manila, Philippines
-                </p>
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-500">Failed to load profile</p>
+      </div>
+    );
+  }
+
+  // Extract initials from name
+  const initialsFromName = userProfile.name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Profile Header Card */}
+        <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
+          <CardContent className="p-8">
+            <div className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
+              {/* Avatar and Info */}
+              <div className="flex items-center gap-6">
+                <Avatar className="h-24 w-24 border-4 border-primary/20">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-[#8B0000] text-white text-2xl font-black">
+                    {initialsFromName}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="space-y-3">
+                  <div>
+                    <h1 className="text-3xl font-black text-slate-900">{userProfile.name}</h1>
+                    <p className="text-slate-500 text-sm flex items-center gap-1 mt-1">
+                      <MapPin className="w-4 h-4" /> {userProfile.location}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge className="bg-[#8B0000] text-white font-black text-xs px-3 py-1">
+                      LVL {userProfile.level} ASPIRANT
+                    </Badge>
+                    <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-black text-xs px-3 py-1">
+                      {userProfile.classString}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl font-bold border-primary text-primary">
-                  <Settings className="w-4 h-4 mr-2" /> Settings
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-[#8B0000] text-[#8B0000] font-bold"
+                >
+                  <Settings className="w-4 h-4 mr-2" /> Account Settings
                 </Button>
-                <Button variant="destructive" size="sm" className="rounded-xl font-bold" onClick={handleLogout}>
+                <Button
+                  size="sm"
+                  className="rounded-xl bg-[#8B0000] hover:bg-[#660000] text-white font-bold"
+                  onClick={handleLogout}
+                >
                   <LogOut className="w-4 h-4 mr-2" /> Logout
                 </Button>
               </div>
             </div>
-            
-            <div className="flex flex-wrap justify-center lg:justify-start gap-2 lg:gap-3">
-              <Badge className="bg-primary text-white px-3 lg:px-5 py-1 lg:py-2 rounded-full text-[10px] lg:text-xs font-black uppercase tracking-[0.1em] shadow-sm">
-                Lvl 24 Aspirant
-              </Badge>
-              <Badge variant="outline" className="border-primary/20 text-primary bg-primary/5 px-3 lg:px-5 py-1 lg:py-2 rounded-full text-[10px] lg:text-xs font-black uppercase tracking-[0.1em]">
-                MedTech Class of 2024
-              </Badge>
-            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats and Achievements Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Stats */}
+          <div className="space-y-6">
+            {/* Aspirants Stats Card */}
+            <Card className="border-none shadow-lg rounded-2xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-black uppercase text-slate-900">
+                  Aspirants Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-yellow-600" />
+                    <span className="font-black text-sm text-slate-900">{userProfile.streak} Days Streak</span>
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-700 font-black text-[10px]">+20% XP</Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-600 font-medium">{userProfile.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CalendarIcon className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-600 font-medium">
+                      Joined {format(new Date(userProfile.createdAt), 'MMMM yyy')}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Ranking Card */}
+            <Card className="border-none shadow-lg rounded-2xl bg-[#8B0000] text-white">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-4xl font-black">Top {userProfile.rankingPercentage}%</p>
+                  <p className="text-sm font-bold uppercase tracking-widest text-white/80 mt-1">
+                    Global Ranking
+                  </p>
+                </div>
+                <Trophy className="w-16 h-16 text-white/30" />
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </header>
 
-      {/* Schedule Management Section */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black font-headline uppercase tracking-tight flex items-center gap-3">
-            <CalendarIcon className="w-6 h-6 text-primary" />
-            Study Expedition Timeline
-          </h2>
-          <Link href="/study">
-            <Button variant="outline" className="rounded-xl border-primary text-primary font-bold">
-              <Edit2 className="w-4 h-4 mr-2" /> Adjust Timeline
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-             <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-          ) : studyPlans.length > 0 ? (
-            studyPlans.map((item) => (
-              <Card key={item.subject} className="border-none shadow-md rounded-2xl bg-white overflow-hidden">
-                <div className="p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-black text-sm uppercase tracking-tight text-slate-900">{item.subject}</h4>
-                    <Badge variant="secondary" className="text-[9px] font-black uppercase">Active</Badge>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                    <CalendarIcon className="w-3.5 h-3.5" />
-                    Target: {format(new Date(item.targetDate), "MMM dd, yyyy")}
-                  </div>
-                  <Progress value={65} className="h-1.5" />
+          {/* Right Column - Achievements and Activity */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Achievements/Badges Grid */}
+            <Card className="border-none shadow-lg rounded-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-black uppercase text-slate-900 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-[#8B0000]" /> Badges Earned
+                  </CardTitle>
+                  <span className="text-sm font-bold text-slate-500">
+                    {userProfile.achievements?.filter(a => a.badge).length || 0} badges
+                  </span>
                 </div>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-muted-foreground font-medium">No target dates set yet. Visit the Study Curriculum to initiate your timeline.</div>
-          )}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Stats Sidebar */}
-        <div className="space-y-6 lg:space-y-8">
-          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-headline text-lg uppercase tracking-tight font-black">Aspirant Vitals</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-yellow-100 p-2 rounded-lg">
-                    <Zap className="w-5 h-5 text-yellow-600 fill-current" />
-                  </div>
-                  <span className="text-sm font-black uppercase tracking-tight">12 Day Streak</span>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-slate-500 font-medium mb-4">
+                  Badges earned through your BoardQuest journey.
+                </p>
+                <div className="grid grid-cols-4 gap-3">
+                  {userProfile.achievements && userProfile.achievements.filter(a => a.badge).length > 0 ? (
+                    userProfile.achievements
+                      .filter(a => a.badge)
+                      .map((achievement) => {
+                        const badgeData = BADGES[achievement.badge as BadgeId];
+                        return (
+                          <div
+                            key={achievement.id}
+                            className="aspect-square bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg flex flex-col items-center justify-center border-2 border-yellow-300 p-2 group cursor-pointer hover:shadow-lg transition-all"
+                            title={badgeData?.name}
+                          >
+                            <div className="text-2xl">✨</div>
+                            <div className="text-center text-[9px] font-bold text-slate-900 mt-1 line-clamp-2">
+                              {badgeData?.title || 'Unknown'}
+                            </div>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <>
+                      {[...Array(8)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square bg-slate-100 rounded-lg flex items-center justify-center border-2 border-[#8B0000]/10 opacity-50"
+                        >
+                          <Award className="w-6 h-6 text-[#8B0000]" />
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
-                <Badge className="bg-primary text-white border-none font-black text-[10px]">+20% XP</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
 
-        {/* Achievement Feed */}
-        <div className="lg:col-span-2 space-y-6 lg:space-y-8">
-          <Card className="border-none shadow-lg rounded-[1.5rem] lg:rounded-[2rem] bg-white overflow-hidden">
-            <CardHeader className="bg-muted/30 border-b p-6 lg:p-8">
-              <CardTitle className="font-headline text-lg lg:text-xl font-black flex items-center gap-2 uppercase tracking-tight">
-                <History className="w-5 h-5 text-primary" />
-                Battle Expedition Log
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-primary/5">
-                {[
-                  { task: "Mastered Hematology Quest", time: "2 hours ago", xp: "+450 XP", type: "quest" },
-                  { task: "Simulated Exam Completion", time: "Yesterday", xp: "+1200 XP", type: "exam" }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-6 hover:bg-primary/[0.02] transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "p-3 rounded-xl shadow-sm",
-                        item.type === 'quest' ? "bg-primary/5 text-primary border border-primary/10" : "bg-accent/10 text-accent border border-accent/10"
-                      )}>
-                        {item.type === 'quest' ? <Swords className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
+            {/* Recent Activity */}
+            <Card className="border-none shadow-lg rounded-2xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-black uppercase text-slate-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[#8B0000]" /> Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {userProfile.achievements && userProfile.achievements.length > 0 ? (
+                    userProfile.achievements.map((achievement) => (
+                      <div
+                        key={achievement.id}
+                        className="flex items-center justify-between p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <Award className="w-5 h-5 text-[#8B0000]" />
+                          </div>
+                          <div>
+                            <p className="font-black text-sm text-slate-900">{achievement.task}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {format(new Date(achievement.timestamp), 'MMM dd, yyyy')}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-black text-[#8B0000] text-sm">+{achievement.xp} XP</span>
                       </div>
-                      <div>
-                        <p className="font-black text-sm text-slate-900 leading-tight">{item.task}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-1">{item.time}</p>
-                      </div>
-                    </div>
-                    <span className="font-black text-primary text-sm tracking-tight">{item.xp}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                    ))
+                  ) : (
+                    <p className="text-center text-slate-500 py-8">No activities yet. Start questing!</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

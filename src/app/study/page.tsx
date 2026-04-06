@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { 
-  BookMarked, 
-  Clock, 
+import {
+  BookMarked,
+  Clock,
   PlayCircle,
   FlaskConical,
   Microscope,
@@ -12,7 +12,9 @@ import {
   ShieldAlert,
   Search,
   Calendar as CalendarIcon,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  Brain
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -23,6 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { getStudyPlans, saveStudyPlan } from '@/app/actions/study-plan';
+import { getSubjectMetrics, updateLessonStatus, type SubjectMetrics } from '@/app/actions/study';
 import { format, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -90,26 +93,38 @@ export default function StudyPage() {
   const [curriculum, setCurriculum] = useState(INITIAL_CURRICULUM);
   const [selectedCategoryId, setSelectedCategoryId] = useState(INITIAL_CURRICULUM[0].id);
   const [targetDates, setTargetDates] = useState<Record<string, Date>>({});
+  const [subjectMetrics, setSubjectMetrics] = useState<Record<string, SubjectMetrics>>({});
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    async function loadPlans() {
-      const plans = await getStudyPlans();
+    async function loadData() {
+      const [plans, metrics] = await Promise.all([
+        getStudyPlans(),
+        getSubjectMetrics(),
+      ]);
+
       const dates: Record<string, Date> = {};
       plans.forEach(p => {
         dates[p.subject] = new Date(p.targetDate);
       });
       setTargetDates(dates);
+
+      const metricsMap: Record<string, SubjectMetrics> = {};
+      metrics.forEach(m => {
+        metricsMap[m.subject] = m;
+      });
+      setSubjectMetrics(metricsMap);
+
       setLoading(false);
     }
-    loadPlans();
+    loadData();
   }, []);
 
   const handleSetDate = async (subject: string, date: Date | undefined) => {
     if (!date) return;
-    
+
     setIsSaving(subject);
     try {
       const result = await saveStudyPlan({ [subject]: date });
@@ -121,6 +136,24 @@ export default function StudyPage() {
       }
     } finally {
       setIsSaving(null);
+    }
+  };
+
+  const handleSubmitLesson = async (lessonId: string) => {
+    const updated = await updateLessonStatus(selectedCategory.title, lessonId, 'completed');
+    if (updated) {
+      // Refresh metrics
+      const metrics = await getSubjectMetrics();
+      const metricsMap: Record<string, SubjectMetrics> = {};
+      metrics.forEach(m => {
+        metricsMap[m.subject] = m;
+      });
+      setSubjectMetrics(metricsMap);
+
+      toast({
+        title: "Lesson Completed",
+        description: "Great work! Your progress has been saved.",
+      });
     }
   };
 
@@ -242,12 +275,46 @@ export default function StudyPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2 pt-2">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-black uppercase text-primary">Mastery Progress</span>
-                  <span className="text-xs font-bold text-slate-900">45%</span>
+              <div className="space-y-4 pt-2">
+                {/* Completion Metric */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-accent" />
+                      Completion
+                    </span>
+                    <span className="text-xs font-bold text-slate-900">
+                      {subjectMetrics[selectedCategory.title]?.completion || 0}%
+                    </span>
+                  </div>
+                  <Progress value={subjectMetrics[selectedCategory.title]?.completion || 0} className="h-2.5 bg-slate-100" />
                 </div>
-                <Progress value={45} className="h-2.5 bg-slate-200" />
+
+                {/* Mastery Metric */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-primary" />
+                      Mastery (Quest Avg)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900">
+                        {subjectMetrics[selectedCategory.title]?.mastery || 0}%
+                      </span>
+                      <span className={cn(
+                        "text-[9px] font-black px-2 py-1 rounded-full uppercase",
+                        subjectMetrics[selectedCategory.title]?.masteryStatus === 'Mastered' ? "bg-green-100 text-green-700" :
+                        subjectMetrics[selectedCategory.title]?.masteryStatus === 'Proficient' ? "bg-blue-100 text-blue-700" :
+                        subjectMetrics[selectedCategory.title]?.masteryStatus === 'In Training' ? "bg-orange-100 text-orange-700" :
+                        "bg-slate-100 text-slate-600"
+                      )}>
+                        {subjectMetrics[selectedCategory.title]?.masteryStatus || 'Not Started'}
+                      </span>
+                    </div>
+                  </div>
+                  <Progress value={subjectMetrics[selectedCategory.title]?.mastery || 0} className="h-2.5 bg-slate-100" />
+                  <p className="text-[9px] text-slate-500 font-medium">Based on your average performance in Quest Arena for this subject</p>
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -278,8 +345,20 @@ export default function StudyPage() {
                           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {lesson.duration} Intel</span>
                         </div>
                       </div>
-                      <button className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                        <PlayCircle className="h-6 w-6" />
+                      <button
+                        onClick={() => handleSubmitLesson(lesson.id)}
+                        className={cn(
+                          "h-10 w-10 flex items-center justify-center rounded-xl transition-all shadow-sm",
+                          lesson.status === 'completed'
+                            ? "bg-accent/20 text-accent"
+                            : "bg-slate-100 text-slate-400 group-hover:bg-primary group-hover:text-white"
+                        )}
+                      >
+                        {lesson.status === 'completed' ? (
+                          <CheckCircle2 className="h-6 w-6" />
+                        ) : (
+                          <PlayCircle className="h-6 w-6" />
+                        )}
                       </button>
                     </div>
                   ))}

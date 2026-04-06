@@ -47,7 +47,9 @@ export async function signUp(formData: FormData) {
     return { success: true, userId: user.id };
   } catch (error) {
     console.error('Signup error:', error);
-    return { success: false, error: 'Database connection failed.' };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error details:', errorMessage);
+    return { success: false, error: `Database connection failed: ${errorMessage}` };
   }
 }
 
