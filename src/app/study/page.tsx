@@ -166,10 +166,10 @@ export default function StudyPage() {
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl lg:text-4xl font-black font-headline text-slate-900 tracking-tight leading-none uppercase">
+              <h1 className="text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight leading-none uppercase" style={{ fontFamily: "'Inter-bold', sans-serif"}}>
                 Study <span className="text-primary">Curriculum</span>
               </h1>
-              <p className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <p className="text-[10px] lg:text-xs font-semibold text-slate-500 uppercase tracking-[0.2em]">
                 Intel Gathering & Concept Mastery
               </p>
             </div>
@@ -186,7 +186,7 @@ export default function StudyPage() {
 
       <main className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
         <aside className="lg:col-span-4 space-y-4">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Laboratory Disciplines</h2>
+          <h2 className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-2">Laboratory Disciplines</h2>
           <div className="grid grid-cols-1 gap-3">
             {curriculum.map((cat) => {
               const Icon = cat.icon;
@@ -212,14 +212,14 @@ export default function StudyPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn(
-                      "font-black text-sm uppercase tracking-tight truncate", 
+                      "font-semibold text-sm uppercase tracking-tight truncate",
                       isActive ? "text-primary" : "text-slate-900"
                     )}>
                       {cat.title}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <CalendarIcon className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">
+                      <span className="text-[10px] font-semibold text-slate-500 uppercase">
                         {mounted && catDate ? format(catDate, "MMM dd, yyyy") : "No target set"}
                       </span>
                     </div>
@@ -235,10 +235,10 @@ export default function StudyPage() {
             <CardHeader className="pb-4 space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1">
-                  <CardTitle className="font-headline font-black text-xl lg:text-2xl text-slate-900 uppercase">
+                  <CardTitle className="font-headline font-semibold text-xl lg:text-2xl text-slate-900 uppercase">
                     {selectedCategory.title}
                   </CardTitle>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Discipline Parameters</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Discipline Parameters</p>
                 </div>
                 
                 <Popover>
@@ -257,8 +257,8 @@ export default function StudyPage() {
                         <CalendarIcon className="w-4 h-4" />
                       )}
                       <div className="text-left">
-                        <p className="text-[8px] font-black uppercase text-muted-foreground leading-none mb-1">Target Date</p>
-                        <p className="text-xs font-bold leading-none">
+                        <p className="text-[8px] font-semibold uppercase text-muted-foreground leading-none mb-1">Target Date</p>
+                        <p className="text-xs font-semibold leading-none">
                           {mounted && selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Set Target"}
                         </p>
                       </div>
@@ -279,11 +279,11 @@ export default function StudyPage() {
                 {/* Completion Metric */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase text-slate-700 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-accent" />
                       Completion
                     </span>
-                    <span className="text-xs font-bold text-slate-900">
+                    <span className="text-xs font-semibold text-slate-900">
                       {subjectMetrics[selectedCategory.title]?.completion || 0}%
                     </span>
                   </div>
@@ -293,16 +293,16 @@ export default function StudyPage() {
                 {/* Mastery Metric */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase text-primary flex items-center gap-2">
                       <Brain className="w-4 h-4 text-primary" />
                       Mastery (Quest Avg)
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900">
+                      <span className="text-xs font-semibold text-slate-900">
                         {subjectMetrics[selectedCategory.title]?.mastery || 0}%
                       </span>
                       <span className={cn(
-                        "text-[9px] font-black px-2 py-1 rounded-full uppercase",
+                        "text-[9px] font-semibold px-2 py-1 rounded-full uppercase",
                         subjectMetrics[selectedCategory.title]?.masteryStatus === 'Mastered' ? "bg-green-100 text-green-700" :
                         subjectMetrics[selectedCategory.title]?.masteryStatus === 'Proficient' ? "bg-blue-100 text-blue-700" :
                         subjectMetrics[selectedCategory.title]?.masteryStatus === 'In Training' ? "bg-orange-100 text-orange-700" :
@@ -313,7 +313,7 @@ export default function StudyPage() {
                     </div>
                   </div>
                   <Progress value={subjectMetrics[selectedCategory.title]?.mastery || 0} className="h-2.5 bg-slate-100" />
-                  <p className="text-[9px] text-slate-500 font-medium">Based on your average performance in Quest Arena for this subject</p>
+                  <p className="text-[9px] text-slate-500 font-semibold">Based on your average performance in Quest Arena for this subject</p>
                 </div>
               </div>
             </CardHeader>
@@ -321,7 +321,7 @@ export default function StudyPage() {
 
           <Card className="border-none shadow-sm rounded-[2rem] bg-white border-2 border-slate-100 overflow-hidden">
             <CardHeader className="bg-slate-50 border-b p-6 lg:p-8">
-              <CardTitle className="font-headline text-lg font-black uppercase tracking-tight flex items-center gap-3">
+              <CardTitle className="font-headline text-lg font-semibold uppercase tracking-tight flex items-center gap-3">
                 <BookMarked className="w-5 h-5 text-primary" />
                 Intel Expedition Modules
               </CardTitle>
@@ -332,16 +332,16 @@ export default function StudyPage() {
                   {selectedCategory.lessons.map((lesson, idx) => (
                     <div key={lesson.id} className="p-6 flex items-center gap-5 hover:bg-slate-50 transition-all cursor-pointer group">
                       <div className={cn(
-                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-black text-sm border-2 transition-all",
-                        lesson.status === 'completed' 
-                          ? "bg-accent/10 border-accent/20 text-accent" 
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-semibold text-sm border-2 transition-all",
+                        lesson.status === 'completed'
+                          ? "bg-accent/10 border-accent/20 text-accent"
                           : "bg-white border-slate-100 text-slate-300 group-hover:border-primary/20"
                       )}>
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm lg:text-base text-slate-900 truncate">{lesson.title}</h4>
-                        <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                        <h4 className="font-semibold text-sm lg:text-base text-slate-900 truncate">{lesson.title}</h4>
+                        <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-400 uppercase tracking-tighter">
                           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {lesson.duration} Intel</span>
                         </div>
                       </div>

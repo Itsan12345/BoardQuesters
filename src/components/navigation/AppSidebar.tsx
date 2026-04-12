@@ -73,7 +73,7 @@ export function AppSidebar() {
         {navGroups.map((group) => (
           <SidebarGroup key={group.label} className={cn("py-2", isCollapsed && "px-0")}>
             {!isCollapsed && (
-              <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
+              <SidebarGroupLabel className="px-4 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -95,7 +95,7 @@ export function AppSidebar() {
                             ? "!h-16 !w-16 flex items-center justify-center !p-0 mx-auto rounded-xl" 
                             : "h-14 px-4 rounded-lg",
                           isActive 
-                            ? "bg-primary/10 text-primary font-bold shadow-sm" 
+                            ? "bg-primary/10 text-primary font-semibold shadow-sm" 
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >

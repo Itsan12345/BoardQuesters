@@ -42,7 +42,14 @@ export async function signUp(formData: FormData) {
       }))
     });
 
-    (await cookies()).set('user_id', user.id);
+    const cookieStore = await cookies();
+    cookieStore.set('user_id', user.id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30,
+    });
     
     return { success: true, userId: user.id };
   } catch (error) {
@@ -66,7 +73,14 @@ export async function login(formData: FormData) {
       return { success: false, error: 'Invalid email or password.' };
     }
 
-    (await cookies()).set('user_id', user.id);
+    const cookieStore = await cookies();
+    cookieStore.set('user_id', user.id, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 30,
+    });
     
     return { success: true, userId: user.id };
   } catch (error) {
@@ -76,5 +90,12 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  (await cookies()).delete('user_id');
+  const cookieStore = await cookies();
+  cookieStore.set('user_id', '', {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    expires: new Date(0),
+  });
 }

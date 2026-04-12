@@ -6,9 +6,10 @@ import { Trophy, Medal, Star, TrendingUp, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { getUserStats, getLeaderboard } from '@/app/actions/user';
 
-export default function LeaderboardPage() {
+function LeaderboardContent() {
   const [user, setUser] = useState<any>(null);
   const [topUsers, setTopUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,17 +49,17 @@ export default function LeaderboardPage() {
         <Card className="border-none shadow-md bg-white p-6 text-center space-y-2">
           <Medal className="w-8 h-8 text-yellow-500 mx-auto" />
           <p className="text-xs font-bold text-muted-foreground uppercase">Expedition Level</p>
-          <h3 className="text-3xl font-black">Lvl {user?.level || 1}</h3>
+          <h3 className="text-3xl font-semibold">Lvl {user?.level || 1}</h3>
         </Card>
         <Card className="border-none shadow-md bg-white p-6 text-center space-y-2">
           <Star className="w-8 h-8 text-primary mx-auto" />
           <p className="text-xs font-bold text-muted-foreground uppercase">Total XP</p>
-          <h3 className="text-3xl font-black">{user?.xp?.toLocaleString() || 0}</h3>
+          <h3 className="text-3xl font-semibold">{user?.xp?.toLocaleString() || 0}</h3>
         </Card>
         <Card className="border-none shadow-md bg-white p-6 text-center space-y-2">
           <TrendingUp className="w-8 h-8 text-accent mx-auto" />
           <p className="text-xs font-bold text-muted-foreground uppercase">Streak</p>
-          <h3 className="text-3xl font-black">{user?.streak || 0} Days</h3>
+          <h3 className="text-3xl font-semibold">{user?.streak || 0} Days</h3>
         </Card>
       </div>
 
@@ -82,8 +83,8 @@ export default function LeaderboardPage() {
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Level {u.level} Aspirant</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-primary text-xl">{u.xp.toLocaleString()}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Total XP</p>
+                  <p className="font-semibold text-primary text-xl">{u.xp.toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Total XP</p>
                 </div>
               </div>
             ))}
@@ -91,5 +92,13 @@ export default function LeaderboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LeaderboardPage() {
+  return (
+    <ProtectedRoute>
+      <LeaderboardContent />
+    </ProtectedRoute>
   );
 }

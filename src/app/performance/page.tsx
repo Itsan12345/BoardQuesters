@@ -89,8 +89,8 @@ export default function PerformancePage() {
     : 0;
 
   return (
-    <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-10 pb-24 lg:pb-12">
-      <header className="space-y-2">
+    <div className="max-w-6xl mx-auto py-8 lg:py-12 px-4 lg:px-6 space-y-8 lg:space-y-4 pb-24 lg:pb-12">
+      <header className="space-y-0">
         <h1 className="text-3xl lg:text-4xl font-black font-headline tracking-tight leading-tight uppercase">Technical <span className="text-primary">Mastery</span></h1>
         <p className="text-muted-foreground text-sm lg:text-lg font-medium">Real-time analytics and mission objectives for your licensure expedition.</p>
       </header>
@@ -98,8 +98,8 @@ export default function PerformancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
           <CardHeader className="bg-muted/30 border-b pb-6">
-            <CardTitle className="font-headline text-lg lg:text-xl font-black uppercase tracking-tight">Proficiency Radar</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Mission Competency Map</CardDescription>
+            <CardTitle className="font-headline text-lg lg:text-xl font-semibold tracking-wide" style={{ fontFamily: "'Poppins', sans-serif" }}>Proficiency Radar</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Visuals mapping of subject area strengths.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 lg:p-8">
             <div className="h-[300px] lg:h-[400px] w-full">
@@ -176,11 +176,11 @@ export default function PerformancePage() {
           </Card>
 
           <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 border-l-4 border-primary shadow-xl">
-            <h3 className="font-black font-headline text-lg flex items-center gap-2 uppercase tracking-tight">
+            <h3 className="font-black font-semibold text-lg flex items-center gap-2 uppercase tracking-tight">
               <Sparkles className="w-5 h-5 text-primary" />
               Strategist Insight
             </h3>
-            <p className="text-sm text-muted-foreground italic leading-relaxed mt-2">
+            <p className="text-sm font-semibold   text-muted-foreground italic leading-relaxed mt-2">
               {parseFloat(avgMastery) < 75 
                 ? "Your current average is below board standards. Prioritize your active objectives to bridge proficiency gaps." 
                 : "Operational standards met. Maintain your objective streak to ensure mock exam readiness."}
@@ -201,11 +201,11 @@ export default function PerformancePage() {
               <Card key={item.subject} className="border-none shadow-md rounded-[2rem] bg-white border-t-4 border-primary/20 p-6 space-y-4 hover:shadow-lg transition-all group">
                 <div className="flex justify-between items-start">
                   <div className="p-3 bg-primary/5 text-primary rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors"><Icon className="h-6 w-6" /></div>
-                  <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 text-primary">{item.status}</Badge>
+                  <Badge variant="outline" className="text-[9px] font-semibold uppercase border-primary/20 text-primary">{item.status}</Badge>
                 </div>
                 <div>
-                  <h4 className="font-black text-sm uppercase tracking-tight truncate text-slate-900">{item.subject}</h4>
-                  <p className="text-2xl font-black font-headline text-primary mt-1">{item.proficiency}% <span className="text-[10px] text-muted-foreground uppercase font-bold">Verified</span></p>
+                  <h4 className="font-semibold text-sm uppercase tracking-tight truncate text-slate-900">{item.subject}</h4>
+                  <p className="text-2xl font-semibold font-headline text-primary mt-1">{item.proficiency}% <span className="text-[10px] text-muted-foreground uppercase font-semibold">Verified</span></p>
                 </div>
                 <Progress value={item.proficiency} className="h-1.5 bg-slate-100" />
               </Card>

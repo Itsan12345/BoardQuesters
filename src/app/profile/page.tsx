@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { logout } from '@/app/actions/auth';
 import { getUserProfile } from '@/app/actions/user';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,14 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <ProfileContent />
+    </ProtectedRoute>
+  );
+}
+
+function ProfileContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -46,7 +55,14 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const profile = await getUserProfile() as any;
+        const profile = await getUserProfile() as UserProfile | null;
+
+        if (!profile) {
+          // User doesn't exist, redirect to login
+          router.replace('/login');
+          return;
+        }
+
         setUserProfile(profile);
       } catch (error) {
         console.error('Failed to load profile:', error);
@@ -55,21 +71,33 @@ export default function ProfilePage() {
           title: "Error",
           description: "Failed to load profile data.",
         });
+        router.replace('/login');
       } finally {
         setLoading(false);
       }
     }
     loadProfile();
-  }, [toast]);
+  }, [router]);
 
   async function handleLogout() {
-    await logout();
-    toast({
-      title: "Logged Out",
-      description: "See you next time!",
-    });
-    router.push('/login');
-    router.refresh();
+    try {
+      await logout();
+      toast({
+        title: "Logged Out",
+        description: "See you next time!",
+      });
+      // Use router.replace instead of window.location for better Next.js integration
+      setTimeout(() => {
+        router.replace('/login');
+      }, 500);
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+      });
+    }
   }
 
   if (loading) {
@@ -81,11 +109,7 @@ export default function ProfilePage() {
   }
 
   if (!userProfile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-slate-500">Failed to load profile</p>
-      </div>
-    );
+    return null;
   }
 
   // Extract initials from name
@@ -107,24 +131,24 @@ export default function ProfilePage() {
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24 border-4 border-primary/20">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-[#8B0000] text-white text-2xl font-black">
+                  <AvatarFallback className="bg-[#8B0000] text-white text-2xl font-semibold">
                     {initialsFromName}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="space-y-3">
                   <div>
-                    <h1 className="text-3xl font-black text-slate-900">{userProfile.name}</h1>
+                    <h1 className="text-3xl font-semibold text-slate-900">{userProfile.name}</h1>
                     <p className="text-slate-500 text-sm flex items-center gap-1 mt-1">
                       <MapPin className="w-4 h-4" /> {userProfile.location}
                     </p>
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
-                    <Badge className="bg-[#8B0000] text-white font-black text-xs px-3 py-1">
+                    <Badge className="bg-[#8B0000] text-white font-semibold text-xs px-3 py-1">
                       LVL {userProfile.level} ASPIRANT
                     </Badge>
-                    <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-black text-xs px-3 py-1">
+                    <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-semibold text-xs px-3 py-1">
                       {userProfile.classString}
                     </Badge>
                   </div>
@@ -136,13 +160,13 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-xl border-[#8B0000] text-[#8B0000] font-bold"
+                  className="rounded-xl border-[#8B0000] text-[#8B0000] font-semibold"
                 >
                   <Settings className="w-4 h-4 mr-2" /> Account Settings
                 </Button>
                 <Button
                   size="sm"
-                  className="rounded-xl bg-[#8B0000] hover:bg-[#660000] text-white font-bold"
+                  className="rounded-xl bg-[#8B0000] hover:bg-[#660000] text-white font-semibold"
                   onClick={handleLogout}
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Logout
@@ -159,7 +183,7 @@ export default function ProfilePage() {
             {/* Aspirants Stats Card */}
             <Card className="border-none shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-black uppercase text-slate-900">
+                <CardTitle className="text-lg font-semibold text-slate-900">
                   Aspirants Stats
                 </CardTitle>
               </CardHeader>
@@ -167,9 +191,9 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
                   <div className="flex items-center gap-2">
                     <Zap className="w-5 h-5 text-yellow-600" />
-                    <span className="font-black text-sm text-slate-900">{userProfile.streak} Days Streak</span>
+                    <span className="font-semibold text-sm text-slate-900">{userProfile.streak} Days Streak</span>
                   </div>
-                  <Badge className="bg-yellow-100 text-yellow-700 font-black text-[10px]">+20% XP</Badge>
+                  <Badge className="bg-yellow-100 text-yellow-700 font-semibold text-[10px]">+20% XP</Badge>
                 </div>
 
                 <div className="space-y-2">
@@ -191,8 +215,8 @@ export default function ProfilePage() {
             <Card className="border-none shadow-lg rounded-2xl bg-[#8B0000] text-white">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-4xl font-black">Top {userProfile.rankingPercentage}%</p>
-                  <p className="text-sm font-bold uppercase tracking-widest text-white/80 mt-1">
+                  <p className="text-4xl font-semibold">Top {userProfile.rankingPercentage}%</p>
+                  <p className="text-sm font-semibold uppercase tracking-widest text-white/80 mt-1">
                     Global Ranking
                   </p>
                 </div>
@@ -207,8 +231,8 @@ export default function ProfilePage() {
             <Card className="border-none shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-black uppercase text-slate-900 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#8B0000]" /> Badges Earned
+                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-[#8B0000]" /> Achievements
                   </CardTitle>
                   <span className="text-sm font-bold text-slate-500">
                     {userProfile.achievements?.filter(a => a.badge).length || 0} badges
@@ -257,7 +281,7 @@ export default function ProfilePage() {
             {/* Recent Activity */}
             <Card className="border-none shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-black uppercase text-slate-900 flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                   <Clock className="w-5 h-5 text-[#8B0000]" /> Recent Activity
                 </CardTitle>
               </CardHeader>
@@ -274,13 +298,13 @@ export default function ProfilePage() {
                             <Award className="w-5 h-5 text-[#8B0000]" />
                           </div>
                           <div>
-                            <p className="font-black text-sm text-slate-900">{achievement.task}</p>
+                            <p className="font-semibold text-sm text-slate-900">{achievement.task}</p>
                             <p className="text-xs text-slate-500 mt-1">
                               {format(new Date(achievement.timestamp), 'MMM dd, yyyy')}
                             </p>
                           </div>
                         </div>
-                        <span className="font-black text-[#8B0000] text-sm">+{achievement.xp} XP</span>
+                        <span className="font-semibold text-[#8B0000] text-sm">+{achievement.xp} XP</span>
                       </div>
                     ))
                   ) : (

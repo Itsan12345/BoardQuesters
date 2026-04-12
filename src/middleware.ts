@@ -7,20 +7,19 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define public routes that don't require authentication
-  const isPublicRoute = 
-    pathname === '/login' || 
-    pathname === '/signup' || 
-    pathname.startsWith('/_next') || 
+  const publicRoutes = ['/login', '/signup', '/onboarding'];
+  const isPublicRoute = publicRoutes.includes(pathname) ||
+    pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.includes('.');
 
-  // If no user session and trying to access a protected route
+  // If trying to access a protected route without a user ID
   if (!userId && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If user is already logged in, don't let them go back to login/signup
-  if (userId && (pathname === '/login' || pathname === '/signup')) {
+  // If user is logged in, prevent access to auth pages
+  if (userId && publicRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -28,5 +27,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    // Match all routes except static files and api
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 };

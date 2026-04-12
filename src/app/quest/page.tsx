@@ -40,67 +40,79 @@ import { calculateEarnedBadges, type Badge as BadgeType } from '@/lib/badge-syst
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const SUBJECT_METADATA: Record<string, { 
-  name: string; 
-  icon: any; 
-  color: string; 
-  enemy: string; 
+const SUBJECT_METADATA: Record<string, {
+  name: string;
+  icon: any;
+  color: string;
+  enemy: string;
   imageUrl?: string;
+  backgroundUrl?: string;
   difficulty: number;
   biome: string;
   description: string;
 }> = {
-  "Clinical Chemistry": { 
-    name: "Clinical Chemistry", 
-    icon: FlaskConical, 
-    color: "bg-primary", 
+  "Clinical Chemistry": {
+    name: "Clinical Chemistry",
+    icon: FlaskConical,
+    color: "bg-primary",
     enemy: "Hyperglycemic Specter",
-    imageUrl: "/images/island1.png",
+    imageUrl: "/images/ClinChem256.png",
+    backgroundUrl: "/images/ClinChem256_bg.png",
     difficulty: 4,
     biome: "Crystal Peak Archipelago",
     description: "The air is thick with the scent of ozone and reagents. Master the metabolic currents."
   },
-  "Hematology": { 
-    name: "Hematology", 
-    icon: Microscope, 
-    color: "bg-accent", 
+  "Hematology": {
+    name: "Hematology",
+    icon: Microscope,
+    color: "bg-accent",
     enemy: "Sickle-Cell Reaper",
+    imageUrl: "/images/Hema256.png",
+    backgroundUrl: "/images/Hema256_bg.png",
     difficulty: 3,
     biome: "The Sanguine Marshes",
     description: "Crimson rivers flow through iron-rich soil. Study the life force within."
   },
-  "Microbiology": { 
-    name: "Microbiology", 
-    icon: Database, 
-    color: "bg-primary", 
+  "Microbiology": {
+    name: "Microbiology",
+    icon: Database,
+    color: "bg-primary",
     enemy: "Biohazard Overlord",
+    imageUrl: "/images/MicroBio256.png",
+    backgroundUrl: "/images/MicroBio256_bg.png",
     difficulty: 5,
     biome: "Toxic Spore Jungles",
     description: "Invisible dangers lurk in every shadow. Identification is survival."
   },
-  "Immunohematology": { 
-    name: "Immunohematology", 
-    icon: Stethoscope, 
-    color: "bg-accent", 
+  "Immunohematology": {
+    name: "Immunohematology",
+    icon: Stethoscope,
+    color: "bg-accent",
     enemy: "Anti-Serum Hydra",
+    imageUrl: "/images/ImmunoHema256.png",
+    backgroundUrl: "/images/ImmunoHema256_bg.png",
     difficulty: 5,
     biome: "The Serum Sea",
     description: "Navigate the complex tides of antigens and antibodies."
   },
-  "Clinical Microscopy": { 
-    name: "Clinical Microscopy", 
-    icon: FlaskConical, 
-    color: "bg-primary", 
+  "Clinical Microscopy": {
+    name: "Clinical Microscopy",
+    icon: FlaskConical,
+    color: "bg-primary",
     enemy: "Crystal Golem",
+    imageUrl: "/images/ClinMicro256.png",
+    backgroundUrl: "/images/ClinMicro256_bg.png",
     difficulty: 2,
     biome: "Amber Sediment Cliffs",
     description: "Examine the smallest details that reveal the greatest truths."
   },
-  "Histopathology & MT Laws": { 
-    name: "MT Laws & Histopath", 
-    icon: ShieldAlert, 
-    color: "bg-accent", 
+  "Histopathology & MT Laws": {
+    name: "MT Laws & Histopath",
+    icon: ShieldAlert,
+    color: "bg-accent",
     enemy: "Legal Beholder",
+    imageUrl: "/images/Hispatho256.png",
+    backgroundUrl: "/images/Hispatho256_bg.png",
     difficulty: 3,
     biome: "The Citadel of Codes",
     description: "Where science meets the letter of the law. Preserve the ethics."
@@ -115,6 +127,7 @@ type UserAnswerRecord = {
 
 export default function LearningQuest() {
   const { toast } = useToast();
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isStarted, setIsStarted] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -136,6 +149,20 @@ export default function LearningQuest() {
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isAnimating, setIsAnimating] = useState<"player" | "enemy" | null>(null);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (carouselRef.current) {
+      const selectedButton = carouselRef.current.querySelector(`button:nth-child(${SUBJECT_AREAS.indexOf(selectedSubject) + 1})`);
+      if (selectedButton) {
+        selectedButton.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
+  }, [selectedSubject]);
 
   const startQuest = async () => {
     setIsLoading(true);
@@ -641,31 +668,54 @@ export default function LearningQuest() {
   }
 
   return (
-    <div className="min-h-full flex flex-col pb-20 md:pb-12 bg-white overflow-hidden relative">
-      <header className="px-6 md:px-8 pt-8 md:pt-12 pb-2 space-y-1 relative z-10">
-        <h1 className="text-3xl md:text-5xl font-black font-headline leading-tight tracking-tight text-slate-900">
-          Select Your <br />
-          <span className="text-primary">Quest Region</span>
-        </h1>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-4">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em]">
-            MASTER EACH LABORATORY SCIENCE
-          </p>
-          <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-xl border">
-            <Label htmlFor="quiz-mode" className="text-[9px] font-black uppercase text-muted-foreground whitespace-nowrap">
-              {quizMode === 'learning' ? 'Learning Mode' : 'Test Mode'}
+    <div
+      className="min-h-full flex flex-col pb-20 md:pb-12 overflow-hidden relative"
+      style={{
+        backgroundImage: `url('${SUBJECT_METADATA[selectedSubject]?.backgroundUrl || ''}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'local',
+        transition: 'background-image 0.6s ease-in-out',
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px] transition-all duration-600" />
+
+      <header className="px-6 md:px-8 pt-6 md:pt-8 pb-4 space-y-1 relative z-10">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0 mb-6">
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-5xl font-black font-headline leading-tight tracking-tight text-white">
+              Select Your <br />
+              <span className="text-primary" style={{
+                textShadow: '2px 2px 0 #ffffff, -2px -2px 0 #8B0000, 2px -2px 0 #8B0000, -2px 2px 0 #8B0000',
+                WebkitTextStroke: '2px #fbfbfb',
+                fontFamily: "'Poppins', sans-serif"
+              }}>
+                Quest Region
+              </span>
+            </h1>
+          </div>
+
+          {/* Learning Mode Badge - Responsive */}
+          <div className="md:absolute md:top-6 md:right-8 flex items-center space-x-2 bg-primary px-2.5 py-1.5 md:px-3 md:py-2 rounded-md border-2 border-white/70 shadow-lg w-fit">
+            <Label htmlFor="quiz-mode" className="text-[8px] md:text-[9px] font-black uppercase text-white whitespace-nowrap">
+              {quizMode === 'learning' ? 'LEARNING MODE' : 'TEST MODE'}
             </Label>
-            <Switch 
-              id="quiz-mode" 
-              checked={quizMode === 'test'} 
+            <Switch
+              id="quiz-mode"
+              checked={quizMode === 'test'}
               onCheckedChange={(checked) => setQuizMode(checked ? 'test' : 'learning')}
             />
           </div>
         </div>
+
+        <p className="text-[11px] font-bold text-slate-200 uppercase tracking-[0.15em]">
+          MASTER EACH LABORATORY SCIENCE
+        </p>
       </header>
 
       <div className="flex-1 flex flex-col justify-center py-6 md:py-10 relative z-10 overflow-hidden">
-        <div className="flex overflow-x-auto gap-4 md:gap-8 px-8 md:px-12 no-scrollbar snap-x snap-mandatory items-center min-h-[400px] md:min-h-[500px]">
+        <div ref={carouselRef} className="flex overflow-x-auto gap-4 md:gap-8 px-8 md:px-12 no-scrollbar snap-x snap-mandatory items-center min-h-[400px] md:min-h-[500px]">
           {SUBJECT_AREAS.map((subject) => {
             const meta = SUBJECT_METADATA[subject];
             const isSelected = selectedSubject === subject;
@@ -677,17 +727,17 @@ export default function LearningQuest() {
                 onClick={() => setSelectedSubject(subject)}
                 className={cn(
                   "flex-shrink-0 snap-center transition-all duration-500 transform outline-none flex flex-col items-center",
-                  isSelected ? "scale-100 w-64 md:w-80" : "scale-75 w-48 md:w-56 opacity-30 grayscale blur-[1px]"
+                  isSelected ? "scale-100 w-64 md:w-80" : "scale-75 w-48 md:w-56 opacity-35"
                 )}
               >
                 <div className="relative w-full flex flex-col items-center">
                   <div className={cn(
                     "relative w-full aspect-square transition-all duration-500",
-                    isSelected ? "animate-float" : ""
+                    isSelected ? "animate-float" : "drop-shadow-[0_10px_20px_rgba(0,0,0,0.4)]"
                   )}>
                     {meta.imageUrl ? (
-                      <div className="relative w-full h-full transform hover:scale-105 transition-transform">
-                        <Image src={meta.imageUrl} alt={subject} fill className="object-contain" priority={isSelected} />
+                      <div className="relative w-full h-full transform hover:scale-105 transition-transform drop-shadow-2xl">
+                        <Image src={meta.imageUrl} alt={subject} fill className="object-contain drop-shadow-lg" priority={isSelected} />
                       </div>
                     ) : (
                       <div className={cn("w-full h-full rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col items-center justify-center text-white shadow-2xl relative overflow-hidden group border-4 border-white/50", meta.color)}>
@@ -696,19 +746,30 @@ export default function LearningQuest() {
                     )}
                   </div>
 
-                  <div className={cn("mt-8 md:mt-12 text-center space-y-3 md:space-y-4 transition-all", isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
+                  {/* Shadow below island */}
+                  <div className="relative w-full flex justify-center" style={{ marginTop: '-16px' }}>
+                    <div
+                      className="w-3/4 h-12 md:h-20 rounded-full"
+                      style={{
+                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
+                        filter: 'blur(18px)'
+                      }}
+                    />
+                  </div>
+
+                  <div className={cn("mt-8 md:mt-6 text-center space-y-3 md:space-y-2 transition-all", isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
                      <div className="space-y-1">
-                       <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{meta.biome}</p>
-                       <h3 className="text-xl md:text-3xl font-black font-headline text-slate-900 tracking-tighter truncate">{subject}</h3>
+                       <p className="text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80" style={{ fontFamily: "'Poppins', sans-serif" }}>{meta.biome}</p>
+                       <h3 className="text-xl md:text-3xl font-black font-semibold text-white tracking-tighter truncate">{subject}</h3>
                      </div>
-                     <div className="flex flex-col items-center gap-2">
+                     <div className="flex flex-col items-center gap-3">
                        <div className="flex items-center gap-1">
                          {[...Array(5)].map((_, i) => (
-                           <Star key={i} className={cn("w-3 h-3 md:w-4 md:h-4", i < meta.difficulty ? "text-primary fill-primary" : "text-slate-200")} />
+                           <Star key={i} className={cn("w-3 h-3 md:w-4 md:h-4", i < meta.difficulty ? "text-primary fill-primary" : "text-white/30")} />
                          ))}
                        </div>
                        <div className="flex gap-2">
-                         <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
+                         <Badge variant="outline" className="bg-white/10 border-primary/40 text-white font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
                            <Target className="w-2.5 h-2.5 md:w-3 md:h-3" /> {meta.enemy}
                          </Badge>
                        </div>
@@ -721,15 +782,15 @@ export default function LearningQuest() {
         </div>
       </div>
 
-      <div className="px-6 md:px-8 mt-4 relative z-20">
-        <Button 
-          size="lg" 
-          onClick={startQuest} 
+      <div className="px-6 md:px-8 mt-6 md:mt-10 relative z-20">
+        <Button
+          size="lg"
+          onClick={startQuest}
           disabled={isLoading}
-          className="w-full h-16 md:h-20 rounded-2xl md:rounded-[2rem] bg-primary hover:bg-primary/90 text-lg md:text-xl font-black shadow-2xl text-white flex items-center justify-center gap-4"
+          className="w-full h-16 md:h-20 rounded-2xl md:rounded-[2rem] bg-primary hover:bg-primary/90 text-lg md:text-xl font-black shadow-2xl text-white flex items-center justify-center gap-3 border-2 border-white/70"
         >
           {isLoading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <Zap className="w-5 h-5 md:w-6 md:h-6 fill-white text-white" />}
-          {isLoading ? "Synchronizing..." : "Initiate Quest"}
+          {isLoading ? "Synchronizing..." : "Enter Battle Arena"}
         </Button>
       </div>
     </div>
