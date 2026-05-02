@@ -114,8 +114,7 @@ export default function SignupPage() {
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <>
-                  Enroll Now
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  Sign up
                 </>
               )}
             </Button>

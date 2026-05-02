@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Swords,
   Shield,
   Skull,
   Zap,
@@ -22,15 +21,14 @@ import {
   XCircle,
   BrainCircuit,
   Award,
-  Trophy
+  Trophy,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
@@ -134,6 +132,7 @@ export default function LearningQuest() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [quizMode, setQuizMode] = useState<'learning' | 'test'>('learning');
+  const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
   const [userAnswers, setUserAnswers] = useState<UserAnswerRecord[]>([]);
@@ -695,18 +694,6 @@ export default function LearningQuest() {
               </span>
             </h1>
           </div>
-
-          {/* Learning Mode Badge - Responsive */}
-          <div className="md:absolute md:top-6 md:right-8 flex items-center space-x-2 bg-primary px-2.5 py-1.5 md:px-3 md:py-2 rounded-md border-2 border-white/70 shadow-lg w-fit">
-            <Label htmlFor="quiz-mode" className="text-[8px] md:text-[9px] font-black uppercase text-white whitespace-nowrap">
-              {quizMode === 'learning' ? 'LEARNING MODE' : 'TEST MODE'}
-            </Label>
-            <Switch
-              id="quiz-mode"
-              checked={quizMode === 'test'}
-              onCheckedChange={(checked) => setQuizMode(checked ? 'test' : 'learning')}
-            />
-          </div>
         </div>
 
         <p className="text-[11px] font-bold text-slate-200 uppercase tracking-[0.15em]">
@@ -783,9 +770,26 @@ export default function LearningQuest() {
       </div>
 
       <div className="px-6 md:px-8 mt-6 md:mt-10 relative z-20">
+        {/* Mode Indicator */}
+        <div className="flex items-center justify-center gap-2 mb-4 md:mb-6">
+          <div className="flex items-center gap-2 bg-primary/20 border-2 border-primary px-4 py-2 rounded-full">
+            {quizMode === 'learning' ? (
+              <>
+                <BookOpen className="w-5 h-5 text-primary" />
+                <span className="text-sm md:text-base font-bold text-primary uppercase">Learning Mode Selected</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5 text-primary" />
+                <span className="text-sm md:text-base font-bold text-primary uppercase">Test Mode Selected</span>
+              </>
+            )}
+          </div>
+        </div>
+
         <Button
           size="lg"
-          onClick={startQuest}
+          onClick={() => setModeSelectDialogOpen(true)}
           disabled={isLoading}
           className="w-full h-16 md:h-20 rounded-2xl md:rounded-[2rem] bg-primary hover:bg-primary/90 text-lg md:text-xl font-black shadow-2xl text-white flex items-center justify-center gap-3 border-2 border-white/70"
         >
@@ -793,6 +797,64 @@ export default function LearningQuest() {
           {isLoading ? "Synchronizing..." : "Enter Battle Arena"}
         </Button>
       </div>
+
+      {/* Mode Selection Dialog */}
+      <Dialog open={modeSelectDialogOpen} onOpenChange={setModeSelectDialogOpen}>
+        <DialogContent className="sm:max-w-2xl border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-white">
+          <DialogHeader className="text-center space-y-4">
+            <DialogTitle className="font-headline text-2xl md:text-3xl">Select a session mode</DialogTitle>
+            <DialogDescription className="text-base">
+              Select how you want to approach the {selectedSubject} challenges
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 py-6">
+            {/* Learning Mode Card - Text Transition */}
+            <button
+              onClick={() => {
+                setQuizMode('learning');
+                startQuest();
+              }}
+              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
+            >
+              {/* Front Text - Icon & Title */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
+                <BookOpen className="w-12 h-12 md:w-14 md:h-14 mb-3" />
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Learning Mode</h3>
+              </div>
+
+              {/* Back Text - Description */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
+                <p className="text-sm md:text-base font-semibold leading-relaxed">
+                  Get instant feedback on every answer. Perfect for mastering concepts step by step.
+                </p>
+              </div>
+            </button>
+
+            {/* Test Mode Card - Text Transition */}
+            <button
+              onClick={() => {
+                setQuizMode('test');
+                startQuest();
+              }}
+              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
+            >
+              {/* Front Text - Icon & Title */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
+                <Zap className="w-12 h-12 md:w-14 md:h-14 mb-3" />
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Test Mode</h3>
+              </div>
+
+              {/* Back Text - Description */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
+                <p className="text-sm md:text-base font-semibold leading-relaxed">
+                  Battle simulation without feedback. Challenge yourself to peak performance.
+                </p>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

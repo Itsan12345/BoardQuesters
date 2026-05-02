@@ -101,14 +101,13 @@ export default function LoginPage() {
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                 <>
                   LOG IN
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>
           </form>
           <div className="mt-8 text-center">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              New to the expedition? <Link href="/signup" className="text-primary hover:underline">Enroll Now</Link>
+              New to the expedition? <Link href="/signup" className="text-primary hover:underline">Sign Up</Link>
             </p>
           </div>
         </CardContent>

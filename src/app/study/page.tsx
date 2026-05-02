@@ -14,15 +14,16 @@ import {
   Calendar as CalendarIcon,
   Loader2,
   CheckCircle2,
-  Brain
+  Brain,
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CustomCalendar } from '@/components/ui/custom-calendar';
 import { cn } from '@/lib/utils';
 import { getStudyPlans, saveStudyPlan } from '@/app/actions/study-plan';
 import { getSubjectMetrics, updateLessonStatus, type SubjectMetrics } from '@/app/actions/study';
@@ -42,7 +43,7 @@ const INITIAL_CURRICULUM = [
   },
   {
     id: "hematology",
-    title: "Hematology & Coagulation",
+    title: "Hematology",
     icon: Microscope,
     lessons: [
       { id: "hem1", title: "RBC Morphology & Anemias", duration: "50m", status: "completed" },
@@ -51,7 +52,7 @@ const INITIAL_CURRICULUM = [
   },
   {
     id: "microbiology",
-    title: "Clinical Microbiology",
+    title: "Microbiology",
     icon: Database,
     lessons: [
       { id: "mic1", title: "Bacteriology: Gram Positives", duration: "65m", status: "completed" },
@@ -120,6 +121,18 @@ export default function StudyPage() {
       setLoading(false);
     }
     loadData();
+
+    // Refresh metrics every 30 seconds to keep them in sync across pages
+    const metricsRefreshInterval = setInterval(async () => {
+      const metrics = await getSubjectMetrics();
+      const metricsMap: Record<string, SubjectMetrics> = {};
+      metrics.forEach(m => {
+        metricsMap[m.subject] = m;
+      });
+      setSubjectMetrics(metricsMap);
+    }, 30000);
+
+    return () => clearInterval(metricsRefreshInterval);
   }, []);
 
   const handleSetDate = async (subject: string, date: Date | undefined) => {
@@ -173,12 +186,19 @@ export default function StudyPage() {
                 Intel Gathering & Concept Mastery
               </p>
             </div>
+            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-3 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">Final Deadline</span>
+              </div>
+              <p className="text-sm font-black text-red-700">June 15, 2026</p>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <Input 
-              placeholder="Search concepts, protocols, or RA sections..." 
-              className="pl-12 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl focus-visible:ring-primary/20 text-sm font-medium" 
+            <Input
+              placeholder="Search concepts, protocols, or RA sections..."
+              className="pl-12 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl focus-visible:ring-primary/20 text-sm font-medium"
             />
           </div>
         </div>
@@ -243,11 +263,11 @@ export default function StudyPage() {
                 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className={cn(
-                        "rounded-xl border-2 h-12 px-6 flex items-center gap-3 transition-all",
-                        selectedDate ? "border-primary/20 bg-primary/5 text-primary" : "border-slate-200"
+                        "rounded-xl border-2 h-12 px-6 flex items-center gap-3 transition-all hover:shadow-lg hover:border-primary/40",
+                        selectedDate ? "border-primary/30 bg-primary/10 text-primary shadow-md" : "border-slate-200 hover:border-slate-300"
                       )}
                       disabled={isSaving === selectedCategory.title}
                     >
@@ -264,14 +284,18 @@ export default function StudyPage() {
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => handleSetDate(selectedCategory.title, date)}
-                      disabled={(date) => date < startOfDay(new Date())}
-                      initialFocus
-                    />
+                  <PopoverContent className="w-auto p-0 shadow-2xl border-2 border-slate-100 rounded-2xl bg-white" align="end">
+                    <div className="space-y-4 p-4">
+                      <div className="space-y-1 border-b pb-4">
+                        <h3 className="font-black text-sm uppercase text-slate-900">Select Target Date</h3>
+                        <p className="text-[10px] text-slate-500 font-semibold">For {selectedCategory.title}</p>
+                      </div>
+                      <CustomCalendar
+                        selected={selectedDate}
+                        onSelect={(date) => handleSetDate(selectedCategory.title, date)}
+                        disabled={(date) => date < startOfDay(new Date())}
+                      />
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>

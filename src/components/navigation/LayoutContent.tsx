@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { BottomNav } from '@/components/navigation/BottomNav';
-import { ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -33,18 +31,15 @@ export function LayoutContent({
       <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-white/95 backdrop-blur-md px-4 lg:px-6 shadow-sm">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors hidden lg:flex" />
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="bg-primary/10 p-1.5 rounded-lg">
-              <ShieldCheck className="h-6 w-6 text-primary" />
+          <Link href="/" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+            <div className="p-1.5 rounded-lg">
+              <img
+                src="/images/boardquestlogo2.png"
+                alt="BoardQuest Logo"
+                className="h-6 w-6"
+              />
             </div>
-            <div className="flex flex-col">
-              <span className="font-headline font-bold text-foreground leading-none text-base lg:text-lg">BoardQuest</span>
-              <div className="mt-0.5">
-                <Badge variant="secondary" className="bg-primary/10 text-primary text-[7px] lg:text-[8px] h-3 lg:h-3.5 font-bold uppercase tracking-wider border-none px-1">
-                  Aspirant Mode
-                </Badge>
-              </div>
-            </div>
+            <span className="font-black text-foreground leading-none text-base lg:text-lg" style={{ fontFamily: "'Akira Expanded', sans-serif" }}>BoardQuest</span>
           </Link>
         </div>
 

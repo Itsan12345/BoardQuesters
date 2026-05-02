@@ -21,8 +21,8 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
 
     const subjects = [
       'Clinical Chemistry',
-      'Hematology & Coagulation',
-      'Clinical Microbiology',
+      'Hematology',
+      'Microbiology',
       'Immunohematology',
       'Clinical Microscopy',
       'Histopathology & MT Laws',
@@ -33,8 +33,8 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
         // Get total lessons for this subject from the curriculum
         const totalLessonsMap: Record<string, number> = {
           'Clinical Chemistry': 3,
-          'Hematology & Coagulation': 2,
-          'Clinical Microbiology': 2,
+          'Hematology': 2,
+          'Microbiology': 2,
           'Immunohematology': 2,
           'Clinical Microscopy': 2,
           'Histopathology & MT Laws': 2,

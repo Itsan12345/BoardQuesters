@@ -2,17 +2,22 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
+import { useRouter } from 'next/navigation';
+import {
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
-import { 
-  TrendingUp, Target, Award, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, Sparkles, Loader2, Clock, Calendar as CalendarIcon
+import {
+  TrendingUp, Target, Award, FlaskConical, Microscope, Database, Stethoscope, ShieldAlert, Sparkles, Loader2, Clock, Calendar as CalendarIcon,
+  Zap, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { getUserStats } from '@/app/actions/user';
 import { getStudyPlans } from '@/app/actions/study-plan';
+import { getSubjectMetrics } from '@/app/actions/study';
 import { SUBJECT_AREAS } from '@/lib/game-logic';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
@@ -26,33 +31,93 @@ const ICON_MAP: Record<string, any> = {
   "Histopathology & MT Laws": ShieldAlert
 };
 
-export default function PerformancePage() {
+const RADAR_LABELS: Record<string, string> = {
+  "Clinical Chemistry": "Chemistry",
+  "Hematology": "Hematology",
+  "Microbiology": "Microbiology",
+  "Immunohematology": "Immunochem",
+  "Clinical Microscopy": "Microscopy",
+  "Histopathology & MT Laws": "Histopath"
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  "Mastered": "bg-green-100 text-green-700 border-green-300",
+  "Proficient": "bg-blue-100 text-blue-700 border-blue-300",
+  "In Training": "bg-yellow-100 text-yellow-700 border-yellow-300",
+  "Not Started": "bg-slate-100 text-slate-700 border-slate-300"
+};
+
+const STATUS_INDICATORS: Record<string, any> = {
+  "Mastered": <CheckCircle2 className="w-4 h-4" />,
+  "Proficient": <TrendingUp className="w-4 h-4" />,
+  "In Training": <Loader2 className="w-4 h-4" />,
+  "Not Started": <AlertCircle className="w-4 h-4" />
+};
+
+function PerformanceContent() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [subjectMetrics, setSubjectMetrics] = useState<any[]>([]);
   const [nextObjective, setNextObjective] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [performanceHistory, setPerformanceHistory] = useState<any[]>([]);
 
   useEffect(() => {
     async function loadData() {
-      const [stats, plans] = await Promise.all([
-        getUserStats(),
-        getStudyPlans()
-      ]);
-      
-      setUser(stats);
+      try {
+        const [stats, plans, metrics] = await Promise.all([
+          getUserStats(),
+          getStudyPlans(),
+          getSubjectMetrics()
+        ]);
 
-      if (plans && plans.length > 0) {
-        const today = new Date();
-        const futurePlans = plans
-          .filter(p => new Date(p.targetDate) >= today)
-          .sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
-        
-        if (futurePlans.length > 0) {
-          setNextObjective(futurePlans[0]);
+        setUser(stats);
+        setSubjectMetrics(metrics || []);
+
+        // Process performance history from achievements
+        if (stats?.achievements) {
+          const performanceData = SUBJECT_AREAS.map(subject => {
+            const subjectAchievements = stats.achievements.filter((a: any) => a.type === 'quest_completion' && a.subject === subject);
+            const accuracyScores = subjectAchievements
+              .filter((a: any) => a.accuracy)
+              .map((a: any) => a.accuracy);
+
+            return {
+              subject: subject.split(' ')[0],
+              avgAccuracy: accuracyScores.length > 0
+                ? Math.round(accuracyScores.reduce((a: number, b: number) => a + b, 0) / accuracyScores.length)
+                : 0,
+              attemptCount: subjectAchievements.length
+            };
+          });
+          setPerformanceHistory(performanceData);
         }
+
+        if (plans && plans.length > 0) {
+          const today = new Date();
+          const futurePlans = plans
+            .filter(p => new Date(p.targetDate) >= today)
+            .sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
+
+          if (futurePlans.length > 0) {
+            setNextObjective(futurePlans[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load performance data:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadData();
+
+    // Refresh metrics every 30 seconds to keep them in sync across pages
+    const metricsRefreshInterval = setInterval(async () => {
+      const metrics = await getSubjectMetrics();
+      setSubjectMetrics(metrics || []);
+    }, 30000);
+
+    return () => clearInterval(metricsRefreshInterval);
   }, []);
 
   if (loading) {
@@ -63,29 +128,37 @@ export default function PerformancePage() {
     );
   }
 
+  // Build mastery data with real metrics
   const fullMastery = SUBJECT_AREAS.map(subjectName => {
-    const existing = user?.mastery?.find((m: any) => m.subject === subjectName);
+    const metrics = subjectMetrics.find((m: any) => m.subject === subjectName);
     return {
       subject: subjectName,
       shortName: subjectName.split(' ')[0],
-      proficiency: existing?.proficiency || 0,
-      status: existing?.status || "In Training",
+      radarLabel: RADAR_LABELS[subjectName] || subjectName,
+      completion: metrics?.completion || 0,
+      mastery: metrics?.mastery || 0,
+      status: metrics?.masteryStatus || "Not Started",
       fullMark: 100
     };
   });
 
-  const masteryData = fullMastery.map(m => ({
-    subject: m.shortName,
-    proficiency: m.proficiency,
+  const radarData = fullMastery.map(m => ({
+    subject: m.radarLabel,
+    mastery: m.mastery,
     fullMark: 100
   }));
 
-  const avgMastery = fullMastery.length > 0 
-    ? (fullMastery.reduce((acc: number, m: any) => acc + m.proficiency, 0) / fullMastery.length).toFixed(1)
+  const avgMastery = fullMastery.length > 0
+    ? (fullMastery.reduce((acc: number, m: any) => acc + m.mastery, 0) / fullMastery.length).toFixed(1)
     : "0.0";
 
-  const daysRemaining = nextObjective 
-    ? differenceInDays(new Date(nextObjective.targetDate), new Date()) 
+  const avgCompletion = fullMastery.length > 0
+    ? (fullMastery.reduce((acc: number, m: any) => acc + m.completion, 0) / fullMastery.length).toFixed(0)
+    : "0";
+
+  const masteredCount = fullMastery.filter(m => m.status === "Mastered").length;
+  const daysRemaining = nextObjective
+    ? differenceInDays(new Date(nextObjective.targetDate), new Date())
     : 0;
 
   return (
@@ -95,25 +168,76 @@ export default function PerformancePage() {
         <p className="text-muted-foreground text-sm lg:text-lg font-medium">Real-time analytics and mission objectives for your licensure expedition.</p>
       </header>
 
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase text-primary/60">Avg Mastery</p>
+            <p className="text-3xl font-black text-primary">{avgMastery}%</p>
+          </div>
+        </Card>
+        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-blue-100/40 to-blue-50 p-4">
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase text-blue-700/60">Completion</p>
+            <p className="text-3xl font-black text-blue-700">{avgCompletion}%</p>
+          </div>
+        </Card>
+        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-green-100/40 to-green-50 p-4">
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase text-green-700/60">Mastered</p>
+            <p className="text-3xl font-black text-green-700">{masteredCount}/{fullMastery.length}</p>
+          </div>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Radar Chart */}
         <Card className="lg:col-span-2 border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-          <CardHeader className="bg-muted/30 border-b pb-6">
-            <CardTitle className="font-headline text-lg lg:text-xl font-semibold tracking-wide" style={{ fontFamily: "'Poppins', sans-serif" }}>Proficiency Radar</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Visuals mapping of subject area strengths.</CardDescription>
+          <CardHeader className="bg-slate-50 border-b px-8 py-6">
+            <CardTitle className="font-black text-3xl tracking-tight text-slate-900">
+              Proficiency Radar
+            </CardTitle>
+            <CardDescription className="text-xs font-black uppercase tracking-widest text-primary mt-3">
+              Target Mission Competency
+            </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 lg:p-8">
-            <div className="h-[300px] lg:h-[400px] w-full">
+          <CardContent className="p-12 bg-white">
+            <div className="h-[450px] w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={masteryData}>
-                  <PolarGrid stroke="#e5e7eb" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar 
-                    name="Proficiency" 
-                    dataKey="proficiency" 
-                    stroke="hsl(var(--primary))" 
-                    fill="hsl(var(--primary))" 
-                    fillOpacity={0.4} 
+                <RadarChart
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  data={radarData}
+                >
+                  <PolarGrid
+                    stroke="#d1d5db"
+                    strokeWidth={1}
+                    style={{ opacity: 0.6 }}
+                  />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{
+                      fill: '#6b7280',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontFamily: "'Poppins', sans-serif"
+                    }}
+                    tickLine={false}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                  />
+                  <Radar
+                    name="Mastery"
+                    dataKey="mastery"
+                    stroke="#a85a6a"
+                    fill="#a85a6a"
+                    fillOpacity={0.6}
+                    isAnimationActive={true}
                   />
                 </RadarChart>
               </ResponsiveContainer>
@@ -121,12 +245,13 @@ export default function PerformancePage() {
           </CardContent>
         </Card>
 
+        {/* Active Objectives */}
         <div className="space-y-6">
           <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 lg:p-8 relative overflow-hidden border-t-4 border-primary">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
               <Target className="w-24 h-24 text-primary" />
             </div>
-            
+
             <div className="space-y-6 relative z-10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -141,7 +266,7 @@ export default function PerformancePage() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Active Objective</p>
                     <p className="text-xl font-black font-headline text-slate-900 leading-tight">{nextObjective.subject}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold uppercase text-muted-foreground">Target Date</p>
@@ -151,44 +276,116 @@ export default function PerformancePage() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold uppercase text-muted-foreground">Intel Session</p>
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground">Days Left</p>
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
                         <Clock className="w-3 h-3 text-primary" />
-                        90 mins
+                        {Math.max(0, daysRemaining)}
                       </div>
                     </div>
                   </div>
 
                   <div className="pt-2 space-y-2">
-                    <div className="flex justify-between items-center text-[10px] font-bold uppercase">
-                      <span className="text-muted-foreground">Completion Buffer</span>
-                      <span className="text-primary">{daysRemaining} Days Left</span>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Objective Progress</p>
+                        <div className="flex justify-between items-center text-[9px] font-bold mb-1">
+                          <span className="text-slate-900">
+                            {daysRemaining <= 0
+                              ? "Deadline Reached"
+                              : daysRemaining === 1
+                              ? "1 day remaining"
+                              : `${daysRemaining} days remaining`}
+                          </span>
+                          <span className={cn(
+                            daysRemaining <= 3 ? "text-red-600" :
+                            daysRemaining <= 7 ? "text-yellow-600" :
+                            "text-green-600"
+                          )}>
+                            {daysRemaining <= 0 ? "Critical" : daysRemaining <= 3 ? "Urgent" : daysRemaining <= 7 ? "On Track" : "Comfortable"}
+                          </span>
+                        </div>
+                        <Progress
+                          value={Math.max(0, Math.min(100, 100 - (daysRemaining * 5)))}
+                          className="h-2 bg-slate-100"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Subject Mastery</p>
+                        <div className="flex justify-between items-center text-[9px] font-bold mb-1">
+                          <span className="text-slate-900">
+                            {fullMastery.find((m: any) => m.subject === nextObjective.subject)?.mastery || 0}% Mastery
+                          </span>
+                          <span className="text-primary">
+                            {fullMastery.find((m: any) => m.subject === nextObjective.subject)?.status || "Not Started"}
+                          </span>
+                        </div>
+                        <Progress
+                          value={fullMastery.find((m: any) => m.subject === nextObjective.subject)?.mastery || 0}
+                          className="h-2 bg-slate-100"
+                        />
+                      </div>
                     </div>
-                    <Progress value={Math.max(10, 100 - (daysRemaining * 10))} className="h-1.5 bg-primary/5" />
                   </div>
                 </div>
               ) : (
                 <div className="py-6 text-center space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground italic">No objectives deployed. Visit the Curriculum to set your mission targets.</p>
+                  <Target className="w-8 h-8 text-muted-foreground/20 mx-auto" />
+                  <p className="text-xs font-medium text-muted-foreground italic">No objectives deployed. Visit the Study Curriculum to set your mission targets.</p>
                 </div>
               )}
             </div>
           </Card>
 
+          {/* AI Insight */}
           <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 border-l-4 border-primary shadow-xl">
             <h3 className="font-black font-semibold text-lg flex items-center gap-2 uppercase tracking-tight">
               <Sparkles className="w-5 h-5 text-primary" />
-              Strategist Insight
+              AI Insight
             </h3>
-            <p className="text-sm font-semibold   text-muted-foreground italic leading-relaxed mt-2">
-              {parseFloat(avgMastery) < 75 
-                ? "Your current average is below board standards. Prioritize your active objectives to bridge proficiency gaps." 
-                : "Operational standards met. Maintain your objective streak to ensure mock exam readiness."}
+            <p className="text-sm font-semibold text-muted-foreground italic leading-relaxed mt-2">
+              {parseFloat(avgMastery) >= 85
+                ? "🎯 Exceptional performance! You're on track for board certification. Maintain this momentum!"
+                : parseFloat(avgMastery) >= 60
+                ? "📈 Solid progress! Focus on weaker areas to reach mastery level."
+                : "⚠️ Increase study intensity. Prioritize your active objectives to accelerate mastery growth."}
             </p>
           </Card>
         </div>
       </div>
 
+      {/* Performance History Chart */}
+      {performanceHistory.some(p => p.attemptCount > 0) && (
+        <Card className="border-none shadow-lg rounded-[2rem] bg-white overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b pb-6">
+            <CardTitle className="font-headline text-lg font-semibold tracking-wide flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              Quest Performance History
+            </CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">
+              Average accuracy across quest attempts by subject.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 lg:p-8">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={performanceHistory}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: '#6b7280' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    formatter={(value) => `${value}%`}
+                  />
+                  <Bar dataKey="avgAccuracy" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Technical Breakdown */}
       <section className="space-y-6">
         <h2 className="text-2xl font-black font-headline flex items-center gap-3 uppercase tracking-tight">
           <Award className="w-6 h-6 text-primary" />
@@ -198,16 +395,58 @@ export default function PerformancePage() {
           {fullMastery.map((item: any) => {
             const Icon = ICON_MAP[item.subject] || Database;
             return (
-              <Card key={item.subject} className="border-none shadow-md rounded-[2rem] bg-white border-t-4 border-primary/20 p-6 space-y-4 hover:shadow-lg transition-all group">
+              <Card
+                key={item.subject}
+                className={cn(
+                  "border-none shadow-md rounded-[2rem] bg-white border-t-4 p-6 space-y-4 hover:shadow-lg transition-all group",
+                  `border-t-${item.status === "Mastered" ? "green" : item.status === "Proficient" ? "blue" : item.status === "In Training" ? "yellow" : "slate"}-400`
+                )}
+              >
                 <div className="flex justify-between items-start">
-                  <div className="p-3 bg-primary/5 text-primary rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors"><Icon className="h-6 w-6" /></div>
-                  <Badge variant="outline" className="text-[9px] font-semibold uppercase border-primary/20 text-primary">{item.status}</Badge>
+                  <div className={cn(
+                    "p-3 rounded-2xl group-hover:text-white transition-colors",
+                    item.status === "Mastered" ? "bg-green-100 text-green-700 group-hover:bg-green-600" :
+                    item.status === "Proficient" ? "bg-blue-100 text-blue-700 group-hover:bg-blue-600" :
+                    item.status === "In Training" ? "bg-yellow-100 text-yellow-700 group-hover:bg-yellow-600" :
+                    "bg-slate-100 text-slate-700 group-hover:bg-slate-600"
+                  )}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <Badge className={cn("text-[9px] font-semibold uppercase", STATUS_COLORS[item.status])}>
+                    {item.status}
+                  </Badge>
                 </div>
+
                 <div>
                   <h4 className="font-semibold text-sm uppercase tracking-tight truncate text-slate-900">{item.subject}</h4>
-                  <p className="text-2xl font-semibold font-headline text-primary mt-1">{item.proficiency}% <span className="text-[10px] text-muted-foreground uppercase font-semibold">Verified</span></p>
+                  <div className="flex gap-4 mt-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Completion</p>
+                      <p className="text-2xl font-bold text-blue-600">{item.completion}%</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Mastery</p>
+                      <p className="text-2xl font-bold text-primary">{item.mastery}%</p>
+                    </div>
+                  </div>
                 </div>
-                <Progress value={item.proficiency} className="h-1.5 bg-slate-100" />
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[9px] font-bold uppercase text-muted-foreground">Lessons</span>
+                      <span className="text-[9px] font-bold text-primary">{item.completion}%</span>
+                    </div>
+                    <Progress value={item.completion} className="h-1 bg-slate-100" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[9px] font-bold uppercase text-muted-foreground">Quests</span>
+                      <span className="text-[9px] font-bold text-primary">{item.mastery}%</span>
+                    </div>
+                    <Progress value={item.mastery} className="h-1 bg-slate-100" />
+                  </div>
+                </div>
               </Card>
             );
           })}
@@ -216,3 +455,12 @@ export default function PerformancePage() {
     </div>
   );
 }
+
+export default function PerformancePage() {
+  return (
+    <ProtectedRoute>
+      <PerformanceContent />
+    </ProtectedRoute>
+  );
+}
+
