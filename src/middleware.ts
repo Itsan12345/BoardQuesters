@@ -1,8 +1,45 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+type RateLimitInfo = {
+  count: number;
+  lastReset: number;
+};
+const rateLimitMap = new Map<string, RateLimitInfo>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+const MAX_REQUESTS = 60; // Max 60 requests per minute per IP
+
+function applyRateLimit(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const now = Date.now();
+
+  // Prune map to prevent memory leak in long running isolates
+  if (rateLimitMap.size > 1000) {
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (now - value.lastReset > RATE_LIMIT_WINDOW) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+
+  let limitInfo = rateLimitMap.get(ip);
+  if (!limitInfo || now - limitInfo.lastReset > RATE_LIMIT_WINDOW) {
+    limitInfo = { count: 0, lastReset: now };
+  }
+
+  limitInfo.count++;
+  rateLimitMap.set(ip, limitInfo);
+
+  return limitInfo.count <= MAX_REQUESTS;
+}
+
 export function middleware(request: NextRequest) {
+  // Apply Rate Limiting
+  const isAllowed = applyRateLimit(request);
+  if (!isAllowed) {
+    return new NextResponse('Too Many Requests', { status: 429 });
+  }
+
   const userId = request.cookies.get('user_id')?.value;
   const { pathname } = request.nextUrl;
 

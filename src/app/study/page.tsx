@@ -61,7 +61,7 @@ const INITIAL_CURRICULUM = [
   },
   {
     id: "immunohematology",
-    title: "Immunohematology",
+    title: "Immunology & Serology and Immunohematology",
     icon: Stethoscope,
     lessons: [
       { id: "bb1", title: "ABO & Rh Blood Group Systems", duration: "55m", status: "completed" },
@@ -70,7 +70,7 @@ const INITIAL_CURRICULUM = [
   },
   {
     id: "clinical-microscopy",
-    title: "Clinical Microscopy",
+    title: "Clinical Microscopy & Parasitology",
     icon: FlaskConical,
     lessons: [
       { id: "cm1", title: "Routine Urinalysis: Physical & Chemical", duration: "40m", status: "completed" },

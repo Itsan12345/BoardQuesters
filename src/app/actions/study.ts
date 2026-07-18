@@ -23,7 +23,7 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
       'Clinical Chemistry',
       'Hematology',
       'Microbiology',
-      'Immunohematology',
+      'Immunology & Serology and Immunohematology',
       'Clinical Microscopy',
       'Histopathology & MT Laws',
     ];
@@ -35,7 +35,7 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
           'Clinical Chemistry': 3,
           'Hematology': 2,
           'Microbiology': 2,
-          'Immunohematology': 2,
+          'Immunology & Serology and Immunohematology': 2,
           'Clinical Microscopy': 2,
           'Histopathology & MT Laws': 2,
         };

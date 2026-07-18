@@ -43,7 +43,7 @@ export const STATIC_QUESTIONS: Record<string, StaticQuestion[]> = {
       explanation: "Staphylococci are characterized by their grape-like cluster arrangement under the microscope."
     }
   ],
-  "Immunohematology": [
+  "Immunology & Serology and Immunohematology": [
     {
       question: "Which blood group is known as the universal donor for Red Blood Cells?",
       options: ["Group A", "Group B", "Group AB", "Group O"],
@@ -51,7 +51,7 @@ export const STATIC_QUESTIONS: Record<string, StaticQuestion[]> = {
       explanation: "Group O negative blood is often called the universal donor because it lacks A, B, and Rh antigens."
     }
   ],
-  "Clinical Microscopy": [
+  "Clinical Microscopy & Parasitology": [
     {
       question: "What type of cast is usually associated with chronic renal failure?",
       options: ["Hyaline cast", "Waxy cast", "Granular cast", "RBC cast"],

@@ -82,8 +82,8 @@ const SUBJECT_METADATA: Record<string, {
     biome: "Toxic Spore Jungles",
     description: "Invisible dangers lurk in every shadow. Identification is survival."
   },
-  "Immunohematology": {
-    name: "Immunohematology",
+  "Immunology & Serology and Immunohematology": {
+    name: "Immunology & Serology and Immunohematology",
     icon: Stethoscope,
     color: "bg-accent",
     enemy: "Anti-Serum Hydra",
@@ -93,8 +93,8 @@ const SUBJECT_METADATA: Record<string, {
     biome: "The Serum Sea",
     description: "Navigate the complex tides of antigens and antibodies."
   },
-  "Clinical Microscopy": {
-    name: "Clinical Microscopy",
+  "Clinical Microscopy & Parasitology": {
+    name: "Clinical Microscopy & Parasitology",
     icon: FlaskConical,
     color: "bg-primary",
     enemy: "Crystal Golem",
@@ -201,7 +201,7 @@ export default function LearningQuest() {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.max(0, prev - damage));
     }
-    
+
     if (quizMode === 'learning' && !questions[index].explanation) {
       try {
         const feedback = await provideExamFeedback({
@@ -209,11 +209,11 @@ export default function LearningQuest() {
           correctAnswer: questions[index].correctAnswer,
           userAnswer: selectedLetter
         });
-        
+
         const updatedQuestions = [...questions];
         updatedQuestions[index] = { ...updatedQuestions[index], explanation: feedback.explanation };
         setQuestions(updatedQuestions);
-      } catch (e) {}
+      } catch (e) { }
     }
     setTimeout(() => setIsAnimating(null), 500);
   };
@@ -305,7 +305,7 @@ export default function LearningQuest() {
               {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
             </div>
           </div>
-          
+
           <div className="space-y-1">
             <h2 className="text-3xl md:text-5xl font-black font-headline text-primary tracking-tighter">
               {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
@@ -316,15 +316,15 @@ export default function LearningQuest() {
           </div>
 
           <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
-             <div className="text-center">
-               <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
-               <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
-             </div>
-             <div className="h-10 md:h-12 w-px bg-border" />
-             <div className="text-center">
-               <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
-               <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
-             </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
+              <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+            </div>
+            <div className="h-10 md:h-12 w-px bg-border" />
+            <div className="text-center">
+              <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+              <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+            </div>
           </div>
         </header>
 
@@ -515,7 +515,7 @@ export default function LearningQuest() {
               {questions.map((q, idx) => {
                 const userAns = userAnswers.find(ua => ua.questionIndex === idx);
                 const isCorrect = userAns?.isCorrect;
-                
+
                 return (
                   <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
                     <AccordionTrigger className="hover:no-underline py-4 md:py-6 px-2 md:px-4">
@@ -574,12 +574,12 @@ export default function LearningQuest() {
         </Card>
 
         <div className="flex flex-col sm:flex-row justify-center gap-4 pb-12">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={() => {
               setIsStarted(false);
               setIsFinished(false);
-            }} 
+            }}
             className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-black shadow-xl"
           >
             Re-Enter Arena
@@ -627,7 +627,7 @@ export default function LearningQuest() {
                 </div>
               </div>
               <div className="flex justify-end pr-2 md:pr-4 mt-2">
-                 <EnemyIcon className="w-12 h-12 md:w-20 md:h-20 text-white drop-shadow-glow" />
+                <EnemyIcon className="w-12 h-12 md:w-20 md:h-20 text-white drop-shadow-glow" />
               </div>
             </div>
 
@@ -636,30 +636,30 @@ export default function LearningQuest() {
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl hidden sm:flex">
-                   <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
-                 </div>
-                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
-                    <div className="flex justify-between items-center mb-1 gap-2">
-                      <span className="text-[8px] md:text-[10px] font-black text-white uppercase">Aspirant Rivera</span>
-                      <span className="text-[7px] md:text-[8px] bg-white text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
-                    </div>
-                    <div className="h-1.5 md:h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
-                      <div className="h-full bg-white transition-all duration-500" style={{ width: `${playerHealth}%` }} />
-                    </div>
-                 </div>
+                <div className="w-12 h-12 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl hidden sm:flex">
+                  <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
+                </div>
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
+                  <div className="flex justify-between items-center mb-1 gap-2">
+                    <span className="text-[8px] md:text-[10px] font-black text-white uppercase">Aspirant Rivera</span>
+                    <span className="text-[7px] md:text-[8px] bg-white text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
+                  </div>
+                  <div className="h-1.5 md:h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
+                    <div className="h-full bg-white transition-all duration-500" style={{ width: `${playerHealth}%` }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="flex-1 bg-white">
-             <QuizInterface 
-               questions={questions} 
-               onFinish={handleFinish} 
-               onAnswer={handleAnswer}
-               isLoading={isLoading}
-               mode={quizMode}
-             />
+            <QuizInterface
+              questions={questions}
+              onFinish={handleFinish}
+              onAnswer={handleAnswer}
+              isLoading={isLoading}
+              mode={quizMode}
+            />
           </div>
         </main>
       </div>
@@ -745,22 +745,22 @@ export default function LearningQuest() {
                   </div>
 
                   <div className={cn("mt-8 md:mt-6 text-center space-y-3 md:space-y-2 transition-all", isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-                     <div className="space-y-1">
-                       <p className="text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80" style={{ fontFamily: "'Poppins', sans-serif" }}>{meta.biome}</p>
-                       <h3 className="text-xl md:text-3xl font-black font-semibold text-white tracking-tighter truncate">{subject}</h3>
-                     </div>
-                     <div className="flex flex-col items-center gap-3">
-                       <div className="flex items-center gap-1">
-                         {[...Array(5)].map((_, i) => (
-                           <Star key={i} className={cn("w-3 h-3 md:w-4 md:h-4", i < meta.difficulty ? "text-primary fill-primary" : "text-white/30")} />
-                         ))}
-                       </div>
-                       <div className="flex gap-2">
-                         <Badge variant="outline" className="bg-white/10 border-primary/40 text-white font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
-                           <Target className="w-2.5 h-2.5 md:w-3 md:h-3" /> {meta.enemy}
-                         </Badge>
-                       </div>
-                     </div>
+                    <div className="space-y-1 w-full px-2">
+                      <p className="text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80" style={{ fontFamily: "'Poppins', sans-serif" }}>{meta.biome}</p>
+                      <h3 className="text-lg sm:text-xl md:text-3xl font-black font-semibold text-white tracking-tighter text-balance leading-tight break-words">{subject}</h3>
+                    </div>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={cn("w-3 h-3 md:w-4 md:h-4", i < meta.difficulty ? "text-primary fill-primary" : "text-white/30")} />
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="bg-white/10 border-primary/40 text-white font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
+                          <Target className="w-2.5 h-2.5 md:w-3 md:h-3" /> {meta.enemy}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </button>

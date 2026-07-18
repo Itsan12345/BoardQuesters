@@ -26,8 +26,8 @@ const ICON_MAP: Record<string, any> = {
   "Clinical Chemistry": FlaskConical,
   "Hematology": Microscope,
   "Microbiology": Database,
-  "Immunohematology": Stethoscope,
-  "Clinical Microscopy": FlaskConical,
+  "Immunology & Serology and Immunohematology": Stethoscope,
+  "Clinical Microscopy & Parasitology": FlaskConical,
   "Histopathology & MT Laws": ShieldAlert
 };
 
@@ -35,8 +35,8 @@ const RADAR_LABELS: Record<string, string> = {
   "Clinical Chemistry": "Chemistry",
   "Hematology": "Hematology",
   "Microbiology": "Microbiology",
-  "Immunohematology": "Immunochem",
-  "Clinical Microscopy": "Microscopy",
+  "Immunology & Serology and Immunohematology": "Immunochem",
+  "Clinical Microscopy & Parasitology": "Microscopy",
   "Histopathology & MT Laws": "Histopath"
 };
 
