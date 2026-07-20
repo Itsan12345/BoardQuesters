@@ -32,7 +32,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
-import { STATIC_QUESTIONS } from '@/lib/static-questions';
+import { getQuestQuestions } from '@/app/actions/arena';
 import { completeQuest } from '@/app/actions/quest';
 import { calculateEarnedBadges, type Badge as BadgeType } from '@/lib/badge-system';
 import { useToast } from '@/hooks/use-toast';
@@ -104,8 +104,8 @@ const SUBJECT_METADATA: Record<string, {
     biome: "Amber Sediment Cliffs",
     description: "Examine the smallest details that reveal the greatest truths."
   },
-  "Histopathology & MT Laws": {
-    name: "MT Laws & Histopath",
+  "Histopathology and Medtech Laws": {
+    name: "Histopathology and Medtech Laws",
     icon: ShieldAlert,
     color: "bg-accent",
     enemy: "Legal Beholder",
@@ -171,9 +171,11 @@ export default function LearningQuest() {
     setConfidenceSubmitted(false);
     setQuestStartTime(Date.now());
     try {
-      const pool = STATIC_QUESTIONS[selectedSubject] || STATIC_QUESTIONS["Clinical Chemistry"];
-      const selected = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+      const selected = await getQuestQuestions(selectedSubject);
 
+      if (!selected || selected.length === 0) {
+        throw new Error("No questions available for this subject");
+      }
       setQuestions(selected);
       setPlayerHealth(100);
       setEnemyHealth(100);
@@ -342,7 +344,7 @@ export default function LearningQuest() {
           </Card>
         )}
 
-        {score > 0 && score < 3 && (
+        {score > 0 && score < Math.ceil(questions.length / 2) && (
           <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
               <p className="text-lg md:text-xl font-black text-slate-900">Nice Effort, Aspirant! 🌟</p>
@@ -356,7 +358,7 @@ export default function LearningQuest() {
           </Card>
         )}
 
-        {score >= 3 && score < 5 && (
+        {score >= Math.ceil(questions.length / 2) && score < questions.length && (
           <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
               <p className="text-lg md:text-xl font-black text-slate-900">Great Job, Aspirant! 🚀</p>
@@ -370,7 +372,7 @@ export default function LearningQuest() {
           </Card>
         )}
 
-        {score === 5 && (
+        {score === questions.length && score > 0 && (
           <Card className="border-none shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
             <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
               <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>

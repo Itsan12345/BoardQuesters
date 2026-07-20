@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +6,129 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  SUPERADMIN
+  TEACHER
+  TEAMLEAD
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+enum QuestionStatus {
+  APPROVED
+  PENDING_REVIEW
+  NEEDS_REVISION
+  DRAFT
+}
+
+// [ Admin Schema ]
+
+model AdminUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String @unique
+  email     String   @unique
+  username String @unique
+  password  String
+  name      String
+  role      Role
+  phoneNumber String
+
+  department    Department? @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  departmentId  String?     @db.ObjectId 
+
+  createdCategory Category[] @relation("CategoryAuthor")
+
+  createdDepartments Department[] @relation("DepartmentAuthor")
+  updatedDepartments Department[] @relation("DepartmentUpdater")
+
+  location  String?  @default("Philippines")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions Question[] @relation("QuestionAuthor")
+}
+
+model Department {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+
+  author   AdminUser @relation("DepartmentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  authorId String    @db.ObjectId
+
+  updater AdminUser? @relation("DepartmentUpdater", fields: [updatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  updatedBy String?  @db.ObjectId
+
+  members AdminUser[] @relation("DepartmentMembers")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Question {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  question      String
+  choices       String[]
+  correctAnswer String
+  status        QuestionStatus
+  isPublished   Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  categoryId String @db.ObjectId
+  topic String
+
+  difficulty QuestionDifficulty
+
+  type QuestionType
+
+  author   AdminUser @relation("QuestionAuthor", fields: [authorId], references: [id])
+  authorId String    @db.ObjectId
+
+  feedback String? @default("")
+}
+
+model Category {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  questions Question[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author   AdminUser @relation("CategoryAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  authorId String    @db.ObjectId
+}
+
+// [ Review Center Schema ]
+
+model ReviewCenterRepresentativeUser {
+  id String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String
+  name String
+  email String @unique
+  companyName String
+  phonenumber String
+  password String
+  location  String?  @default("Philippines")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [ User Schema ]
 
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -94,3 +216,10 @@ model ExamResult {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model AiAnalysis {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  analysis  String   // JSON string of the analysis
+  hash      String   // Hash of the data used to generate the analysis
+  updatedAt DateTime @updatedAt
+}

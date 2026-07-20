@@ -25,5 +25,5 @@ export const SUBJECT_AREAS = [
   "Microbiology",
   "Immunology & Serology and Immunohematology",
   "Clinical Microscopy & Parasitology",
-  "Histopathology & MT Laws"
+  "Histopathology and Medtech Laws"
 ];

@@ -25,71 +25,71 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
       'Microbiology',
       'Immunology & Serology and Immunohematology',
       'Clinical Microscopy',
-      'Histopathology & MT Laws',
+      'Histopathology and Medtech Laws',
     ];
 
-    const metrics = await Promise.all(
-      subjects.map(async (subject) => {
-        // Get total lessons for this subject from the curriculum
-        const totalLessonsMap: Record<string, number> = {
-          'Clinical Chemistry': 3,
-          'Hematology': 2,
-          'Microbiology': 2,
-          'Immunology & Serology and Immunohematology': 2,
-          'Clinical Microscopy': 2,
-          'Histopathology & MT Laws': 2,
-        };
+    const metrics: SubjectMetrics[] = [];
 
-        const totalLessons = totalLessonsMap[subject] || 0;
+    for (const subject of subjects) {
+      // Get total lessons for this subject from the curriculum
+      const totalLessonsMap: Record<string, number> = {
+        'Clinical Chemistry': 3,
+        'Hematology': 2,
+        'Microbiology': 2,
+        'Immunology & Serology and Immunohematology': 2,
+        'Clinical Microscopy': 2,
+        'Histopathology and Medtech Laws': 2,
+      };
 
-        // Calculate completion: percentage of completed lessons
-        const completedLessons = await prisma.lessonCompletion.count({
-          where: {
-            userId,
-            subject,
-            status: 'completed',
-          },
-        });
+      const totalLessons = totalLessonsMap[subject] || 0;
 
-        const completion = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
-
-        // Calculate mastery: average accuracy from exam results for this subject
-        const examResults = await prisma.examResult.findMany({
-          where: {
-            userId,
-            subject,
-          },
-          select: {
-            accuracy: true,
-          },
-        });
-
-        let mastery = 0;
-        if (examResults.length > 0) {
-          const totalAccuracy = examResults.reduce((sum, result) => sum + result.accuracy, 0);
-          mastery = totalAccuracy / examResults.length;
-        }
-
-        // Determine mastery status
-        let masteryStatus: 'Not Started' | 'In Training' | 'Proficient' | 'Mastered' = 'Not Started';
-        if (mastery === 0) {
-          masteryStatus = 'Not Started';
-        } else if (mastery < 60) {
-          masteryStatus = 'In Training';
-        } else if (mastery < 85) {
-          masteryStatus = 'Proficient';
-        } else {
-          masteryStatus = 'Mastered';
-        }
-
-        return {
+      // Calculate completion: percentage of completed lessons
+      const completedLessons = await prisma.lessonCompletion.count({
+        where: {
+          userId,
           subject,
-          completion: Math.round(completion),
-          mastery: Math.round(mastery),
-          masteryStatus,
-        };
-      })
-    );
+          status: 'completed',
+        },
+      });
+
+      const completion = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+      // Calculate mastery: average accuracy from exam results for this subject
+      const examResults = await prisma.examResult.findMany({
+        where: {
+          userId,
+          subject,
+        },
+        select: {
+          accuracy: true,
+        },
+      });
+
+      let mastery = 0;
+      if (examResults.length > 0) {
+        const totalAccuracy = examResults.reduce((sum, result) => sum + result.accuracy, 0);
+        mastery = totalAccuracy / examResults.length;
+      }
+
+      // Determine mastery status
+      let masteryStatus: 'Not Started' | 'In Training' | 'Proficient' | 'Mastered' = 'Not Started';
+      if (mastery === 0) {
+        masteryStatus = 'Not Started';
+      } else if (mastery < 60) {
+        masteryStatus = 'In Training';
+      } else if (mastery < 85) {
+        masteryStatus = 'Proficient';
+      } else {
+        masteryStatus = 'Mastered';
+      }
+
+      metrics.push({
+        subject,
+        completion: Math.round(completion),
+        mastery: Math.round(mastery),
+        masteryStatus,
+      });
+    }
 
     return metrics;
   } catch (error) {
