@@ -44,7 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Mastered": "bg-green-100 text-green-700 border-green-300",
   "Proficient": "bg-blue-100 text-blue-700 border-blue-300",
   "In Training": "bg-yellow-100 text-yellow-700 border-yellow-300",
-  "Not Started": "bg-slate-100 text-slate-700 border-slate-300"
+  "Not Started": "bg-secondary text-foreground border-slate-300"
 };
 
 const STATUS_INDICATORS: Record<string, any> = {
@@ -170,19 +170,19 @@ function PerformanceContent() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+        <Card className="border border-border shadow-md rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-4">
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase text-primary/60">Avg Mastery</p>
             <p className="text-3xl font-black text-primary">{avgMastery}%</p>
           </div>
         </Card>
-        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-blue-100/40 to-blue-50 p-4">
+        <Card className="border border-border shadow-md rounded-xl bg-gradient-to-br from-blue-100/40 to-blue-50 p-4">
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase text-blue-700/60">Completion</p>
             <p className="text-3xl font-black text-blue-700">{avgCompletion}%</p>
           </div>
         </Card>
-        <Card className="border-none shadow-md rounded-xl bg-gradient-to-br from-green-100/40 to-green-50 p-4">
+        <Card className="border border-border shadow-md rounded-xl bg-gradient-to-br from-green-100/40 to-green-50 p-4">
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase text-green-700/60">Mastered</p>
             <p className="text-3xl font-black text-green-700">{masteredCount}/{fullMastery.length}</p>
@@ -192,16 +192,16 @@ function PerformanceContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Radar Chart */}
-        <Card className="lg:col-span-2 border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-          <CardHeader className="bg-slate-50 border-b px-8 py-6">
-            <CardTitle className="font-black text-3xl tracking-tight text-slate-900">
+        <Card className="lg:col-span-2 border border-border shadow-xl rounded-[2rem] overflow-hidden bg-background">
+          <CardHeader className="bg-muted border-b px-8 py-6">
+            <CardTitle className="font-black text-3xl tracking-tight text-foreground">
               Proficiency Radar
             </CardTitle>
             <CardDescription className="text-xs font-black uppercase tracking-widest text-primary mt-3">
               Target Mission Competency
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-12 bg-white">
+          <CardContent className="p-12 bg-background">
             <div className="h-[450px] w-full flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart
@@ -247,7 +247,7 @@ function PerformanceContent() {
 
         {/* Active Objectives */}
         <div className="space-y-6">
-          <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 lg:p-8 relative overflow-hidden border-t-4 border-primary">
+          <Card className="border border-border shadow-xl rounded-[2rem] bg-background p-6 lg:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
               <Target className="w-24 h-24 text-primary" />
             </div>
@@ -257,14 +257,14 @@ function PerformanceContent() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Target className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900/90">Dailies / Objectives</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">Dailies / Objectives</h3>
               </div>
 
               {nextObjective ? (
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Active Objective</p>
-                    <p className="text-xl font-black font-headline text-slate-900 leading-tight">{nextObjective.subject}</p>
+                    <p className="text-xl font-black font-headline text-foreground leading-tight">{nextObjective.subject}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -277,7 +277,7 @@ function PerformanceContent() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold uppercase text-muted-foreground">Days Left</p>
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                      <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                         <Clock className="w-3 h-3 text-primary" />
                         {Math.max(0, daysRemaining)}
                       </div>
@@ -289,7 +289,7 @@ function PerformanceContent() {
                       <div>
                         <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Objective Progress</p>
                         <div className="flex justify-between items-center text-[9px] font-bold mb-1">
-                          <span className="text-slate-900">
+                          <span className="text-foreground">
                             {daysRemaining <= 0
                               ? "Deadline Reached"
                               : daysRemaining === 1
@@ -306,14 +306,14 @@ function PerformanceContent() {
                         </div>
                         <Progress
                           value={Math.max(0, Math.min(100, 100 - (daysRemaining * 5)))}
-                          className="h-2 bg-slate-100"
+                          className="h-2 bg-secondary"
                         />
                       </div>
 
                       <div>
                         <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Subject Mastery</p>
                         <div className="flex justify-between items-center text-[9px] font-bold mb-1">
-                          <span className="text-slate-900">
+                          <span className="text-foreground">
                             {fullMastery.find((m: any) => m.subject === nextObjective.subject)?.mastery || 0}% Mastery
                           </span>
                           <span className="text-primary">
@@ -322,7 +322,7 @@ function PerformanceContent() {
                         </div>
                         <Progress
                           value={fullMastery.find((m: any) => m.subject === nextObjective.subject)?.mastery || 0}
-                          className="h-2 bg-slate-100"
+                          className="h-2 bg-secondary"
                         />
                       </div>
                     </div>
@@ -338,7 +338,7 @@ function PerformanceContent() {
           </Card>
 
           {/* AI Insight */}
-          <Card className="border-none shadow-lg rounded-[2rem] bg-white p-6 border-l-4 border-primary shadow-xl">
+          <Card className="border border-border shadow-xl rounded-[2rem] bg-background p-6">
             <h3 className="font-black font-semibold text-lg flex items-center gap-2 uppercase tracking-tight">
               <Sparkles className="w-5 h-5 text-primary" />
               AI Insight
@@ -356,7 +356,7 @@ function PerformanceContent() {
 
       {/* Performance History Chart */}
       {performanceHistory.some(p => p.attemptCount > 0) && (
-        <Card className="border-none shadow-lg rounded-[2rem] bg-white overflow-hidden">
+        <Card className="border border-border shadow-lg rounded-[2rem] bg-background overflow-hidden">
           <CardHeader className="bg-muted/30 border-b pb-6">
             <CardTitle className="font-headline text-lg font-semibold tracking-wide flex items-center gap-3">
               <TrendingUp className="w-5 h-5 text-primary" />
@@ -398,7 +398,7 @@ function PerformanceContent() {
               <Card
                 key={item.subject}
                 className={cn(
-                  "border-none shadow-md rounded-[2rem] bg-white border-t-4 p-6 space-y-4 hover:shadow-lg transition-all group",
+                  "border-none shadow-md rounded-[2rem] bg-background border-t-4 p-6 space-y-4 hover:shadow-lg transition-all group",
                   `border-t-${item.status === "Mastered" ? "green" : item.status === "Proficient" ? "blue" : item.status === "In Training" ? "yellow" : "slate"}-400`
                 )}
               >
@@ -408,7 +408,7 @@ function PerformanceContent() {
                     item.status === "Mastered" ? "bg-green-100 text-green-700 group-hover:bg-green-600" :
                     item.status === "Proficient" ? "bg-blue-100 text-blue-700 group-hover:bg-blue-600" :
                     item.status === "In Training" ? "bg-yellow-100 text-yellow-700 group-hover:bg-yellow-600" :
-                    "bg-slate-100 text-slate-700 group-hover:bg-slate-600"
+                    "bg-secondary text-foreground group-hover:bg-slate-600"
                   )}>
                     <Icon className="h-6 w-6" />
                   </div>
@@ -418,7 +418,7 @@ function PerformanceContent() {
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-sm uppercase tracking-tight truncate text-slate-900">{item.subject}</h4>
+                  <h4 className="font-semibold text-sm uppercase tracking-tight truncate text-foreground">{item.subject}</h4>
                   <div className="flex gap-4 mt-2">
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase font-bold">Completion</p>
@@ -437,14 +437,14 @@ function PerformanceContent() {
                       <span className="text-[9px] font-bold uppercase text-muted-foreground">Lessons</span>
                       <span className="text-[9px] font-bold text-primary">{item.completion}%</span>
                     </div>
-                    <Progress value={item.completion} className="h-1 bg-slate-100" />
+                    <Progress value={item.completion} className="h-1 bg-secondary" />
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[9px] font-bold uppercase text-muted-foreground">Quests</span>
                       <span className="text-[9px] font-bold text-primary">{item.mastery}%</span>
                     </div>
-                    <Progress value={item.mastery} className="h-1 bg-slate-100" />
+                    <Progress value={item.mastery} className="h-1 bg-secondary" />
                   </div>
                 </div>
               </Card>

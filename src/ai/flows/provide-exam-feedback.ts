@@ -10,7 +10,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+import {prisma} from '@/lib/prisma';
+
 const ProvideExamFeedbackInputSchema = z.object({
+  questionId: z.string().optional().describe('The ID of the question in the database.'),
   question: z.string().describe('The mock exam question text.'),
   correctAnswer: z.string().describe('The correct answer to the question.'),
   userAnswer: z
@@ -42,13 +45,13 @@ const prompt = ai.definePrompt({
   name: 'provideExamFeedbackPrompt',
   input: {schema: ProvideExamFeedbackInputSchema},
   output: {schema: ProvideExamFeedbackOutputSchema},
-  prompt: `You are an expert Medical Technology instructor providing personalized feedback to a student after a mock exam.
+  prompt: `You are a Medical Technology instructor providing feedback.
 
-Your task is to explain the following:
-1. Why the correct answer is indeed correct.
-2. Why the student's chosen answer is incorrect, specifically addressing the misconceptions it might imply.
+Explain:
+1. Why the correct answer is correct.
+2. Why the student's answer is incorrect.
 
-Provide a detailed, logical explanation in clear and concise language.
+CRITICAL INSTRUCTION: Your explanation must be extremely concise. Limit your entire response to a maximum of 3 to 4 sentences. Do not use filler words.
 
 Question: {{{question}}}
 Correct Answer: {{{correctAnswer}}}
@@ -62,7 +65,29 @@ const provideExamFeedbackFlow = ai.defineFlow(
     outputSchema: ProvideExamFeedbackOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      
+      // Save feedback to DB if questionId is provided
+      if (input.questionId && output?.explanation) {
+        try {
+          await prisma.question.update({
+            where: { id: input.questionId },
+            data: { feedback: output.explanation }
+          });
+        } catch (dbError) {
+          console.error("Failed to save feedback to database:", dbError);
+        }
+      }
+
+      return output!;
+    } catch (e: any) {
+      if (e?.status === 'RESOURCE_EXHAUSTED' || e?.code === 429 || (e?.message && e.message.includes('429'))) {
+        return {
+          explanation: `The AI is currently resting to recharge its magic (Rate Limit Exceeded). Please try again in a few moments.\n\nCorrect Answer: ${input.correctAnswer}\nYour Answer: ${input.userAnswer}`
+        };
+      }
+      throw e;
+    }
   }
 );

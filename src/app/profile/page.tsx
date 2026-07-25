@@ -121,10 +121,10 @@ function ProfileContent() {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Profile Header Card */}
-        <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
+        <Card className="border border-border shadow-xl rounded-3xl bg-background overflow-hidden">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
               {/* Avatar and Info */}
@@ -138,8 +138,8 @@ function ProfileContent() {
 
                 <div className="space-y-3">
                   <div>
-                    <h1 className="text-3xl font-semibold text-slate-900">{userProfile.name}</h1>
-                    <p className="text-slate-500 text-sm flex items-center gap-1 mt-1">
+                    <h1 className="text-3xl font-semibold text-foreground">{userProfile.name}</h1>
+                    <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
                       <MapPin className="w-4 h-4" /> {userProfile.location}
                     </p>
                   </div>
@@ -181,9 +181,9 @@ function ProfileContent() {
           {/* Left Column - Stats */}
           <div className="space-y-6">
             {/* Aspirants Stats Card */}
-            <Card className="border-none shadow-lg rounded-2xl">
+            <Card className="border border-border shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-slate-900">
+                <CardTitle className="text-lg font-semibold text-foreground">
                   Aspirants Stats
                 </CardTitle>
               </CardHeader>
@@ -191,18 +191,18 @@ function ProfileContent() {
                 <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100">
                   <div className="flex items-center gap-2">
                     <Zap className="w-5 h-5 text-yellow-600" />
-                    <span className="font-semibold text-sm text-slate-900">{userProfile.streak} Days Streak</span>
+                    <span className="font-semibold text-sm text-foreground">{userProfile.streak} Days Streak</span>
                   </div>
                   <Badge className="bg-yellow-100 text-yellow-700 font-semibold text-[10px]">+20% XP</Badge>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-slate-400" />
+                    <Mail className="w-4 h-4 text-muted-foreground" />
                     <span className="text-slate-600 font-medium">{userProfile.email}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <CalendarIcon className="w-4 h-4 text-slate-400" />
+                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                     <span className="text-slate-600 font-medium">
                       Joined {format(new Date(userProfile.createdAt), 'MMMM yyy')}
                     </span>
@@ -212,7 +212,7 @@ function ProfileContent() {
             </Card>
 
             {/* Top Ranking Card */}
-            <Card className="border-none shadow-lg rounded-2xl bg-[#8B0000] text-white">
+            <Card className="border border-border shadow-lg rounded-2xl bg-[#8B0000] text-white">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <p className="text-4xl font-semibold">Top {userProfile.rankingPercentage}%</p>
@@ -228,19 +228,19 @@ function ProfileContent() {
           {/* Right Column - Achievements and Activity */}
           <div className="lg:col-span-2 space-y-6">
             {/* Achievements/Badges Grid */}
-            <Card className="border-none shadow-lg rounded-2xl">
+            <Card className="border border-border shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <Award className="w-5 h-5 text-[#8B0000]" /> Achievements
                   </CardTitle>
-                  <span className="text-sm font-bold text-slate-500">
+                  <span className="text-sm font-bold text-muted-foreground">
                     {userProfile.achievements?.filter(a => a.badge).length || 0} badges
                   </span>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-500 font-medium mb-4">
+                <p className="text-xs text-muted-foreground font-medium mb-4">
                   Badges earned through your BoardQuest journey.
                 </p>
                 <div className="grid grid-cols-4 gap-3">
@@ -256,7 +256,7 @@ function ProfileContent() {
                             title={badgeData?.name}
                           >
                             <div className="text-2xl">✨</div>
-                            <div className="text-center text-[9px] font-bold text-slate-900 mt-1 line-clamp-2">
+                            <div className="text-center text-[9px] font-bold text-foreground mt-1 line-clamp-2">
                               {badgeData?.title || 'Unknown'}
                             </div>
                           </div>
@@ -267,7 +267,7 @@ function ProfileContent() {
                       {[...Array(8)].map((_, i) => (
                         <div
                           key={i}
-                          className="aspect-square bg-slate-100 rounded-lg flex items-center justify-center border-2 border-[#8B0000]/10 opacity-50"
+                          className="aspect-square bg-secondary rounded-lg flex items-center justify-center border-2 border-[#8B0000]/10 opacity-50"
                         >
                           <Award className="w-6 h-6 text-[#8B0000]" />
                         </div>
@@ -279,9 +279,9 @@ function ProfileContent() {
             </Card>
 
             {/* Recent Activity */}
-            <Card className="border-none shadow-lg rounded-2xl">
+            <Card className="border border-border shadow-lg rounded-2xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                   <Clock className="w-5 h-5 text-[#8B0000]" /> Recent Activity
                 </CardTitle>
               </CardHeader>
@@ -291,15 +291,15 @@ function ProfileContent() {
                     userProfile.achievements.map((achievement) => (
                       <div
                         key={achievement.id}
-                        className="flex items-center justify-between p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition"
+                        className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted transition"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
                             <Award className="w-5 h-5 text-[#8B0000]" />
                           </div>
                           <div>
-                            <p className="font-semibold text-sm text-slate-900">{achievement.task}</p>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="font-semibold text-sm text-foreground">{achievement.task}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
                               {format(new Date(achievement.timestamp), 'MMM dd, yyyy')}
                             </p>
                           </div>
@@ -308,7 +308,7 @@ function ProfileContent() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-center text-slate-500 py-8">No activities yet. Start questing!</p>
+                    <p className="text-center text-muted-foreground py-8">No activities yet. Start questing!</p>
                   )}
                 </div>
               </CardContent>

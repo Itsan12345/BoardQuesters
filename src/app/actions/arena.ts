@@ -55,10 +55,12 @@ export async function getQuestQuestions(subject: string): Promise<QuizQuestion[]
       }
 
       return {
+        id: q.id,
         question: q.question,
         options: options,
         correctAnswer: correctAnswerLetter,
         explanation: q.feedback || q.explanation || undefined,
+        difficulty: String(q.difficulty || 'EASY').toUpperCase(),
       };
     });
   } catch (error) {

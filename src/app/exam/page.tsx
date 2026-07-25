@@ -121,7 +121,7 @@ export default function MockExam() {
   if (!isStarted) {
     return (
       <div className="max-w-4xl mx-auto py-16 px-4">
-        <Card className="border-none shadow-2xl bg-white overflow-hidden">
+        <Card className="border border-border shadow-2xl bg-background overflow-hidden">
           <div className="h-2 bg-primary" />
           <CardHeader className="text-center p-12 space-y-4">
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-4">
@@ -181,7 +181,7 @@ export default function MockExam() {
           </div>
         </header>
 
-        <Card className="border-none shadow-xl bg-white">
+        <Card className="border border-border shadow-xl bg-background">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-center justify-between">
               <div>
@@ -223,13 +223,13 @@ export default function MockExam() {
                     <AccordionContent className="px-6 pb-6 pt-2">
                       <div className="bg-muted/30 rounded-xl p-6 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-3 bg-white rounded-lg border">
+                          <div className="p-3 bg-background rounded-lg border">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Your Selection</p>
                             <p className={cn("font-bold text-sm", item.isCorrect ? "text-accent" : "text-destructive")}>
                               Option {item.userAnswer}
                             </p>
                           </div>
-                          <div className="p-3 bg-white rounded-lg border">
+                          <div className="p-3 bg-background rounded-lg border">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Correct Rationale</p>
                             <p className="font-bold text-sm text-accent">
                               Option {item.correctAnswer}
@@ -241,7 +241,7 @@ export default function MockExam() {
                             <Sparkles className="w-4 h-4" />
                             AI Logical Analysis
                           </h4>
-                          <p className="text-sm leading-relaxed text-muted-foreground italic bg-white/50 p-4 rounded-lg border-2 border-dashed border-primary/20">
+                          <p className="text-sm leading-relaxed text-muted-foreground italic bg-background/50 p-4 rounded-lg border-2 border-dashed border-primary/20">
                             {item.explanation}
                           </p>
                         </div>
@@ -274,7 +274,7 @@ export default function MockExam() {
 
   return (
     <div className="min-h-screen bg-background pb-12">
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b">
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-5xl mx-auto h-16 px-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-primary/10 p-2 rounded-lg">
@@ -300,7 +300,7 @@ export default function MockExam() {
           questions={questions} 
           onFinish={handleFinish} 
           isLoading={isLoading} 
-          isMockExam={true}
+          mode="test"
         />
       </main>
     </div>

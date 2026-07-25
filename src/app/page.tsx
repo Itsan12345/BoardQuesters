@@ -18,6 +18,7 @@ function DashboardContent() {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
   const [dailyMissions, setDailyMissions] = useState<any[]>([]);
   const [nextMilestone, setNextMilestone] = useState<{ subject: string; date: Date } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ function DashboardContent() {
     setMounted(true);
     async function loadData() {
       try {
-        const [stats, leaders, plans, missions] = await Promise.all([
+        const [stats, leadersData, plans, missions] = await Promise.all([
           getUserStats(),
           getLeaderboard(),
           getStudyPlans(),
@@ -34,7 +35,8 @@ function DashboardContent() {
         ]);
 
         setUser(stats);
-        setLeaderboard(leaders);
+        setLeaderboard(leadersData.topUsers);
+        setUserRank(leadersData.currentUserRank);
         setDailyMissions(missions);
 
         if (plans && plans.length > 0) {
@@ -65,7 +67,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-full bg-white p-6 lg:p-8 space-y-8" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div className="min-h-full bg-background p-6 lg:p-8 space-y-8" style={{ fontFamily: "'Poppins', sans-serif" }}>
       {/* Hero Section */}
       <section className="space-y-6">
         <div className="space-y-3">
@@ -90,17 +92,19 @@ function DashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Current Course - Full Width */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-2 border-slate-200 shadow-sm rounded-2xl bg-white overflow-hidden">
+          <Card className="border-2 border-border shadow-sm rounded-2xl bg-background overflow-hidden">
             <CardContent className="p-8 space-y-6">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-primary uppercase tracking-widest" style={{ fontFamily: "'Poppins', sans-serif" }}>Current Course</p>
-                <h3 className="text-xl font-medium text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>MedTech Board Mastery</h3>
+                <h3 className="text-xl font-medium text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>MedTech Board Mastery</h3>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-end justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-2 sm:gap-0">
                   <span className="text-5xl font-bold text-primary" style={{ fontFamily: "'Poppins', sans-serif" }}>{totalMastery}%</span>
-                  <span className="text-xs font-normal text-muted-foreground uppercase tracking-widest" style={{ fontFamily: "'Poppins', sans-serif" }}>20/30 MODULES COMPLETED</span>
+                  <span className="text-xs font-normal text-muted-foreground uppercase tracking-widest sm:text-right" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                    {user?._count?.lessonCompletions || 0}/13 MODULES COMPLETED
+                  </span>
                 </div>
                 <div className="w-full h-4 bg-slate-200 rounded-full overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${totalMastery}%` }} />
@@ -118,17 +122,19 @@ function DashboardContent() {
           </Card>
 
           {/* Weekly Leaderboard */}
-          <Card className="border-2 border-slate-200 shadow-sm rounded-2xl bg-white overflow-hidden">
-            <CardHeader className="pb-6 border-b border-slate-200">
+          <Card className="border-2 border-border shadow-sm rounded-2xl bg-background overflow-hidden">
+            <CardHeader className="pb-6 border-b border-border">
               <div className="flex items-center justify-between">
-                <p className="text-lg font-medium text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>Weekly Leaderboard</p>
-                <p className="text-xs font-normal text-slate-500" style={{ fontFamily: "'Poppins', sans-serif" }}>You placed 67th this week</p>
+                <p className="text-lg font-medium text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>Weekly Leaderboard</p>
+                <p className="text-xs font-normal text-muted-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  {userRank ? `You placed ${userRank}${["th", "st", "nd", "rd"][((userRank % 100) - 20) % 10] || ["th", "st", "nd", "rd"][userRank % 100] || "th"} this week` : "No ranking this week"}
+                </p>
               </div>
             </CardHeader>
             <CardContent className="p-8">
               <div className="space-y-4">
                 {leaderboard.map((u, idx) => (
-                  <div key={idx} className="flex items-center gap-4 pb-4 last:pb-0 border-b border-slate-100 last:border-b-0">
+                  <div key={idx} className="flex items-center gap-4 pb-4 last:pb-0 border-b border-border last:border-b-0">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="font-normal text-primary text-xs" style={{ fontFamily: "'Poppins', sans-serif" }}>#{idx + 1}</span>
@@ -138,7 +144,7 @@ function DashboardContent() {
                       <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-white text-xs font-medium">{u.name[0]}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="text-sm font-normal text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{u.name}</p>
+                      <p className="text-sm font-normal text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>{u.name}</p>
                       <p className="text-xs font-normal text-muted-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>{u.xp.toLocaleString()} XP This Week</p>
                     </div>
                     {idx === 0 && <Trophy className="h-5 w-5 text-primary flex-shrink-0" />}
@@ -151,15 +157,15 @@ function DashboardContent() {
 
         {/* Right Sidebar - Daily Missions */}
         <div className="space-y-6">
-          <Card className="border-2 border-slate-200 shadow-sm rounded-2xl bg-white overflow-hidden">
-            <CardHeader className="pb-4 border-b border-slate-200">
+          <Card className="border-2 border-border shadow-sm rounded-2xl bg-background overflow-hidden">
+            <CardHeader className="pb-4 border-b border-border">
               <p className="text-sm font-medium text-primary uppercase tracking-widest" style={{ fontFamily: "'Poppins', sans-serif" }}>Daily Missions</p>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               {dailyMissions.length > 0 ? (
                 dailyMissions.map((mission) => {
                   let MissionIcon = Target;
-                  let iconBgColor = 'bg-slate-100';
+                  let iconBgColor = 'bg-secondary';
                   let iconColor = 'text-muted-foreground';
 
                   if (mission.isStreakMission) {
@@ -177,12 +183,12 @@ function DashboardContent() {
                   }
 
                   return (
-                    <div key={mission.id} className="flex items-start gap-3 pb-4 last:pb-0 border-b border-slate-100 last:border-b-0">
+                    <div key={mission.id} className="flex items-start gap-3 pb-4 last:pb-0 border-b border-border last:border-b-0">
                       <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${iconBgColor}`}>
                         <MissionIcon className={`h-5 w-5 ${iconColor}`} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-normal text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>{mission.title}</p>
+                        <p className="text-sm font-normal text-foreground" style={{ fontFamily: "'Poppins', sans-serif" }}>{mission.title}</p>
                         <p className="text-xs font-normal text-muted-foreground uppercase mt-1" style={{ fontFamily: "'Poppins', sans-serif" }}>{mission.proficiency}% Proficiency • +{mission.xp} XP</p>
                       </div>
                     </div>
@@ -197,7 +203,7 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm rounded-2xl bg-primary text-white p-6">
+          <Card className="border border-border shadow-sm rounded-2xl bg-primary text-white p-6">
             <div className="space-y-4">
               <h4 className="font-semibold text-lg" style={{ fontFamily: "'Poppins', sans-serif" }}>Quest Streak</h4>
               <div className="flex items-center gap-4">

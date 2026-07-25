@@ -11,13 +11,16 @@ import {
   type Badge,
   type BadgeId,
 } from '@/lib/badge-system';
+import { syncSubjectMastery } from '@/app/actions/study';
+
+import { differenceInCalendarDays } from 'date-fns';
 
 export interface CompleteQuestParams {
   score: number;
   totalQuestions: number;
   confidenceLevel: ConfidenceLevel;
   completionTime: number; // in seconds
-  questMode: 'learning' | 'test';
+  questMode: 'learning' | 'test' | 'boss-battle';
   subject: string;
 }
 
@@ -63,16 +66,36 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
       };
     }
 
+    // Calculate streak dynamically before creating the new achievement
+    const lastAchievement = await prisma.achievement.findFirst({
+      where: { userId, type: 'quest' },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    let newStreak = user.streak;
+    const now = new Date();
+    
+    if (lastAchievement) {
+      const diff = differenceInCalendarDays(now, lastAchievement.timestamp);
+      if (diff === 1) {
+        newStreak += 1;
+      } else if (diff > 1) {
+        newStreak = 1;
+      }
+    } else {
+      newStreak = 1;
+    }
+
     // Calculate accuracy
     const accuracy = (params.score / params.totalQuestions) * 100;
 
-    // Calculate earned badges
+    // Calculate earned badges using the CURRENT streak
     const earnedBadges = calculateEarnedBadges({
       score: params.score,
       totalQuestions: params.totalQuestions,
       confidenceLevel: params.confidenceLevel,
       completionTime: params.completionTime,
-      streak: user.streak,
+      streak: newStreak,
     });
 
     // Calculate total XP earned
@@ -82,12 +105,13 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
     const newTotalXp = user.xp + totalXpEarned;
     const newLevel = getLevelFromXp(newTotalXp);
 
-    // Update user XP and level
+    // Update user XP, level, and streak
     await prisma.user.update({
       where: { id: userId },
       data: {
         xp: newTotalXp,
         level: newLevel,
+        streak: newStreak,
       },
     });
 
@@ -102,40 +126,43 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
       },
     });
 
-    // Create Achievement records for each earned badge
-    const achievements = await Promise.all(
-      earnedBadges.map((badge) =>
-        prisma.achievement.create({
-          data: {
-            userId,
-            task: `Earned ${badge.name}: ${badge.description}`,
-            type: 'quest',
-            xp: totalXpEarned,
-            badge: badge.id as string,
-            confidenceLevel: params.confidenceLevel,
-            accuracy,
-            questMode: params.questMode,
-            subject: params.subject,
-          } as any,
-        })
-      )
-    );
+    // ALWAYS create a primary achievement record for completing the quest with the total XP
+    await prisma.achievement.create({
+      data: {
+        userId,
+        task: `Completed quest: ${params.subject} (${Math.round(accuracy)}% accuracy)`,
+        type: 'quest',
+        xp: totalXpEarned,
+        confidenceLevel: params.confidenceLevel,
+        accuracy,
+        questMode: params.questMode,
+        subject: params.subject,
+      } as any,
+    });
 
-    // If no badges earned, still create an achievement record
-    if (earnedBadges.length === 0) {
-      await prisma.achievement.create({
-        data: {
-          userId,
-          task: `Completed quest: ${params.subject} (${Math.round(accuracy)}% accuracy)`,
-          type: 'quest',
-          xp: totalXpEarned,
-          confidenceLevel: params.confidenceLevel,
-          accuracy,
-          questMode: params.questMode,
-          subject: params.subject,
-        } as any,
-      });
+    // Create Achievement records for each earned badge, but with 0 XP to prevent duplicating the total XP
+    if (earnedBadges.length > 0) {
+      await Promise.all(
+        earnedBadges.map((badge) =>
+          prisma.achievement.create({
+            data: {
+              userId,
+              task: `Earned ${badge.name}: ${badge.description}`,
+              type: 'quest',
+              xp: 0, // Set to 0 because the totalXpEarned is already logged in the main achievement above
+              badge: badge.id as string,
+              confidenceLevel: params.confidenceLevel,
+              accuracy,
+              questMode: params.questMode,
+              subject: params.subject,
+            } as any,
+          })
+        )
+      );
     }
+
+    // Sync Subject Mastery
+    await syncSubjectMastery(userId, params.subject);
 
     // Revalidate related pages
     revalidatePath('/');

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,7 +43,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4">
       <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
-      <Card className="max-w-md w-full border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+      <Card className="max-w-md w-full border border-border shadow-2xl rounded-[2.5rem] overflow-hidden bg-background">
         <CardHeader className="p-8 pb-4 text-center space-y-1">
           <div className="flex items-center justify-center">
             <Image
@@ -54,43 +55,50 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Akira Expanded', sans-serif" }}>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground" style={{ fontFamily: "'Akira Expanded', sans-serif" }}>
             BOARDQUEST
           </h1>
 
-          <CardTitle className="text-xl font-black uppercase tracking-widest text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <CardTitle className="text-xl font-black uppercase tracking-widest text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
             Aspirant <span className="text-primary tracking-tight" style={{ fontFamily: "'Inter-bold', sans-serif"}}>LogIn</span>
           </CardTitle>
-          <CardDescription className="text-xs font-bold uppercase align-center text-slate-400" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <CardDescription className="text-xs font-bold uppercase align-center text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
             Enter your credentials to continue the<br />review
           </CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 ml-1" style={{ fontFamily: "'Inter-bold', sans-serif"}}>Email Address</label>
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1" style={{ fontFamily: "'Inter-bold', sans-serif"}}>Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   name="email" 
                   type="email" 
                   placeholder="Username@phinmaed.com" 
                   required 
-                  className="pl-10 h-12 bg-slate-50 border border-slate-300 rounded-xl focus-visible:ring-primary/20"
+                  className="pl-10 h-12 bg-muted border border-slate-300 rounded-xl focus-visible:ring-primary/20"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 ml-1" style={{ fontFamily: "'Inter-bold', sans-serif"}}>Password</label>
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1" style={{ fontFamily: "'Inter-bold', sans-serif"}}>Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   name="password" 
-                  type="password" 
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••" 
                   required 
-                  className="pl-10 h-12 bg-slate-50 border border-slate-300 rounded-xl focus-visible:ring-primary/20"
+                  className="pl-10 pr-10 h-12 bg-muted border border-slate-300 rounded-xl focus-visible:ring-primary/20"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-600 focus:outline-none transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
             <Button 
@@ -106,7 +114,7 @@ export default function LoginPage() {
             </Button>
           </form>
           <div className="mt-8 text-center">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
               New to the expedition? <Link href="/signup" className="text-primary hover:underline">Sign Up</Link>
             </p>
           </div>

@@ -32,40 +32,40 @@ export function CustomCalendar({ selected, onSelect, disabled }: CustomCalendarP
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <div className="w-80 p-4">
+    <div className="w-full max-w-[320px] p-2 sm:p-4 mx-auto">
       {/* Header with Month/Year and Navigation */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <button
           onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-slate-900"
+          className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors text-slate-600 hover:text-foreground"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-black text-slate-900">{format(currentMonth, 'MMMM')}</h2>
-          <p className="text-sm font-semibold text-slate-500">{format(currentMonth, 'yyyy')}</p>
+          <h2 className="text-xl sm:text-2xl font-black text-foreground">{format(currentMonth, 'MMMM')}</h2>
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground">{format(currentMonth, 'yyyy')}</p>
         </div>
 
         <button
           onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-slate-900"
+          className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors text-slate-600 hover:text-foreground"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
 
       {/* Day Names */}
-      <div className="grid grid-cols-7 gap-2 mb-3">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-3">
         {dayNames.map((dayName) => (
-          <div key={dayName} className="text-center text-xs font-bold uppercase text-slate-600 py-2">
+          <div key={dayName} className="text-center text-[10px] sm:text-xs font-bold uppercase text-slate-600 py-1 sm:py-2">
             {dayName}
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {days.map((day, idx) => {
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isSelected = selected && isSameDay(day, selected);
@@ -77,10 +77,10 @@ export function CustomCalendar({ selected, onSelect, disabled }: CustomCalendarP
               onClick={() => !isDisabled && onSelect(day)}
               disabled={isDisabled}
               className={`
-                h-9 w-9 rounded-lg text-sm font-semibold transition-all
-                ${!isCurrentMonth ? 'text-slate-300' : 'text-slate-900'}
+                h-8 w-8 sm:h-9 sm:w-9 mx-auto rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center
+                ${!isCurrentMonth ? 'text-slate-300' : 'text-foreground'}
                 ${isSelected ? 'bg-primary text-white font-bold shadow-lg' : ''}
-                ${!isSelected && isCurrentMonth && !isDisabled ? 'hover:bg-slate-100' : ''}
+                ${!isSelected && isCurrentMonth && !isDisabled ? 'hover:bg-secondary' : ''}
                 ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:cursor-pointer'}
               `}
             >

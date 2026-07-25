@@ -11,7 +11,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, colorClass }: StatCardProps) {
   return (
-    <Card className="overflow-hidden border-none shadow-md">
+    <Card className="overflow-hidden border border-border shadow-md">
       <CardContent className="p-6 flex items-center space-x-4">
         <div className={`p-3 rounded-xl ${colorClass}`}>
           <Icon className="w-6 h-6 text-white" />

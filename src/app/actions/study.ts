@@ -3,6 +3,57 @@
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
+export async function syncSubjectMastery(userId: string, subject: string) {
+  try {
+    const totalLessonsMap: Record<string, number> = {
+      'Clinical Chemistry': 3,
+      'Hematology': 2,
+      'Microbiology': 2,
+      'Immunology & Serology and Immunohematology': 2,
+      'Clinical Microscopy & Parasitology': 2,
+      'Histopathology & MT Laws': 2,
+    };
+    const totalLessons = totalLessonsMap[subject] || 0;
+
+    const completedLessons = await prisma.lessonCompletion.count({
+      where: { userId, subject, status: 'completed' },
+    });
+    const completion = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+    const examResults = await prisma.examResult.findMany({
+      where: { userId, subject },
+      select: { accuracy: true },
+    });
+    let mastery = 0;
+    if (examResults.length > 0) {
+      const totalAccuracy = examResults.reduce((sum, result) => sum + result.accuracy, 0);
+      mastery = totalAccuracy / examResults.length;
+    }
+
+    let proficiency = 0;
+    if (examResults.length === 0) {
+      proficiency = completion;
+    } else {
+      proficiency = (completion + mastery) / 2;
+    }
+    proficiency = Math.round(proficiency);
+
+    let status = "Not Started";
+    if (proficiency === 0) status = "Not Started";
+    else if (proficiency < 60) status = "In Training";
+    else if (proficiency < 85) status = "Proficient";
+    else status = "Mastered";
+
+    await prisma.subjectMastery.upsert({
+      where: { userId_subject: { userId, subject } },
+      update: { proficiency, status },
+      create: { userId, subject, proficiency, status },
+    });
+  } catch (error) {
+    console.error(`Failed to sync SubjectMastery for ${subject}:`, error);
+  }
+}
+
 export interface SubjectMetrics {
   subject: string;
   completion: number; // 0-100: percentage of lessons completed
@@ -24,8 +75,8 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
       'Hematology',
       'Microbiology',
       'Immunology & Serology and Immunohematology',
-      'Clinical Microscopy',
-      'Histopathology and Medtech Laws',
+      'Clinical Microscopy & Parasitology',
+      'Histopathology & MT Laws',
     ];
 
     const metrics: SubjectMetrics[] = [];
@@ -37,8 +88,8 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
         'Hematology': 2,
         'Microbiology': 2,
         'Immunology & Serology and Immunohematology': 2,
-        'Clinical Microscopy': 2,
-        'Histopathology and Medtech Laws': 2,
+        'Clinical Microscopy & Parasitology': 2,
+        'Histopathology & MT Laws': 2,
       };
 
       const totalLessons = totalLessonsMap[subject] || 0;
@@ -129,6 +180,8 @@ export async function updateLessonStatus(
         status,
       },
     });
+
+    await syncSubjectMastery(userId, subject);
 
     return true;
   } catch (error) {

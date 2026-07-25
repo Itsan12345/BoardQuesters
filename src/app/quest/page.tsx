@@ -22,7 +22,8 @@ import {
   BrainCircuit,
   Award,
   Trophy,
-  BookOpen
+  BookOpen,
+  Swords
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,8 +105,8 @@ const SUBJECT_METADATA: Record<string, {
     biome: "Amber Sediment Cliffs",
     description: "Examine the smallest details that reveal the greatest truths."
   },
-  "Histopathology and Medtech Laws": {
-    name: "Histopathology and Medtech Laws",
+  "Histopathology & MT Laws": {
+    name: "Histopathology & MT Laws",
     icon: ShieldAlert,
     color: "bg-accent",
     enemy: "Legal Beholder",
@@ -131,7 +132,7 @@ export default function LearningQuest() {
   const [isFinished, setIsFinished] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingResults, setIsSavingResults] = useState(false);
-  const [quizMode, setQuizMode] = useState<'learning' | 'test'>('learning');
+  const [quizMode, setQuizMode] = useState<'learning' | 'test' | 'boss-battle'>('learning');
   const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
@@ -174,7 +175,12 @@ export default function LearningQuest() {
       const selected = await getQuestQuestions(selectedSubject);
 
       if (!selected || selected.length === 0) {
-        throw new Error("No questions available for this subject");
+        toast({
+          variant: "destructive",
+          title: "No Questions Found",
+          description: "There are currently no questions available for this region in the database.",
+        });
+        return;
       }
       setQuestions(selected);
       setPlayerHealth(100);
@@ -185,39 +191,80 @@ export default function LearningQuest() {
       toast({
         variant: "destructive",
         title: "Island Storm Detected",
-        description: "Quest data unavailable.",
+        description: "An error occurred while fetching quest data.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string) => {
-    const damage = 100 / (questions.length || 5);
+  const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string, moveType?: 'heavy' | 'normal' | 'defend', activeQuestion?: Question) => {
+    const baseDamage = 100 / (questions.length || 5);
     setUserAnswers(prev => [...prev, { questionIndex: index, selectedLetter, isCorrect }]);
 
-    if (isCorrect) {
-      setIsAnimating("enemy");
-      setEnemyHealth(prev => Math.max(0, prev - damage));
+    let enemyDmg = 0;
+    let playerDmg = 0;
+    let playerHeal = 0;
+
+    if (quizMode === 'boss-battle' && moveType) {
+      if (moveType === 'heavy') {
+        if (isCorrect) enemyDmg = baseDamage * 2;
+        else playerDmg = baseDamage * 2;
+      } else if (moveType === 'defend') {
+        if (isCorrect) playerHeal = baseDamage * 1.5;
+        else playerDmg = baseDamage * 0.5;
+      } else {
+        // normal
+        if (isCorrect) enemyDmg = baseDamage;
+        else playerDmg = baseDamage;
+      }
     } else {
+      if (isCorrect) enemyDmg = baseDamage;
+      else playerDmg = baseDamage;
+    }
+
+    if (enemyDmg > 0) {
+      setIsAnimating("enemy");
+      setEnemyHealth(prev => Math.max(0, prev - enemyDmg));
+    }
+    
+    if (playerDmg > 0) {
       setIsAnimating("player");
-      setPlayerHealth(prev => Math.max(0, prev - damage));
+      setPlayerHealth(prev => Math.max(0, prev - playerDmg));
     }
 
-    if (quizMode === 'learning' && !questions[index].explanation) {
-      try {
-        const feedback = await provideExamFeedback({
-          question: questions[index].question,
-          correctAnswer: questions[index].correctAnswer,
-          userAnswer: selectedLetter
-        });
-
-        const updatedQuestions = [...questions];
-        updatedQuestions[index] = { ...updatedQuestions[index], explanation: feedback.explanation };
-        setQuestions(updatedQuestions);
-      } catch (e) { }
+    if (playerHeal > 0) {
+      setIsAnimating("player");
+      setPlayerHealth(prev => Math.min(100, prev + playerHeal));
     }
+
     setTimeout(() => setIsAnimating(null), 500);
+  };
+
+  const handleRequestExplanation = async (index: number) => {
+    const qToExplain = questions[index];
+    const userAns = userAnswers.find(ua => ua.questionIndex === index);
+    
+    if (!qToExplain || !userAns || qToExplain.explanation) return;
+    
+    try {
+      const feedback = await provideExamFeedback({
+        questionId: qToExplain.id,
+        question: qToExplain.question,
+        correctAnswer: qToExplain.correctAnswer,
+        userAnswer: userAns.selectedLetter
+      });
+
+      setQuestions(prev => {
+        const updated = [...prev];
+        if (updated[index]) {
+          updated[index] = { ...updated[index], explanation: feedback.explanation };
+        }
+        return updated;
+      });
+    } catch (e) {
+      console.error("Failed to fetch explanation", e);
+    }
   };
 
   const handleFinish = (finalScore: number) => {
@@ -303,7 +350,7 @@ export default function LearningQuest() {
         <header className="text-center space-y-4 md:space-y-6">
           <div className="relative inline-block">
             <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 md:scale-150 animate-pulse" />
-            <div className="relative w-24 h-24 md:w-32 md:h-32 bg-white rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
+            <div className="relative w-24 h-24 md:w-32 md:h-32 bg-background rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
               {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
             </div>
           </div>
@@ -331,10 +378,10 @@ export default function LearningQuest() {
         </header>
 
         {score === 0 && (
-          <Card className="border-none shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
+          <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-slate-900">Tough Expedition, Aspirant! 💪</p>
-              <p className="text-sm md:text-base text-slate-700 font-medium">
+              <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
+              <p className="text-sm md:text-base text-foreground font-medium">
                 Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
               </p>
               <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
@@ -345,10 +392,10 @@ export default function LearningQuest() {
         )}
 
         {score > 0 && score < Math.ceil(questions.length / 2) && (
-          <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
+          <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-slate-900">Nice Effort, Aspirant! 🌟</p>
-              <p className="text-sm md:text-base text-slate-700 font-medium">
+              <p className="text-lg md:text-xl font-black text-foreground">Nice Effort, Aspirant! 🌟</p>
+              <p className="text-sm md:text-base text-foreground font-medium">
                 You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
               </p>
               <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
@@ -359,10 +406,10 @@ export default function LearningQuest() {
         )}
 
         {score >= Math.ceil(questions.length / 2) && score < questions.length && (
-          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
+          <Card className="border border-border shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-slate-900">Great Job, Aspirant! 🚀</p>
-              <p className="text-sm md:text-base text-slate-700 font-medium">
+              <p className="text-lg md:text-xl font-black text-foreground">Great Job, Aspirant! 🚀</p>
+              <p className="text-sm md:text-base text-foreground font-medium">
                 You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
               </p>
               <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
@@ -373,10 +420,10 @@ export default function LearningQuest() {
         )}
 
         {score === questions.length && score > 0 && (
-          <Card className="border-none shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
+          <Card className="border border-border shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
             <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
               <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
-              <p className="text-sm md:text-base text-slate-700 font-bold">
+              <p className="text-sm md:text-base text-foreground font-bold">
                 PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
               </p>
               <div className="flex justify-center gap-2 text-2xl animate-bounce">
@@ -391,7 +438,7 @@ export default function LearningQuest() {
 
         {/* Earned Badges Section */}
         {earnedBadges.length > 0 && (
-          <Card className="border-none shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
+          <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
             <CardContent className="p-6 md:p-8">
               <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -401,7 +448,7 @@ export default function LearningQuest() {
                     className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
                   >
                     <div className="text-2xl">✨</div>
-                    <p className="font-bold text-xs md:text-sm text-slate-900">{badge.title}</p>
+                    <p className="font-bold text-xs md:text-sm text-foreground">{badge.title}</p>
                     <p className="text-[9px] text-slate-600">{badge.name}</p>
                   </div>
                 ))}
@@ -486,7 +533,7 @@ export default function LearningQuest() {
                 <p className="text-3xl md:text-4xl font-black font-headline text-primary tracking-tight">
                   Thank You, Aspirant!
                 </p>
-                <p className="text-sm md:text-base text-slate-700 font-bold leading-relaxed">
+                <p className="text-sm md:text-base text-foreground font-bold leading-relaxed">
                   Your conviction has been recorded and your quest success has been logged to your profile!
                 </p>
               </div>
@@ -495,7 +542,7 @@ export default function LearningQuest() {
         </Dialog>
 
         {/* AI Tutor Summary */}
-        <Card className="border-none shadow-xl bg-white overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
+        <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
           <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -507,7 +554,7 @@ export default function LearningQuest() {
                   Post-Battle Rationale
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="border-primary/20 text-primary bg-white px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
+              <Badge variant="outline" className="border-primary/20 text-primary bg-background px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
                 {quizMode} Mode Verified
               </Badge>
             </div>
@@ -542,13 +589,13 @@ export default function LearningQuest() {
                     <AccordionContent className="px-4 md:px-6 pb-6 md:pb-8 pt-2">
                       <div className="bg-muted/30 rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-4 md:space-y-6 border border-primary/5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
-                          <div className="p-4 bg-white rounded-xl border shadow-sm">
+                          <div className="p-4 bg-background rounded-xl border shadow-sm">
                             <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
                             <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
                               Option {userAns?.selectedLetter || 'None'}
                             </p>
                           </div>
-                          <div className="p-4 bg-white rounded-xl border shadow-sm">
+                          <div className="p-4 bg-background rounded-xl border shadow-sm">
                             <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
                             <p className="font-bold text-sm text-primary">
                               Option {q.correctAnswer}
@@ -560,7 +607,7 @@ export default function LearningQuest() {
                             <BrainCircuit className="w-3.5 h-3.5" />
                             AI LOGICAL ANALYSIS
                           </h4>
-                          <div className="bg-white/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
+                          <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
                             <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
                               {q.explanation || "AI analysis is being finalized..."}
                             </p>
@@ -599,7 +646,7 @@ export default function LearningQuest() {
   if (isStarted) {
     return (
       <div className="min-h-full flex flex-col">
-        <header className="bg-white px-4 py-3 flex items-center justify-between border-b sticky top-0 z-50">
+        <header className="bg-background px-4 py-3 flex items-center justify-between border-b relative z-10">
           <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full shrink-0">
             <ChevronLeft className="h-6 w-6 text-primary" />
           </Button>
@@ -624,7 +671,7 @@ export default function LearningQuest() {
                   <span className="text-[8px] md:text-[10px] font-black text-white uppercase truncate">{subjectMeta.enemy}</span>
                   <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">BOSS</span>
                 </div>
-                <div className="h-1.5 md:h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
+                <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
                   <div className="h-full bg-primary transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
                 </div>
               </div>
@@ -638,27 +685,28 @@ export default function LearningQuest() {
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl hidden sm:flex">
+                <div className="w-12 h-12 md:w-20 md:h-20 bg-background rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl hidden sm:flex">
                   <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
                   <div className="flex justify-between items-center mb-1 gap-2">
                     <span className="text-[8px] md:text-[10px] font-black text-white uppercase">Aspirant Rivera</span>
-                    <span className="text-[7px] md:text-[8px] bg-white text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
+                    <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
                   </div>
-                  <div className="h-1.5 md:h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-white transition-all duration-500" style={{ width: `${playerHealth}%` }} />
+                  <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
+                    <div className="h-full bg-background transition-all duration-500" style={{ width: `${playerHealth}%` }} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 bg-white">
+          <div className="flex-1 bg-background">
             <QuizInterface
               questions={questions}
               onFinish={handleFinish}
               onAnswer={handleAnswer}
+              onRequestExplanation={handleRequestExplanation}
               isLoading={isLoading}
               mode={quizMode}
             />
@@ -758,7 +806,7 @@ export default function LearningQuest() {
                         ))}
                       </div>
                       <div className="flex gap-2">
-                        <Badge variant="outline" className="bg-white/10 border-primary/40 text-white font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
+                        <Badge variant="outline" className="bg-background/10 border-primary/40 text-white font-bold px-2 md:px-3 py-1 flex items-center gap-1 text-[8px] md:text-[10px]">
                           <Target className="w-2.5 h-2.5 md:w-3 md:h-3" /> {meta.enemy}
                         </Badge>
                       </div>
@@ -779,6 +827,11 @@ export default function LearningQuest() {
               <>
                 <BookOpen className="w-5 h-5 text-primary" />
                 <span className="text-sm md:text-base font-bold text-primary uppercase">Learning Mode Selected</span>
+              </>
+            ) : quizMode === 'boss-battle' ? (
+              <>
+                <Swords className="w-5 h-5 text-primary" />
+                <span className="text-sm md:text-base font-bold text-primary uppercase">Boss Battle Mode Selected</span>
               </>
             ) : (
               <>
@@ -810,7 +863,7 @@ export default function LearningQuest() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 py-6">
             {/* Learning Mode Card - Text Transition */}
             <button
               onClick={() => {
@@ -851,6 +904,28 @@ export default function LearningQuest() {
               <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
                 <p className="text-sm md:text-base font-semibold leading-relaxed">
                   Battle simulation without feedback. Challenge yourself to peak performance.
+                </p>
+              </div>
+            </button>
+            
+            {/* Boss Battle Mode Card - Text Transition */}
+            <button
+              onClick={() => {
+                setQuizMode('boss-battle');
+                startQuest();
+              }}
+              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
+            >
+              {/* Front Text - Icon & Title */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
+                <Swords className="w-12 h-12 md:w-14 md:h-14 mb-3" />
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Boss Battle</h3>
+              </div>
+
+              {/* Back Text - Description */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
+                <p className="text-sm md:text-base font-semibold leading-relaxed">
+                  RPG-style combat! Strategize your attacks and manage your health.
                 </p>
               </div>
             </button>

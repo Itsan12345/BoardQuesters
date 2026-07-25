@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { SUBJECT_AREAS } from '@/lib/game-logic';
+import bcrypt from 'bcryptjs';
 
 export async function signUp(formData: FormData) {
   const email = formData.get('email') as string;
@@ -19,11 +20,13 @@ export async function signUp(formData: FormData) {
       return { success: false, error: 'Email already in use.' };
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create user with Level 1, 0 XP
     const user = await prisma.user.create({
       data: {
         email,
-        password, // In production, hash this
+        password: hashedPassword,
         name,
         level: 1,
         xp: 0,
@@ -69,7 +72,13 @@ export async function login(formData: FormData) {
       where: { email },
     });
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      return { success: false, error: 'Invalid email or password.' };
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
       return { success: false, error: 'Invalid email or password.' };
     }
 

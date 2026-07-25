@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { startOfWeek } from 'date-fns';
 
 export async function getUserStats() {
   try {
@@ -17,6 +18,9 @@ export async function getUserStats() {
         achievements: {
           orderBy: { timestamp: 'desc' },
           take: 5
+        },
+        _count: {
+          select: { lessonCompletions: true }
         }
       }
     });
@@ -72,19 +76,71 @@ export async function getUserProfile() {
 
 export async function getLeaderboard() {
   try {
-    return await prisma.user.findMany({
-      orderBy: { xp: 'desc' },
-      take: 5,
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Week starts on Monday
+
+    // Fetch all users to calculate rank
+    const weeklyXp = await prisma.achievement.groupBy({
+      by: ['userId'],
+      where: {
+        timestamp: {
+          gte: weekStart
+        }
+      },
+      _sum: {
+        xp: true
+      },
+      orderBy: {
+        _sum: {
+          xp: 'desc'
+        }
+      }
+    });
+
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+    
+    // Fetch user details for all users in weeklyXp to correctly calculate rank
+    const userIds = weeklyXp.map(item => item.userId);
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: userIds }
+      },
       select: {
         id: true,
         name: true,
-        xp: true,
         level: true
       }
     });
+
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    // Filter out achievements for users that no longer exist
+    const validWeeklyXp = weeklyXp.filter(item => userMap.has(item.userId));
+
+    let currentUserRank = null;
+    if (userId) {
+      const userIndex = validWeeklyXp.findIndex(item => item.userId === userId);
+      if (userIndex !== -1) {
+        currentUserRank = userIndex + 1;
+      }
+    }
+
+    const top5WeeklyXp = validWeeklyXp.slice(0, 5);
+
+    const leaderboard = top5WeeklyXp.map(item => {
+      const user = userMap.get(item.userId)!;
+      return {
+        id: item.userId,
+        name: user.name,
+        level: user.level,
+        xp: item._sum.xp || 0
+      };
+    });
+
+    return { topUsers: leaderboard, currentUserRank };
   } catch (error) {
     console.error('Failed to fetch leaderboard:', error);
-    return [];
+    return { topUsers: [], currentUserRank: null };
   }
 }
 

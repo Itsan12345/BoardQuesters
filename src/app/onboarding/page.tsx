@@ -32,12 +32,12 @@ function SubjectTargetPicker({ subject, date, onSelect }: SubjectPickerProps) {
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-black text-slate-500 uppercase tracking-wider">{subject}</label>
+      <label className="text-xs font-black text-muted-foreground uppercase tracking-wider">{subject}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button className={cn(
             "flex w-full items-center justify-start text-left font-normal rounded-xl h-12 border-2 px-3 transition-all outline-none",
-            !date && "text-muted-foreground border-slate-100 hover:border-primary/30",
+            !date && "text-muted-foreground border-border hover:border-primary/30",
             date && "border-primary/20 bg-primary/5 text-primary"
           )}>
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -110,13 +110,13 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4 py-12">
-      <Card className="max-w-2xl w-full border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+      <Card className="max-w-2xl w-full border border-border shadow-2xl rounded-[2.5rem] overflow-hidden bg-background">
         <div className="h-2 bg-primary" />
         <CardHeader className="p-8 lg:p-12 text-center space-y-4">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-black font-headline uppercase tracking-tight text-slate-900">
+          <CardTitle className="text-3xl font-black font-headline uppercase tracking-tight text-foreground">
             Setup Your <span className="text-primary">Study Plan</span>
           </CardTitle>
           <CardDescription className="text-base font-medium">
