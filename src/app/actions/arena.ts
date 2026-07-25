@@ -25,7 +25,15 @@ export async function getQuestQuestions(subject: string): Promise<QuizQuestion[]
         categoryId: category.id,
         status: 'APPROVED',
         isPublished: true,
-      } as any
+      } as any,
+      select: {
+        id: true,
+        question: true,
+        choices: true,
+        correctAnswer: true,
+        difficulty: true,
+        type: true,
+      }
     });
 
     if (allQuestions.length === 0) {
@@ -59,8 +67,9 @@ export async function getQuestQuestions(subject: string): Promise<QuizQuestion[]
         question: q.question,
         options: options,
         correctAnswer: correctAnswerLetter,
-        explanation: q.feedback || q.explanation || undefined,
+        explanation: undefined,
         difficulty: String(q.difficulty || 'EASY').toUpperCase(),
+        type: q.type || 'MCQ',
       };
     });
   } catch (error) {

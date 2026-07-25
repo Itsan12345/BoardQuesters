@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Loader2, Sparkles, BrainCircuit, Shield, Flame, Sword, ShieldPlus, Swords, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { CheckCircle2, Loader2, Sparkles, BrainCircuit, Shield, Flame, Sword, ShieldPlus, Swords, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type Question = {
@@ -13,6 +14,7 @@ export type Question = {
   correctAnswer: string;
   explanation?: string;
   difficulty?: string;
+  type?: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
 };
 
 interface QuizInterfaceProps {
@@ -65,7 +67,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
 
   const currentQuestionIndex = turnMap[currentIndex] ?? currentIndex;
   const currentQuestion = questions[currentQuestionIndex];
-  const optionLetters = ['A', 'B', 'C', 'D'];
+  const optionLetters = Array.from({ length: currentQuestion.options.length }, (_, i) => String.fromCharCode(65 + i));
 
   const handleSelectMove = (move: 'heavy' | 'normal' | 'defend') => {
     setActiveMove(move);
@@ -90,7 +92,9 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
     if (isAnswered) return;
     
     setSelectedAnswer(letter);
-    const isCorrect = letter === currentQuestion.correctAnswer;
+    const isCorrect = currentQuestion.type === 'SHORT_ANSWER' 
+      ? letter.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
+      : letter === currentQuestion.correctAnswer;
     setIsAnswered(letter !== null); // In Test mode, we still mark it as "selected"
     
     // Logic for Learning Mode vs Test Mode vs Boss Battle
@@ -217,45 +221,85 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
           </div>
 
           <div className="px-6 space-y-3">
-            {currentQuestion.options.map((option, idx) => {
-              const letter = optionLetters[idx];
-              const isSelected = selectedAnswer === letter;
-              
-              // Only show correctness in Learning Mode
-              const isCorrect = (mode === 'learning' || mode === 'boss-battle') && isAnswered && letter === currentQuestion.correctAnswer;
-              const isWrong = (mode === 'learning' || mode === 'boss-battle') && isAnswered && isSelected && !isCorrect;
-
-              return (
-                <button
-                  key={letter}
-                  disabled={isAnswered && (mode === 'learning' || mode === 'boss-battle')}
-                  onClick={() => handleSubmit(letter)}
+            {currentQuestion.type === 'SHORT_ANSWER' ? (
+              <div className="space-y-4">
+                <Input
+                  value={selectedAnswer || ''}
+                  onChange={(e) => !isAnswered && setSelectedAnswer(e.target.value)}
+                  disabled={isAnswered}
+                  placeholder="Type your answer here..."
                   className={cn(
-                    "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm",
-                    !isAnswered && "bg-background border-transparent hover:border-primary/20",
-                    isSelected && mode === 'test' && "border-primary bg-primary/5",
-                    isCorrect && "bg-green-50 border-green-500 shadow-green-100",
-                    isWrong && "bg-red-50 border-red-500 shadow-red-100",
-                    (mode === 'learning' || mode === 'boss-battle') && isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
+                    "w-full text-lg p-6 rounded-2xl border-2 transition-all shadow-sm focus-visible:ring-primary focus-visible:border-primary",
+                    isAnswered && (selectedAnswer?.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
+                      ? "bg-green-50 border-green-500 text-green-700" 
+                      : "bg-red-50 border-red-500 text-red-700")
                   )}
-                >
-                  <div className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm",
-                    isCorrect ? "bg-green-500 text-white" : 
-                    isWrong ? "bg-red-500 text-white" : 
-                    isSelected ? "bg-primary text-white" : "bg-muted text-primary"
-                  )}>
-                    {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : letter}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isAnswered && selectedAnswer) {
+                      handleSubmit(selectedAnswer);
+                    }
+                  }}
+                />
+                
+                {isAnswered && (
+                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Correct Answer:</span>
+                    <span className="font-black text-primary text-sm">{currentQuestion.correctAnswer}</span>
                   </div>
-                  <span className={cn(
-                    "text-sm font-bold flex-1",
-                    isCorrect ? "text-green-700" : isWrong ? "text-red-700" : "text-foreground"
-                  )}>
-                    {option}
-                  </span>
-                </button>
-              );
-            })}
+                )}
+                
+                {!isAnswered && (
+                  <Button 
+                    className="w-full font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                    size="lg"
+                    disabled={!selectedAnswer?.trim()}
+                    onClick={() => handleSubmit(selectedAnswer || '')}
+                  >
+                    Submit Answer <CornerDownLeft className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              currentQuestion.options.map((option, idx) => {
+                const letter = optionLetters[idx];
+                const isSelected = selectedAnswer === letter;
+                
+                // Only show correctness in Learning Mode
+                const isCorrect = (mode === 'learning' || mode === 'boss-battle') && isAnswered && letter === currentQuestion.correctAnswer;
+                const isWrong = (mode === 'learning' || mode === 'boss-battle') && isAnswered && isSelected && !isCorrect;
+
+                return (
+                  <button
+                    key={letter}
+                    disabled={isAnswered && (mode === 'learning' || mode === 'boss-battle')}
+                    onClick={() => handleSubmit(letter)}
+                    className={cn(
+                      "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm",
+                      !isAnswered && "bg-background border-transparent hover:border-primary/20",
+                      isSelected && mode === 'test' && "border-primary bg-primary/5",
+                      isCorrect && "bg-green-50 border-green-500 shadow-green-100",
+                      isWrong && "bg-red-50 border-red-500 shadow-red-100",
+                      (mode === 'learning' || mode === 'boss-battle') && isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm",
+                      isCorrect ? "bg-green-500 text-white" : 
+                      isWrong ? "bg-red-500 text-white" : 
+                      isSelected ? "bg-primary text-white" : "bg-muted text-primary"
+                    )}>
+                      {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : letter}
+                    </div>
+                    <span className={cn(
+                      "text-sm font-bold flex-1",
+                      isCorrect ? "text-green-700" : isWrong ? "text-red-700" : "text-foreground"
+                    )}>
+                      {option}
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {(mode === 'learning' || mode === 'boss-battle') && isAnswered && (

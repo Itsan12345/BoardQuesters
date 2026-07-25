@@ -99,6 +99,18 @@ model Question {
   authorId String    @db.ObjectId
 
   feedback String? @default("")
+
+  aiExplanation QuestionExplanation?
+}
+
+model QuestionExplanation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  questionId  String   @unique @db.ObjectId
+  explanation String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model Category {
