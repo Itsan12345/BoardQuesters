@@ -11,7 +11,7 @@ export async function getUserStats() {
     const userId = cookieStore.get('user_id')?.value;
     if (!userId) return null;
 
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         mastery: true,
@@ -24,6 +24,8 @@ export async function getUserStats() {
         }
       }
     });
+    
+    return user ? JSON.parse(JSON.stringify(user)) : null;
   } catch (error) {
     console.error('Failed to fetch user stats:', error);
     return null;
@@ -62,12 +64,14 @@ export async function getUserProfile() {
     const classYear = new Date(user.createdAt).getFullYear() - 1;
     const classString = `MedTech Class of ${classYear}`;
 
-    return {
+    const result = {
       ...user,
       classString,
       userRank,
       rankingPercentage
     };
+
+    return JSON.parse(JSON.stringify(result));
   } catch (error) {
     console.error('Failed to fetch user profile:', error);
     return null;

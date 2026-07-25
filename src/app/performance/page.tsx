@@ -96,8 +96,8 @@ function PerformanceContent() {
         if (plans && plans.length > 0) {
           const today = new Date();
           const futurePlans = plans
-            .filter(p => new Date(p.targetDate) >= today)
-            .sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
+            .filter((p: any) => new Date(p.targetDate) >= today)
+            .sort((a: any, b: any) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
 
           if (futurePlans.length > 0) {
             setNextObjective(futurePlans[0]);

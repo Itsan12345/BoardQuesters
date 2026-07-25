@@ -54,10 +54,12 @@ export async function getStudyPlans() {
 
     if (!userId) return [];
 
-    return await prisma.studyPlan.findMany({
+    const plans = await prisma.studyPlan.findMany({
       where: { userId },
       orderBy: { targetDate: 'asc' }
     });
+    
+    return plans ? JSON.parse(JSON.stringify(plans)) : [];
   } catch (error) {
     console.error('Failed to fetch study plans:', error);
     return [];
