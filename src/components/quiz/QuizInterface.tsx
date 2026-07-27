@@ -38,9 +38,19 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
 
   useEffect(() => {
     if (questions && turnMap.length !== questions.length) {
-      setTurnMap(questions.map((_, i) => i));
+      const newTurnMap = questions.map((_, i) => i);
+      if (mode === 'test') {
+        // CAT starts with Medium baseline
+        const firstMediumIdx = newTurnMap.findIndex(i => String(questions[i]?.difficulty).toUpperCase() === 'MEDIUM');
+        if (firstMediumIdx > 0) {
+          const temp = newTurnMap[0];
+          newTurnMap[0] = newTurnMap[firstMediumIdx];
+          newTurnMap[firstMediumIdx] = temp;
+        }
+      }
+      setTurnMap(newTurnMap);
     }
-  }, [questions]);
+  }, [questions, mode]);
 
   useEffect(() => {
     setIsFetchingExplanation(false);
@@ -119,12 +129,36 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
       }, 1500);
     } else {
       // Test Mode: Immediate transition, no feedback
-      const finalIsCorrect = letter === currentQuestion.correctAnswer;
+      const finalIsCorrect = isCorrect; // Use pre-calculated isCorrect to handle Short Answer properly
       const newScore = finalIsCorrect ? score + 1 : score;
       setScore(newScore);
       if (onAnswer) onAnswer(finalIsCorrect, currentQuestionIndex, letter, undefined, currentQuestion);
 
       if (currentIndex < questions.length - 1) {
+        // CAT Logic: Adapt difficulty
+        const currentDiff = String(currentQuestion.difficulty || 'MEDIUM').toUpperCase();
+        let targetDiff = currentDiff;
+        if (finalIsCorrect) {
+          targetDiff = currentDiff === 'EASY' ? 'MEDIUM' : 'HARD';
+        } else {
+          targetDiff = currentDiff === 'HARD' ? 'MEDIUM' : 'EASY';
+        }
+
+        const nextTurnMap = [...turnMap];
+        let foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex && String(questions[qIdx]?.difficulty).toUpperCase() === targetDiff);
+        
+        if (foundIdx === -1) {
+          // Fallback if we run out of target difficulty
+          foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex);
+        }
+
+        if (foundIdx !== -1 && foundIdx !== currentIndex + 1) {
+          const temp = nextTurnMap[currentIndex + 1];
+          nextTurnMap[currentIndex + 1] = nextTurnMap[foundIdx];
+          nextTurnMap[foundIdx] = temp;
+          setTurnMap(nextTurnMap);
+        }
+
         setCurrentIndex(currentIndex + 1);
         setSelectedAnswer(null);
         setIsAnswered(false);

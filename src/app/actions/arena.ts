@@ -94,19 +94,24 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
       selected = selected.sort(() => 0.5 - Math.random());
     }
 
-    // Enforce 20-20-10 Wave Structure
+    // Enforce structure based on mode
     const easySelected: any[] = [];
     const mediumSelected: any[] = [];
     const hardSelected: any[] = [];
     const leftovers: any[] = [];
 
+    const isTestMode = mode === 'test';
+    const easyLimit = isTestMode ? 15 : 20;
+    const mediumLimit = 20;
+    const hardLimit = isTestMode ? 15 : 10;
+
     for (const q of selected) {
       const diff = String(q.difficulty || 'EASY').toUpperCase();
-      if (diff === 'EASY' && easySelected.length < 20) {
+      if (diff === 'EASY' && easySelected.length < easyLimit) {
         easySelected.push(q);
-      } else if (diff === 'MEDIUM' && mediumSelected.length < 20) {
+      } else if (diff === 'MEDIUM' && mediumSelected.length < mediumLimit) {
         mediumSelected.push(q);
-      } else if (diff === 'HARD' && hardSelected.length < 10) {
+      } else if (diff === 'HARD' && hardSelected.length < hardLimit) {
         hardSelected.push(q);
       } else {
         leftovers.push(q);
@@ -121,12 +126,17 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
       finalSelection.push(...leftovers.slice(0, needed));
     }
 
-    // Finally, sort the final selection by difficulty (Easy -> Medium -> Hard) to strictly form "Waves"
-    finalSelection.sort((a, b) => {
-      const diffA = difficultyOrder[String(a.difficulty || 'EASY').toUpperCase()] || 1;
-      const diffB = difficultyOrder[String(b.difficulty || 'EASY').toUpperCase()] || 1;
-      return diffA - diffB;
-    });
+    if (isTestMode) {
+      // Tower Climb: Shuffle everything so CAT can pull dynamically
+      finalSelection = finalSelection.sort(() => 0.5 - Math.random());
+    } else {
+      // Finally, sort the final selection by difficulty (Easy -> Medium -> Hard) to strictly form "Waves"
+      finalSelection.sort((a, b) => {
+        const diffA = difficultyOrder[String(a.difficulty || 'EASY').toUpperCase()] || 1;
+        const diffB = difficultyOrder[String(b.difficulty || 'EASY').toUpperCase()] || 1;
+        return diffA - diffB;
+      });
+    }
 
     selected = finalSelection;
 
