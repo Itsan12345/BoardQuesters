@@ -110,13 +110,13 @@ export default function StudyPage() {
       ]);
 
       const dates: Record<string, Date> = {};
-      plans.forEach(p => {
+      plans.forEach((p: any) => {
         dates[p.subject] = new Date(p.targetDate);
       });
       setTargetDates(dates);
 
       const metricsMap: Record<string, SubjectMetrics> = {};
-      metrics.forEach(m => {
+      metrics.forEach((m: any) => {
         metricsMap[m.subject] = m;
       });
       setSubjectMetrics(metricsMap);

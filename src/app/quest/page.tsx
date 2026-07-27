@@ -120,6 +120,7 @@ const SUBJECT_METADATA: Record<string, {
 
 type UserAnswerRecord = {
   questionIndex: number;
+  questionId?: string;
   selectedLetter: string;
   isCorrect: boolean;
 };
@@ -200,7 +201,7 @@ export default function LearningQuest() {
 
   const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string, moveType?: 'heavy' | 'normal' | 'defend', activeQuestion?: Question) => {
     const baseDamage = 100 / (questions.length || 5);
-    setUserAnswers(prev => [...prev, { questionIndex: index, selectedLetter, isCorrect }]);
+    setUserAnswers(prev => [...prev, { questionIndex: index, questionId: activeQuestion?.id, selectedLetter, isCorrect }]);
 
     let enemyDmg = 0;
     let playerDmg = 0;
@@ -302,6 +303,10 @@ export default function LearningQuest() {
         completionTime: questCompletionTime,
         questMode: quizMode,
         subject: selectedSubject,
+        userAnswers: userAnswers.map(ua => ({
+          questionId: ua.questionId || '',
+          isCorrect: ua.isCorrect
+        })).filter(ua => ua.questionId !== '')
       });
 
       if (result.success) {

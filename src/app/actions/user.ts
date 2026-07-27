@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { startOfWeek } from 'date-fns';
 
-export async function getUserStats() {
+export async function getUserStats(): Promise<any> {
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get('user_id')?.value;

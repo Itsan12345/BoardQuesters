@@ -152,11 +152,23 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
              Quest {currentIndex + 1} of {questions.length}
           </span>
-          <div className="flex gap-2 mt-1">
+          <div className="flex gap-2 mt-1 flex-wrap">
              <Badge variant="outline" className={cn("h-4 text-[8px] uppercase tracking-tighter", mode === 'learning' || mode === 'boss-battle' ? "border-primary text-primary" : "border-slate-500 text-muted-foreground")}>
                {mode === 'learning' ? <BrainCircuit className="w-2 h-2 mr-1" /> : mode === 'boss-battle' ? <Swords className="w-2 h-2 mr-1" /> : <Shield className="w-2 h-2 mr-1" />}
                {mode === 'learning' ? 'Learning Mode' : mode === 'boss-battle' ? 'Boss Battle Mode' : 'Test Mode'}
              </Badge>
+             {mode === 'learning' && (
+               <Badge variant="default" className={cn(
+                 "h-4 text-[8px] uppercase tracking-tighter",
+                 currentQuestion.difficulty === 'EASY' ? "bg-green-500 hover:bg-green-600" :
+                 currentQuestion.difficulty === 'MEDIUM' ? "bg-yellow-500 hover:bg-yellow-600" :
+                 "bg-red-500 hover:bg-red-600"
+               )}>
+                 {currentQuestion.difficulty === 'EASY' ? 'Wave 1: Minion Phase' :
+                  currentQuestion.difficulty === 'MEDIUM' ? 'Wave 2: Enforcer Phase' :
+                  'Wave 3: Elite Phase'}
+               </Badge>
+             )}
           </div>
         </div>
       </div>
@@ -242,9 +254,12 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                 />
                 
                 {isAnswered && (
-                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Correct Answer:</span>
-                    <span className="font-black text-primary text-sm">{currentQuestion.correctAnswer}</span>
+                  <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="text-xs font-bold text-green-800 uppercase tracking-wider">Correct Answer</span>
+                    </div>
+                    <span className="font-black text-green-700 text-sm">{currentQuestion.correctAnswer}</span>
                   </div>
                 )}
                 

@@ -22,6 +22,7 @@ export interface CompleteQuestParams {
   completionTime: number; // in seconds
   questMode: 'learning' | 'test' | 'boss-battle';
   subject: string;
+  userAnswers?: { questionId: string; isCorrect: boolean }[];
 }
 
 export interface CompleteQuestResponse {
@@ -163,6 +164,30 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
 
     // Sync Subject Mastery
     await syncSubjectMastery(userId, params.subject);
+
+    // Record individual question attempts for Spaced Repetition logic
+    if (params.userAnswers && params.userAnswers.length > 0) {
+      await Promise.all(
+        params.userAnswers.map((ua) =>
+          (prisma as any).userQuestionAttempt.upsert({
+            where: {
+              userId_questionId: { userId, questionId: ua.questionId },
+            },
+            update: {
+              attempts: { increment: 1 },
+              correct: { increment: ua.isCorrect ? 1 : 0 },
+              lastAttempt: new Date(),
+            },
+            create: {
+              userId,
+              questionId: ua.questionId,
+              attempts: 1,
+              correct: ua.isCorrect ? 1 : 0,
+            },
+          })
+        )
+      );
+    }
 
     // Revalidate related pages
     revalidatePath('/');

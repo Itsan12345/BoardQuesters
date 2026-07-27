@@ -101,6 +101,7 @@ model Question {
   feedback String? @default("")
 
   aiExplanation QuestionExplanation?
+  attempts      UserQuestionAttempt[]
 }
 
 model QuestionExplanation {
@@ -111,6 +112,20 @@ model QuestionExplanation {
   updatedAt   DateTime @updatedAt
 
   question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model UserQuestionAttempt {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  questionId String   @db.ObjectId
+  attempts   Int      @default(0)
+  correct    Int      @default(0)
+  lastAttempt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
 }
 
 model Category {
@@ -158,6 +173,7 @@ model User {
   achievements       Achievement[]
   examResults        ExamResult[]
   lessonCompletions  LessonCompletion[]
+  questionAttempts   UserQuestionAttempt[]
 }
 
 model SubjectMastery {

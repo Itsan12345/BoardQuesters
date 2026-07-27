@@ -47,7 +47,7 @@ export async function saveStudyPlan(targets: Record<string, Date>) {
   }
 }
 
-export async function getStudyPlans() {
+export async function getStudyPlans(): Promise<any[]> {
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get('user_id')?.value;
