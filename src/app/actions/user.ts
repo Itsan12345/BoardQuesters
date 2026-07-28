@@ -148,6 +148,49 @@ export async function getLeaderboard() {
   }
 }
 
+export async function getGlobalLeaderboard(page: number = 1, limit: number = 10) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+
+    const skip = (page - 1) * limit;
+
+    const [topUsers, totalUsers] = await Promise.all([
+      prisma.user.findMany({
+        orderBy: { xp: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          level: true,
+          xp: true
+        }
+      }),
+      prisma.user.count()
+    ]);
+
+    let currentUserRank = null;
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { xp: true }
+      });
+      if (user) {
+        const usersWithHigherXp = await prisma.user.count({
+          where: { xp: { gt: user.xp } }
+        });
+        currentUserRank = usersWithHigherXp + 1;
+      }
+    }
+
+    return { topUsers, currentUserRank, totalUsers };
+  } catch (error) {
+    console.error('Failed to fetch global leaderboard:', error);
+    return { topUsers: [], currentUserRank: null, totalUsers: 0 };
+  }
+}
+
 export async function generateDailyMissions() {
   try {
     const cookieStore = await cookies();
