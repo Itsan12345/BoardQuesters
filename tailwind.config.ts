@@ -14,6 +14,7 @@ export default {
         body: ['Inter', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],
         code: ['monospace'],
+        bytebounce: ['ByteBounce', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

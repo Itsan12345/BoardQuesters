@@ -228,7 +228,7 @@ export default function LearningQuest() {
       setIsAnimating("enemy");
       setEnemyHealth(prev => Math.max(0, prev - enemyDmg));
     }
-    
+
     if (playerDmg > 0) {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.max(0, prev - playerDmg));
@@ -245,9 +245,9 @@ export default function LearningQuest() {
   const handleRequestExplanation = async (index: number) => {
     const qToExplain = questions[index];
     const userAns = userAnswers.find(ua => ua.questionIndex === index);
-    
+
     if (!qToExplain || !userAns || qToExplain.explanation) return;
-    
+
     try {
       const feedback = await provideExamFeedback({
         questionId: qToExplain.id,
@@ -775,11 +775,11 @@ export default function LearningQuest() {
                 <div className="relative w-full flex flex-col items-center">
                   <div className={cn(
                     "relative w-full aspect-square transition-all duration-500",
-                    isSelected ? "animate-float" : "drop-shadow-[0_10px_20px_rgba(0,0,0,0.4)]"
+                    isSelected ? "animate-float" : ""
                   )}>
                     {meta.imageUrl ? (
-                      <div className="relative w-full h-full transform hover:scale-105 transition-transform drop-shadow-2xl">
-                        <Image src={meta.imageUrl} alt={subject} fill className="object-contain drop-shadow-lg" priority={isSelected} />
+                      <div className="relative w-full h-full transform hover:scale-105 transition-transform">
+                        <Image src={meta.imageUrl} alt={subject} fill className="object-contain" priority={isSelected} />
                       </div>
                     ) : (
                       <div className={cn("w-full h-full rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col items-center justify-center text-white shadow-2xl relative overflow-hidden group border-4 border-white/50", meta.color)}>
@@ -788,21 +788,10 @@ export default function LearningQuest() {
                     )}
                   </div>
 
-                  {/* Shadow below island */}
-                  <div className="relative w-full flex justify-center" style={{ marginTop: '-16px' }}>
-                    <div
-                      className="w-3/4 h-12 md:h-20 rounded-full"
-                      style={{
-                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
-                        filter: 'blur(18px)'
-                      }}
-                    />
-                  </div>
-
-                  <div className={cn("mt-8 md:mt-6 text-center space-y-3 md:space-y-2 transition-all", isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
+                  <div className={cn("mt-2 text-center space-y-3 md:space-y-2 transition-all", isSelected ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
                     <div className="space-y-1 w-full px-2">
                       <p className="text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80" style={{ fontFamily: "'Poppins', sans-serif" }}>{meta.biome}</p>
-                      <h3 className="text-lg sm:text-xl md:text-3xl font-black font-semibold text-white tracking-tighter text-balance leading-tight break-words">{subject}</h3>
+                      <h3 className="text-3xl sm:text-4xl md:text-[3rem] font-bytebounce text-white leading-none break-words" style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}>{subject}</h3>
                     </div>
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex items-center gap-1">
@@ -825,115 +814,109 @@ export default function LearningQuest() {
       </div>
 
       <div className="px-6 md:px-8 mt-6 md:mt-10 relative z-20">
-        {/* Mode Indicator */}
-        <div className="flex items-center justify-center gap-2 mb-4 md:mb-6">
-          <div className="flex items-center gap-2 bg-primary/20 border-2 border-primary px-4 py-2 rounded-full">
-            {quizMode === 'learning' ? (
-              <>
-                <BookOpen className="w-5 h-5 text-primary" />
-                <span className="text-sm md:text-base font-bold text-primary uppercase">Learning Mode Selected</span>
-              </>
-            ) : quizMode === 'boss-battle' ? (
-              <>
-                <Swords className="w-5 h-5 text-primary" />
-                <span className="text-sm md:text-base font-bold text-primary uppercase">Boss Battle Mode Selected</span>
-              </>
-            ) : (
-              <>
-                <Zap className="w-5 h-5 text-primary" />
-                <span className="text-sm md:text-base font-bold text-primary uppercase">Test Mode Selected</span>
-              </>
-            )}
-          </div>
+        <div className="flex justify-center w-full mt-4">
+          <button
+            onClick={() => setModeSelectDialogOpen(true)}
+            disabled={isLoading}
+            className="relative w-full max-w-md md:max-w-2xl h-24 md:h-36 group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <Image
+              src="/ui/btn-enterArena.png"
+              alt="Enter Battle Arena"
+              fill
+              className="object-contain"
+              style={{ imageRendering: 'pixelated' }}
+              unoptimized
+            />
+            <div className="absolute inset-0 flex items-center justify-center pb-2">
+              {isLoading && (
+                <Loader2 className="w-8 h-8 animate-spin text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]" />
+              )}
+            </div>
+          </button>
         </div>
-
-        <Button
-          size="lg"
-          onClick={() => setModeSelectDialogOpen(true)}
-          disabled={isLoading}
-          className="w-full h-16 md:h-20 rounded-2xl md:rounded-[2rem] bg-primary hover:bg-primary/90 text-lg md:text-xl font-black shadow-2xl text-white flex items-center justify-center gap-3 border-2 border-white/70"
-        >
-          {isLoading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <Zap className="w-5 h-5 md:w-6 md:h-6 fill-white text-white" />}
-          {isLoading ? "Synchronizing..." : "Enter Battle Arena"}
-        </Button>
       </div>
 
       {/* Mode Selection Dialog */}
       <Dialog open={modeSelectDialogOpen} onOpenChange={setModeSelectDialogOpen}>
-        <DialogContent className="sm:max-w-2xl border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-white">
-          <DialogHeader className="text-center space-y-4">
-            <DialogTitle className="font-headline text-2xl md:text-3xl">Select a session mode</DialogTitle>
-            <DialogDescription className="text-base">
-              Select how you want to approach the {selectedSubject} challenges
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-3xl bg-transparent border-none shadow-none p-0 flex justify-center items-center">
+          <DialogTitle className="sr-only">Select a session mode</DialogTitle>
+          <div className="relative w-[800px] max-w-full aspect-[4/3] flex items-center justify-center overflow-hidden">
+            <Image
+              src="/ui/modal-bg.png"
+              alt="Select Mode Background"
+              fill
+              className="object-contain"
+              style={{ imageRendering: 'pixelated' }}
+              unoptimized
+            />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 py-6">
-            {/* Learning Mode Card - Text Transition */}
+            {/* Custom Pixelated Close Button */}
             <button
-              onClick={() => {
-                setQuizMode('learning');
-                startQuest();
-              }}
-              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
+              onClick={() => setModeSelectDialogOpen(false)}
+              className="absolute top-[15.5%] right-[2%] z-50 flex items-center justify-center transition-all cursor-pointer group active:translate-y-0.5"
             >
-              {/* Front Text - Icon & Title */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
-                <BookOpen className="w-12 h-12 md:w-14 md:h-14 mb-3" />
-                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Learning Mode</h3>
-              </div>
-
-              {/* Back Text - Description */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
-                <p className="text-sm md:text-base font-semibold leading-relaxed">
-                  Get instant feedback on every answer. Perfect for mastering concepts step by step.
-                </p>
-              </div>
+              <span
+                className="font-bytebounce text-white/90 group-hover:text-red-400 transition-colors text-2xl md:text-5xl leading-none"
+                style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+              >
+                X
+              </span>
             </button>
 
-            {/* Test Mode Card - Text Transition */}
-            <button
-              onClick={() => {
-                setQuizMode('test');
-                startQuest();
-              }}
-              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
-            >
-              {/* Front Text - Icon & Title */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
-                <Zap className="w-12 h-12 md:w-14 md:h-14 mb-3" />
-                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Test Mode</h3>
-              </div>
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-[14%] px-[4.5%] pb-[5%]">
+              <div className="flex justify-center items-center gap-2 md:gap-3 w-full h-full">
 
-              {/* Back Text - Description */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
-                <p className="text-sm md:text-base font-semibold leading-relaxed">
-                  Battle simulation without feedback. Challenge yourself to peak performance.
-                </p>
-              </div>
-            </button>
-            
-            {/* Boss Battle Mode Card - Text Transition */}
-            <button
-              onClick={() => {
-                setQuizMode('boss-battle');
-                startQuest();
-              }}
-              className="group h-40 md:h-48 bg-primary text-white rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 transform hover:scale-105 active:scale-105 relative overflow-hidden"
-            >
-              {/* Front Text - Icon & Title */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-0 opacity-100">
-                <Swords className="w-12 h-12 md:w-14 md:h-14 mb-3" />
-                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Boss Battle</h3>
-              </div>
+                {/* Learning Mode Button */}
+                <button
+                  onClick={() => { setQuizMode('learning'); startQuest(); }}
+                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
+                >
+                  <Image src="/ui/btn-learning.png" alt="Learning Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                    <span
+                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                    >
+                      LEARNING<br />MODE
+                    </span>
+                  </div>
+                </button>
 
-              {/* Back Text - Description */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 transition-opacity duration-300 group-hover:opacity-100 opacity-0">
-                <p className="text-sm md:text-base font-semibold leading-relaxed">
-                  RPG-style combat! Strategize your attacks and manage your health.
-                </p>
+                {/* Test Mode Button */}
+                <button
+                  onClick={() => { setQuizMode('test'); startQuest(); }}
+                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
+                >
+                  <Image src="/ui/btn-test.png" alt="Test Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                    <span
+                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                    >
+                      TEST<br />MODE
+                    </span>
+                  </div>
+                </button>
+
+                {/* Boss Battle Button */}
+                <button
+                  onClick={() => { setQuizMode('boss-battle'); startQuest(); }}
+                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
+                >
+                  <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                    <span
+                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                    >
+                      BOSS<br />BATTLE
+                    </span>
+                  </div>
+                </button>
+
               </div>
-            </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
