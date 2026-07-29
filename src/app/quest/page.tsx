@@ -23,7 +23,9 @@ import {
   Award,
   Trophy,
   BookOpen,
-  Swords
+  Swords,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -137,6 +139,32 @@ export default function LearningQuest() {
   const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
+  
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+
+  // Sync fullscreen state with native browser events (e.g. hitting ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await fullscreenRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    }
+  };
+
   const [userAnswers, setUserAnswers] = useState<UserAnswerRecord[]>([]);
   const [confidence, setConfidence] = useState<string | null>(null);
   const [earnedBadges, setEarnedBadges] = useState<BadgeType[]>([]);
@@ -650,7 +678,10 @@ export default function LearningQuest() {
 
   if (isStarted) {
     return (
-      <div className="min-h-full flex flex-col">
+      <div 
+        ref={fullscreenRef} 
+        className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen" : "")}
+      >
         <header className="bg-background px-4 py-3 flex items-center justify-between border-b relative z-10">
           <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full shrink-0">
             <ChevronLeft className="h-6 w-6 text-primary" />
@@ -661,7 +692,11 @@ export default function LearningQuest() {
               {quizMode === 'learning' ? 'Intel Gathering' : 'Battle Simulation'}
             </p>
           </div>
-          <div className="w-10 shrink-0" />
+          <div className="w-10 flex shrink-0 justify-end">
+            <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-primary hover:bg-primary/10 hover:text-primary" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+            </Button>
+          </div>
         </header>
 
         <main className="flex-1 flex flex-col">
@@ -723,7 +758,11 @@ export default function LearningQuest() {
 
   return (
     <div
-      className="min-h-full flex flex-col pb-20 md:pb-12 overflow-hidden relative"
+      ref={fullscreenRef}
+      className={cn(
+        "min-h-full flex flex-col pb-20 md:pb-12 overflow-hidden relative bg-black",
+        isFullscreen ? "h-screen w-screen" : ""
+      )}
       style={{
         backgroundImage: `url('${SUBJECT_METADATA[selectedSubject]?.backgroundUrl || ''}')`,
         backgroundSize: 'cover',
@@ -736,7 +775,19 @@ export default function LearningQuest() {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px] transition-all duration-600" />
 
       <header className="px-6 md:px-8 pt-6 md:pt-8 pb-4 space-y-1 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0 mb-6">
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-md transition-all shadow-lg" 
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+          </Button>
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0 mb-6 pr-12">
           <div className="flex-1">
             <h1 className="text-3xl md:text-5xl font-black font-headline leading-tight tracking-tight text-white">
               Select Your <br />
@@ -839,7 +890,7 @@ export default function LearningQuest() {
 
       {/* Mode Selection Dialog */}
       <Dialog open={modeSelectDialogOpen} onOpenChange={setModeSelectDialogOpen}>
-        <DialogContent className="sm:max-w-3xl bg-transparent border-none shadow-none p-0 flex justify-center items-center">
+        <DialogContent container={fullscreenRef.current} className="sm:max-w-3xl bg-transparent border-none shadow-none p-0 flex justify-center items-center">
           <DialogTitle className="sr-only">Select a session mode</DialogTitle>
           <div className="relative w-[800px] max-w-full aspect-[4/3] flex items-center justify-center overflow-hidden">
             <Image
