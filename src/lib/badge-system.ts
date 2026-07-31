@@ -140,15 +140,21 @@ export function calculateEarnedBadges(result: QuestResult): Badge[] {
 }
 
 export function calculateTotalXp(
-  score: number,
+  baseXp: number,
   earnedBadges: Badge[],
-  confidenceLevel: ConfidenceLevel
+  confidenceLevel: ConfidenceLevel,
+  streak: number = 0
 ): number {
-  const baseXp = score * 50; // 50 XP per correct answer
+  let streakMultiplier = 1.0;
+  if (streak >= 30) streakMultiplier = 2.0;
+  else if (streak >= 14) streakMultiplier = 1.5;
+  else if (streak >= 7) streakMultiplier = 1.25;
+  else if (streak >= 3) streakMultiplier = 1.1;
+
   const badgeXpBonus = earnedBadges.reduce((sum, badge) => sum + badge.xpReward, 0);
   const confidenceMultiplier = CONFIDENCE_MULTIPLIERS[confidenceLevel];
 
-  return Math.round((baseXp + badgeXpBonus) * confidenceMultiplier);
+  return Math.round(((baseXp * streakMultiplier) + badgeXpBonus) * confidenceMultiplier);
 }
 
 export function getLevelFromXp(xp: number): number {

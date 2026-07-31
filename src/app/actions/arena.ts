@@ -10,7 +10,7 @@ const difficultyOrder: Record<string, number> = {
   'HARD': 3,
 };
 
-export async function getQuestQuestions(subject: string, mode: string = 'learning'): Promise<QuizQuestion[]> {
+export async function getQuestQuestions(subject: string, mode: string = 'learning', limit: number = 50): Promise<QuizQuestion[]> {
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get('user_id')?.value;
@@ -101,9 +101,11 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
     const leftovers: any[] = [];
 
     const isTestMode = mode === 'test';
-    const easyLimit = isTestMode ? 15 : 20;
-    const mediumLimit = 20;
-    const hardLimit = isTestMode ? 15 : 10;
+    
+    // Pro-rate difficulties based on limit (30% Easy, 40% Medium, 30% Hard)
+    const easyLimit = Math.max(1, Math.floor(limit * 0.3));
+    const hardLimit = Math.max(1, Math.floor(limit * 0.3));
+    const mediumLimit = limit - easyLimit - hardLimit;
 
     for (const q of selected) {
       const diff = String(q.difficulty || 'EASY').toUpperCase();
@@ -121,8 +123,8 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
     let finalSelection = [...easySelected, ...mediumSelected, ...hardSelected];
 
     // Fill any remaining spots from leftovers (which are already sorted by mastery priority)
-    if (finalSelection.length < 50) {
-      const needed = 50 - finalSelection.length;
+    if (finalSelection.length < limit) {
+      const needed = limit - finalSelection.length;
       finalSelection.push(...leftovers.slice(0, needed));
     }
 

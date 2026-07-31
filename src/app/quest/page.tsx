@@ -125,6 +125,7 @@ type UserAnswerRecord = {
   questionId?: string;
   selectedLetter: string;
   isCorrect: boolean;
+  difficulty?: string;
 };
 
 export default function LearningQuest() {
@@ -137,6 +138,7 @@ export default function LearningQuest() {
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [quizMode, setQuizMode] = useState<'learning' | 'test' | 'boss-battle'>('learning');
   const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
+  const [setupStep, setSetupStep] = useState<'mode' | 'limit'>('mode');
   const [score, setScore] = useState(0);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
   
@@ -178,6 +180,26 @@ export default function LearningQuest() {
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isAnimating, setIsAnimating] = useState<"player" | "enemy" | null>(null);
+  
+  // Advanced Boss Mechanics States
+  const [turnCount, setTurnCount] = useState(0);
+  const [bossShieldActive, setBossShieldActive] = useState(false);
+  const [playerPoisoned, setPlayerPoisoned] = useState(false);
+  const [battleOutcome, setBattleOutcome] = useState<'victory' | 'defeat' | null>(null);
+  const [showBattleLog, setShowBattleLog] = useState(false);
+
+  // Monitor Boss Battle Health for Early Win/Loss
+  useEffect(() => {
+    if (isStarted && !isFinished && quizMode === 'boss-battle') {
+      if (enemyHealth <= 0) {
+        const currentScore = userAnswers.filter(a => a.isCorrect).length;
+        handleFinish(currentScore, 'victory');
+      } else if (playerHealth <= 0) {
+        const currentScore = userAnswers.filter(a => a.isCorrect).length;
+        handleFinish(currentScore, 'defeat');
+      }
+    }
+  }, [enemyHealth, playerHealth, isStarted, isFinished, quizMode, userAnswers]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -193,7 +215,7 @@ export default function LearningQuest() {
     }
   }, [selectedSubject]);
 
-  const startQuest = async () => {
+  const startQuest = async (limit: number = 50) => {
     setIsLoading(true);
     setUserAnswers([]);
     setConfidence(null);
@@ -201,7 +223,7 @@ export default function LearningQuest() {
     setConfidenceSubmitted(false);
     setQuestStartTime(Date.now());
     try {
-      const selected = await getQuestQuestions(selectedSubject);
+      const selected = await getQuestQuestions(selectedSubject, quizMode, limit);
 
       if (!selected || selected.length === 0) {
         toast({
@@ -214,6 +236,11 @@ export default function LearningQuest() {
       setQuestions(selected);
       setPlayerHealth(100);
       setEnemyHealth(100);
+      setTurnCount(0);
+      setBossShieldActive(false);
+      setPlayerPoisoned(false);
+      setBattleOutcome(null);
+      setShowBattleLog(false);
       setIsStarted(true);
       setIsFinished(false);
     } catch (error) {
@@ -227,29 +254,90 @@ export default function LearningQuest() {
     }
   };
 
-  const handleAnswer = async (isCorrect: boolean, index: number, selectedLetter: string, moveType?: 'heavy' | 'normal' | 'defend', activeQuestion?: Question) => {
-    const baseDamage = 100 / (questions.length || 5);
-    setUserAnswers(prev => [...prev, { questionIndex: index, questionId: activeQuestion?.id, selectedLetter, isCorrect }]);
+  const handleAnswer = (isCorrect: boolean, index: number, letter: string, action?: 'heavy' | 'normal' | 'defend', questionData?: Question) => {
+    setUserAnswers(prev => [...prev, { 
+      questionIndex: index, 
+      selectedLetter: letter, 
+      isCorrect, 
+      questionId: questionData?.id,
+      difficulty: questionData?.difficulty 
+    }]);
 
+    const baseDamage = 100 / (questions.length || 5);
     let enemyDmg = 0;
     let playerDmg = 0;
     let playerHeal = 0;
+    let enemyHeal = 0;
 
-    if (quizMode === 'boss-battle' && moveType) {
-      if (moveType === 'heavy') {
-        if (isCorrect) enemyDmg = baseDamage * 2;
-        else playerDmg = baseDamage * 2;
-      } else if (moveType === 'defend') {
-        if (isCorrect) playerHeal = baseDamage * 1.5;
-        else playerDmg = baseDamage * 0.5;
+    let newPoisonedState = playerPoisoned;
+    let newShieldState = bossShieldActive;
+
+    // Apply poison tick at the very start of the turn
+    if (quizMode === 'boss-battle' && playerPoisoned) {
+      playerDmg += baseDamage * 0.5; // 50% of a normal hit in poison damage
+    }
+
+    // Evaluate Phase 3 Enrage Healing (if boss < 20% HP)
+    if (quizMode === 'boss-battle' && enemyHealth > 0 && enemyHealth <= 20) {
+      enemyHeal += baseDamage * 0.5; // Heals a bit every turn
+    }
+
+    if (quizMode === 'boss-battle' && action) {
+      if (action === 'heavy') {
+        if (isCorrect) {
+          enemyDmg = baseDamage * 2;
+          newShieldState = false; // Heavy shatters the shield!
+        } else {
+          playerDmg += baseDamage * 2;
+        }
+      } else if (action === 'defend') {
+        if (isCorrect) {
+          playerHeal += baseDamage * 1.5;
+          newPoisonedState = false; // Cures poison!
+        } else {
+          playerDmg += baseDamage * 0.5;
+        }
       } else {
         // normal
-        if (isCorrect) enemyDmg = baseDamage;
-        else playerDmg = baseDamage;
+        if (isCorrect) {
+          if (!bossShieldActive) {
+            enemyDmg = baseDamage;
+          } else {
+            // Shield absorbed the hit
+            enemyDmg = 0;
+            toast({ title: "Shield Absorbed Attack!", description: "Normal attacks deal 0 damage while the shield is active.", variant: "destructive" });
+          }
+        } else {
+          playerDmg += baseDamage;
+        }
       }
+
+      // Aggressive Phase 2: (Boss <= 60% HP and > 20% HP) -> Double damage on player mistake
+      if (!isCorrect && enemyHealth <= 60 && enemyHealth > 20) {
+        playerDmg *= 2; 
+      }
+
+      // Poison Infliction Mechanics
+      if (!isCorrect && Math.random() < 0.25) {
+        newPoisonedState = true;
+        toast({ title: "POISONED!", description: "The boss inflicted a toxic wound! Defend to cure it.", variant: "destructive" });
+      }
+
+      // Boss casts shield every 4 turns
+      if ((turnCount + 1) % 4 === 0 && enemyHealth > 0) {
+        newShieldState = true;
+        toast({ title: "Boss Casts Shield!", description: "The boss puts up a magical shield. Only Heavy attacks can shatter it!", variant: "destructive" });
+      }
+
     } else {
       if (isCorrect) enemyDmg = baseDamage;
       else playerDmg = baseDamage;
+    }
+
+    // Apply health changes
+    if (enemyHeal > 0) {
+      setIsAnimating("enemy");
+      setEnemyHealth(prev => Math.min(100, prev + enemyHeal));
     }
 
     if (enemyDmg > 0) {
@@ -266,6 +354,10 @@ export default function LearningQuest() {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.min(100, prev + playerHeal));
     }
+
+    setPlayerPoisoned(newPoisonedState);
+    setBossShieldActive(newShieldState);
+    setTurnCount(prev => prev + 1);
 
     setTimeout(() => setIsAnimating(null), 500);
   };
@@ -296,8 +388,20 @@ export default function LearningQuest() {
     }
   };
 
-  const handleFinish = (finalScore: number) => {
+  const handleFinish = (finalScore: number, outcome?: 'victory' | 'defeat') => {
     setScore(finalScore);
+    
+    if (outcome) {
+      setBattleOutcome(outcome);
+    } else if (quizMode === 'boss-battle') {
+      if (enemyHealth > 0) {
+        setBattleOutcome('defeat');
+        setPlayerHealth(0); // Visually wipe out player due to stamina exhaustion
+      } else {
+        setBattleOutcome('victory');
+      }
+    }
+
     if (questStartTime) {
       const completionTime = Math.floor((Date.now() - questStartTime) / 1000);
       setQuestCompletionTime(completionTime);
@@ -333,7 +437,8 @@ export default function LearningQuest() {
         subject: selectedSubject,
         userAnswers: userAnswers.map(ua => ({
           questionId: ua.questionId || '',
-          isCorrect: ua.isCorrect
+          isCorrect: ua.isCorrect,
+          difficulty: ua.difficulty
         })).filter(ua => ua.questionId !== '')
       });
 
@@ -377,40 +482,97 @@ export default function LearningQuest() {
   const EnemyIcon = subjectMeta.icon;
 
   if (isFinished) {
-    const isVictor = enemyHealth <= 0 || (score > questions.length / 2);
+    const isVictor = quizMode === 'boss-battle' ? battleOutcome === 'victory' : (score > questions.length / 2);
+    
     return (
       <div className="max-w-4xl mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-12 animate-in fade-in zoom-in duration-500">
-        <header className="text-center space-y-4 md:space-y-6">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 md:scale-150 animate-pulse" />
-            <div className="relative w-24 h-24 md:w-32 md:h-32 bg-background rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
-              {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
+        
+        {/* For standard learning/test modes, show the original header */}
+        {quizMode !== 'boss-battle' && (
+          <header className="text-center space-y-4 md:space-y-6">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 md:scale-150 animate-pulse" />
+              <div className="relative w-24 h-24 md:w-32 md:h-32 bg-background rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
+                {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-3xl md:text-5xl font-black font-headline text-primary tracking-tighter">
+                {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
+              </h2>
+              <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] md:text-xs">
+                Expedition for {selectedSubject}
+              </p>
+            </div>
+
+            <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
+              <div className="text-center">
+                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
+                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+              </div>
+              <div className="h-10 md:h-12 w-px bg-border" />
+              <div className="text-center">
+                <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Dedicated Boss Battle Game Over Screen */}
+        {quizMode === 'boss-battle' && !showBattleLog && (
+          <div className="flex flex-col items-center justify-center space-y-10 py-10 animate-in fade-in zoom-in duration-500">
+            {/* The Outcome Banner */}
+            <div className={cn(
+              "w-full max-w-2xl py-12 text-center rounded-[2rem] border-4 shadow-2xl",
+              battleOutcome === 'victory' ? "bg-green-100 border-green-500 shadow-green-200" : "bg-red-100 border-red-600 shadow-red-200"
+            )}>
+              <h1 className={cn("text-5xl md:text-6xl font-black font-headline uppercase tracking-tight", battleOutcome === 'victory' ? "text-green-700" : "text-red-700")}>
+                {battleOutcome === 'victory' ? 'VICTORY!' : 'DEFEAT!'}
+              </h1>
+              <p className={cn("text-base md:text-lg font-bold uppercase tracking-widest mt-4", battleOutcome === 'victory' ? "text-green-600" : "text-red-600")}>
+                {battleOutcome === 'victory' ? 'The Boss has been vanquished!' : (playerHealth <= 0 && enemyHealth > 0) ? 'Your HP reached 0! The boss has defeated you!' : 'You have ran out of chances to defeat the Boss and failed'}
+              </p>
+            </div>
+
+            {/* Boss Battle Stats */}
+            <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
+              <div className="text-center">
+                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
+                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+              </div>
+              <div className="h-10 md:h-12 w-px bg-border" />
+              <div className="text-center">
+                <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl">
+              <Button onClick={() => setShowBattleLog(true)} className="flex-1 h-16 rounded-2xl text-lg font-bold" variant="outline">
+                Review Battle Log
+              </Button>
+              <Button 
+                onClick={() => {
+                  setIsFinished(false);
+                  setIsStarted(false);
+                  setShowBattleLog(false);
+                }} 
+                className="flex-1 h-16 rounded-2xl text-lg font-bold" 
+                variant="default"
+              >
+                Return to Dashboard
+              </Button>
             </div>
           </div>
+        )}
 
-          <div className="space-y-1">
-            <h2 className="text-3xl md:text-5xl font-black font-headline text-primary tracking-tighter">
-              {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
-            </h2>
-            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] md:text-xs">
-              Expedition for {selectedSubject}
-            </p>
-          </div>
-
-          <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
-            <div className="text-center">
-              <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
-              <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
-            </div>
-            <div className="h-10 md:h-12 w-px bg-border" />
-            <div className="text-center">
-              <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
-              <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
-            </div>
-          </div>
-        </header>
-
-        {score === 0 && (
+        {/* Motivational Cards (Only show if not in Boss-Battle, or if reviewing the log) */}
+        {(quizMode !== 'boss-battle' || showBattleLog) && (
+          <>
+            {score === 0 && (
           <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
             <CardContent className="p-6 md:p-8 text-center space-y-4">
               <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
@@ -488,6 +650,9 @@ export default function LearningQuest() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+          </>
         )}
 
         {/* Confidence Dialog */}
@@ -574,8 +739,9 @@ export default function LearningQuest() {
           </DialogContent>
         </Dialog>
 
-        {/* AI Tutor Summary */}
-        <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
+        {/* AI Tutor Summary (Only show if not in Boss-Battle, or if reviewing the log) */}
+        {(quizMode !== 'boss-battle' || showBattleLog) && (
+          <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
           <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -654,6 +820,7 @@ export default function LearningQuest() {
             </Accordion>
           </CardContent>
         </Card>
+        )}
 
         <div className="flex flex-col sm:flex-row justify-center gap-4 pb-12">
           <Button
@@ -709,7 +876,15 @@ export default function LearningQuest() {
               <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
                 <div className="flex justify-between items-center mb-1 gap-2">
                   <span className="text-[8px] md:text-[10px] font-black text-white uppercase truncate">{subjectMeta.enemy}</span>
-                  <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">BOSS</span>
+                  <div className="flex items-center gap-1">
+                    {bossShieldActive && <span className="text-[7px] md:text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Immune to Normal Attacks">SHIELDED</span>}
+                    {quizMode === 'boss-battle' && enemyHealth <= 20 && enemyHealth > 0 ? (
+                      <span className="text-[7px] md:text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Healing every turn!">ENRAGED</span>
+                    ) : quizMode === 'boss-battle' && enemyHealth <= 60 && enemyHealth > 0 ? (
+                      <span className="text-[7px] md:text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-black shrink-0" title="Double damage on player mistakes!">AGGRESSIVE</span>
+                    ) : null}
+                    <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">BOSS</span>
+                  </div>
                 </div>
                 <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
                   <div className="h-full bg-primary transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
@@ -731,7 +906,10 @@ export default function LearningQuest() {
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
                   <div className="flex justify-between items-center mb-1 gap-2">
                     <span className="text-[8px] md:text-[10px] font-black text-white uppercase">Aspirant Rivera</span>
-                    <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
+                    <div className="flex items-center gap-1">
+                      {playerPoisoned && <span className="text-[7px] md:text-[8px] bg-green-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Taking damage every turn! Defend to cure.">POISONED</span>}
+                      <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
+                    </div>
                   </div>
                   <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
                     <div className="h-full bg-background transition-all duration-500" style={{ width: `${playerHealth}%` }} />
@@ -749,6 +927,8 @@ export default function LearningQuest() {
               onRequestExplanation={handleRequestExplanation}
               isLoading={isLoading}
               mode={quizMode}
+              bossShieldActive={bossShieldActive}
+              playerPoisoned={playerPoisoned}
             />
           </div>
         </main>
@@ -867,7 +1047,10 @@ export default function LearningQuest() {
       <div className="px-6 md:px-8 mt-6 md:mt-10 relative z-20">
         <div className="flex justify-center w-full mt-4">
           <button
-            onClick={() => setModeSelectDialogOpen(true)}
+            onClick={() => {
+              setSetupStep('mode');
+              setModeSelectDialogOpen(true);
+            }}
             disabled={isLoading}
             className="relative w-full max-w-md md:max-w-2xl h-24 md:h-36 group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
           >
@@ -918,53 +1101,85 @@ export default function LearningQuest() {
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pt-[14%] px-[4.5%] pb-[5%]">
               <div className="flex justify-center items-center gap-2 md:gap-3 w-full h-full">
 
-                {/* Learning Mode Button */}
-                <button
-                  onClick={() => { setQuizMode('learning'); startQuest(); }}
-                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
-                >
-                  <Image src="/ui/btn-learning.png" alt="Learning Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
-                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
-                    <span
-                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
-                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                {setupStep === 'mode' ? (
+                  <>
+                    {/* Learning Mode Button */}
+                    <button
+                      onClick={() => { setQuizMode('learning'); setSetupStep('limit'); }}
+                      className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
-                      LEARNING<br />MODE
-                    </span>
-                  </div>
-                </button>
+                      <Image src="/ui/btn-learning.png" alt="Learning Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                      <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                        <span
+                          className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                          style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                        >
+                          LEARNING<br />MODE
+                        </span>
+                      </div>
+                    </button>
 
-                {/* Test Mode Button */}
-                <button
-                  onClick={() => { setQuizMode('test'); startQuest(); }}
-                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
-                >
-                  <Image src="/ui/btn-test.png" alt="Test Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
-                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
-                    <span
-                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
-                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                    {/* Test Mode Button */}
+                    <button
+                      onClick={() => { setQuizMode('test'); setSetupStep('limit'); }}
+                      className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
-                      TEST<br />MODE
-                    </span>
-                  </div>
-                </button>
+                      <Image src="/ui/btn-test.png" alt="Test Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                      <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                        <span
+                          className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                          style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                        >
+                          TEST<br />MODE
+                        </span>
+                      </div>
+                    </button>
 
-                {/* Boss Battle Button */}
-                <button
-                  onClick={() => { setQuizMode('boss-battle'); startQuest(); }}
-                  className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
-                >
-                  <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
-                  <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
-                    <span
-                      className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
-                      style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                    {/* Boss Battle Button */}
+                    <button
+                      onClick={() => { setQuizMode('boss-battle'); startQuest(50); }}
+                      className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
-                      BOSS<br />BATTLE
-                    </span>
+                      <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
+                      <div className="absolute inset-x-0 bottom-[22%] flex items-center justify-center">
+                        <span
+                          className="font-bytebounce text-white text-2xl md:text-[2.2rem] leading-[0.75] text-center"
+                          style={{ textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 2px 0 0 #000, 0 -2px 0 #000, -2px 0 0 #000' }}
+                        >
+                          BOSS<br />BATTLE
+                        </span>
+                      </div>
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
+                    <h3 className="font-bytebounce text-white text-3xl md:text-5xl" style={{ textShadow: '2px 2px 0 #000' }}>Select Question Limit</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full px-8">
+                      {quizMode === 'learning' ? (
+                        [10, 20, 30, 40, 50].map((num) => (
+                          <Button key={num} onClick={() => startQuest(num)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-1 transition-transform">
+                            {num} Questions
+                          </Button>
+                        ))
+                      ) : (
+                        <>
+                          <Button onClick={() => startQuest(20)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
+                            Quick (20)
+                          </Button>
+                          <Button onClick={() => startQuest(50)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
+                            Standard (50)
+                          </Button>
+                          <Button onClick={() => startQuest(100)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
+                            Full (100)
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <Button variant="ghost" onClick={() => setSetupStep('mode')} className="mt-4 text-white hover:text-primary hover:bg-transparent">
+                      &larr; Back to Modes
+                    </Button>
                   </div>
-                </button>
+                )}
 
               </div>
             </div>

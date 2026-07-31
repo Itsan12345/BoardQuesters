@@ -22,7 +22,7 @@ export interface CompleteQuestParams {
   completionTime: number; // in seconds
   questMode: 'learning' | 'test' | 'boss-battle';
   subject: string;
-  userAnswers?: { questionId: string; isCorrect: boolean }[];
+  userAnswers?: { questionId: string; isCorrect: boolean; difficulty?: string }[];
 }
 
 export interface CompleteQuestResponse {
@@ -99,8 +99,23 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
       streak: newStreak,
     });
 
-    // Calculate total XP earned
-    const totalXpEarned = calculateTotalXp(params.score, earnedBadges, params.confidenceLevel);
+    // Calculate base XP based on difficulty
+    let baseXp = 0;
+    if (params.userAnswers && params.userAnswers.length > 0) {
+      params.userAnswers.forEach((ua) => {
+        if (ua.isCorrect) {
+          const diff = (ua.difficulty || 'MEDIUM').toUpperCase();
+          if (diff === 'HARD') baseXp += 100;
+          else if (diff === 'EASY') baseXp += 25;
+          else baseXp += 50;
+        }
+      });
+    } else {
+      baseXp = params.score * 50;
+    }
+
+    // Calculate total XP earned with streak multiplier
+    const totalXpEarned = calculateTotalXp(baseXp, earnedBadges, params.confidenceLevel, newStreak);
 
     // Calculate new user stats
     const newTotalXp = user.xp + totalXpEarned;

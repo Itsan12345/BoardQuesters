@@ -40,7 +40,7 @@ export async function syncSubjectMastery(userId: string, subject: string) {
 
     let status = "Not Started";
     if (proficiency === 0) status = "Not Started";
-    else if (proficiency < 60) status = "In Training";
+    else if (proficiency < 75) status = "In Training";
     else if (proficiency < 85) status = "Proficient";
     else status = "Mastered";
 
@@ -126,7 +126,7 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
       let masteryStatus: 'Not Started' | 'In Training' | 'Proficient' | 'Mastered' = 'Not Started';
       if (mastery === 0) {
         masteryStatus = 'Not Started';
-      } else if (mastery < 60) {
+      } else if (mastery < 75) {
         masteryStatus = 'In Training';
       } else if (mastery < 85) {
         masteryStatus = 'Proficient';

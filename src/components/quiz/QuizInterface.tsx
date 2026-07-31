@@ -24,12 +24,15 @@ interface QuizInterfaceProps {
   onRequestExplanation?: (index: number) => void;
   isLoading: boolean;
   mode: 'learning' | 'test' | 'boss-battle';
+  bossShieldActive?: boolean;
+  playerPoisoned?: boolean;
 }
 
-export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode }: QuizInterfaceProps) {
+export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned }: QuizInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [score, setScore] = useState(0);
   const [isFetchingExplanation, setIsFetchingExplanation] = useState(false);
 
@@ -99,7 +102,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
   };
 
   const handleSubmit = (letter: string) => {
-    if (isAnswered) return;
+    if (isAnswered || isTransitioning) return;
     
     setSelectedAnswer(letter);
     const isCorrect = currentQuestion.type === 'SHORT_ANSWER' 
@@ -128,43 +131,49 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
         }
       }, 1500);
     } else {
-      // Test Mode: Immediate transition, no feedback
-      const finalIsCorrect = isCorrect; // Use pre-calculated isCorrect to handle Short Answer properly
+      // Test Mode: Brief visual feedback before transition
+      const finalIsCorrect = isCorrect; 
       const newScore = finalIsCorrect ? score + 1 : score;
       setScore(newScore);
-      if (onAnswer) onAnswer(finalIsCorrect, currentQuestionIndex, letter, undefined, currentQuestion);
+      setIsTransitioning(true);
 
-      if (currentIndex < questions.length - 1) {
-        // CAT Logic: Adapt difficulty
-        const currentDiff = String(currentQuestion.difficulty || 'MEDIUM').toUpperCase();
-        let targetDiff = currentDiff;
-        if (finalIsCorrect) {
-          targetDiff = currentDiff === 'EASY' ? 'MEDIUM' : 'HARD';
+      setTimeout(() => {
+        if (onAnswer) onAnswer(finalIsCorrect, currentQuestionIndex, letter, undefined, currentQuestion);
+
+        if (currentIndex < questions.length - 1) {
+          // CAT Logic: Adapt difficulty
+          const currentDiff = String(currentQuestion.difficulty || 'MEDIUM').toUpperCase();
+          let targetDiff = currentDiff;
+          if (finalIsCorrect) {
+            targetDiff = currentDiff === 'EASY' ? 'MEDIUM' : 'HARD';
+          } else {
+            targetDiff = currentDiff === 'HARD' ? 'MEDIUM' : 'EASY';
+          }
+
+          const nextTurnMap = [...turnMap];
+          let foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex && String(questions[qIdx]?.difficulty).toUpperCase() === targetDiff);
+          
+          if (foundIdx === -1) {
+            // Fallback if we run out of target difficulty
+            foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex);
+          }
+
+          if (foundIdx !== -1 && foundIdx !== currentIndex + 1) {
+            const temp = nextTurnMap[currentIndex + 1];
+            nextTurnMap[currentIndex + 1] = nextTurnMap[foundIdx];
+            nextTurnMap[foundIdx] = temp;
+            setTurnMap(nextTurnMap);
+          }
+
+          setCurrentIndex(currentIndex + 1);
+          setSelectedAnswer(null);
+          setIsAnswered(false);
+          setIsTransitioning(false);
         } else {
-          targetDiff = currentDiff === 'HARD' ? 'MEDIUM' : 'EASY';
+          onFinish(newScore);
+          setIsTransitioning(false);
         }
-
-        const nextTurnMap = [...turnMap];
-        let foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex && String(questions[qIdx]?.difficulty).toUpperCase() === targetDiff);
-        
-        if (foundIdx === -1) {
-          // Fallback if we run out of target difficulty
-          foundIdx = nextTurnMap.findIndex((qIdx, mapIdx) => mapIdx > currentIndex);
-        }
-
-        if (foundIdx !== -1 && foundIdx !== currentIndex + 1) {
-          const temp = nextTurnMap[currentIndex + 1];
-          nextTurnMap[currentIndex + 1] = nextTurnMap[foundIdx];
-          nextTurnMap[foundIdx] = temp;
-          setTurnMap(nextTurnMap);
-        }
-
-        setCurrentIndex(currentIndex + 1);
-        setSelectedAnswer(null);
-        setIsAnswered(false);
-      } else {
-        onFinish(newScore);
-      }
+      }, 500);
     }
   };
 
@@ -218,13 +227,18 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
             {/* Heavy Attack Card */}
             <button
               onClick={() => handleSelectMove('heavy')}
-              className="bg-background border-2 border-red-200 hover:border-red-500 hover:shadow-xl hover:shadow-red-100 transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group"
+              className={cn("border-2 hover:shadow-xl transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+                bossShieldActive ? "bg-blue-50 border-blue-400 hover:border-blue-600 shadow-blue-100" : "bg-background border-red-200 hover:border-red-500 hover:shadow-red-100"
+              )}
             >
-              <div className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Flame className="w-12 h-12 text-red-600" strokeWidth={1.5} />
+              <div className={cn("w-24 h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform", bossShieldActive ? "bg-blue-100" : "bg-red-50")}>
+                <Flame className={cn("w-12 h-12", bossShieldActive ? "text-blue-600" : "text-red-600")} strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-black text-red-700 uppercase tracking-tight text-lg">Heavy Attack</h3>
+                <h3 className={cn("font-black uppercase tracking-tight text-lg", bossShieldActive ? "text-blue-700" : "text-red-700")}>
+                  Heavy Attack 
+                  {bossShieldActive && <span className="block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mt-2 animate-pulse">BREAKS SHIELD</span>}
+                </h3>
                 <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Attempt a hard difficulty question. If correct, it deals massive damage. If wrong, the player takes a heavy counter-attack.</p>
               </div>
             </button>
@@ -232,13 +246,18 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
             {/* Normal Attack Card */}
             <button
               onClick={() => handleSelectMove('normal')}
-              className="bg-background border-2 border-primary/20 hover:border-primary hover:shadow-xl hover:shadow-primary/10 transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group"
+              className={cn("border-2 transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+                bossShieldActive ? "bg-slate-50 border-slate-200 opacity-60" : "bg-background border-primary/20 hover:border-primary hover:shadow-xl hover:shadow-primary/10"
+              )}
             >
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Sword className="w-12 h-12 text-primary" strokeWidth={1.5} />
+              <div className={cn("w-24 h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform", bossShieldActive ? "bg-slate-200" : "bg-primary/10")}>
+                <Sword className={cn("w-12 h-12", bossShieldActive ? "text-slate-500" : "text-primary")} strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-black text-primary uppercase tracking-tight text-lg">Normal Attack</h3>
+                <h3 className={cn("font-black uppercase tracking-tight text-lg", bossShieldActive ? "text-slate-500" : "text-primary")}>
+                  Normal Attack 
+                  {bossShieldActive && <span className="block text-xs bg-slate-500 text-white px-2 py-0.5 rounded mt-2">INEFFECTIVE</span>}
+                </h3>
                 <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Answer a normal-difficulty question. Deals standard damage.</p>
               </div>
             </button>
@@ -246,13 +265,18 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
             {/* Defend / Heal Card */}
             <button
               onClick={() => handleSelectMove('defend')}
-              className="bg-background border-2 border-green-200 hover:border-green-500 hover:shadow-xl hover:shadow-green-100 transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group"
+              className={cn("border-2 hover:shadow-xl transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+                playerPoisoned ? "bg-green-100 border-green-500 shadow-green-200 animate-pulse" : "bg-background border-green-200 hover:border-green-500 hover:shadow-green-100"
+              )}
             >
               <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <ShieldPlus className="w-12 h-12 text-green-600" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-black text-green-700 uppercase tracking-tight text-lg">Defend / Heal</h3>
+                <h3 className="font-black text-green-700 uppercase tracking-tight text-lg">
+                  Defend / Heal 
+                  {playerPoisoned && <span className="block text-xs bg-green-500 text-white px-2 py-0.5 rounded mt-2">CURES POISON</span>}
+                </h3>
                 <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Answer an easier question dealing no damage to the boss, but restoring the player's HP. Great for when they are close to dying.</p>
               </div>
             </button>
@@ -320,24 +344,25 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                 return (
                   <button
                     key={letter}
-                    disabled={isAnswered && (mode === 'learning' || mode === 'boss-battle')}
+                    disabled={(isAnswered && (mode === 'learning' || mode === 'boss-battle')) || isTransitioning}
                     onClick={() => handleSubmit(letter)}
                     className={cn(
                       "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm",
-                      !isAnswered && "bg-background border-transparent hover:border-primary/20",
-                      isSelected && mode === 'test' && "border-primary bg-primary/5",
+                      !isAnswered && !isTransitioning && "bg-background border-transparent hover:border-primary/20",
+                      isSelected && mode === 'test' && isTransitioning && "border-primary bg-primary/10 shadow-md shadow-primary/20 scale-[1.02]",
                       isCorrect && "bg-green-50 border-green-500 shadow-green-100",
                       isWrong && "bg-red-50 border-red-500 shadow-red-100",
                       (mode === 'learning' || mode === 'boss-battle') && isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
                     )}
                   >
                     <div className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm",
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm transition-all",
                       isCorrect ? "bg-green-500 text-white" : 
                       isWrong ? "bg-red-500 text-white" : 
+                      isSelected && mode === 'test' && isTransitioning ? "bg-primary text-white animate-pulse" :
                       isSelected ? "bg-primary text-white" : "bg-muted text-primary"
                     )}>
-                      {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : letter}
+                      {isCorrect || (isSelected && mode === 'test' && isTransitioning) ? <CheckCircle2 className="w-4 h-4" /> : letter}
                     </div>
                     <span className={cn(
                       "text-sm font-bold flex-1",
