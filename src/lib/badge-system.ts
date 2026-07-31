@@ -161,6 +161,22 @@ export function getLevelFromXp(xp: number): number {
   return Math.floor(Math.sqrt(xp / 100)) + 1;
 }
 
+export function getXpRequiredForLevel(level: number): number {
+  return Math.pow(level - 1, 2) * 100;
+}
+
+export function getLevelProgress(xp: number): { currentLevelXp: number, xpForNextLevel: number, percentage: number } {
+  const currentLevel = getLevelFromXp(xp);
+  const xpForCurrentLevel = getXpRequiredForLevel(currentLevel);
+  const xpForNextLevelTotal = getXpRequiredForLevel(currentLevel + 1);
+  
+  const currentLevelXp = xp - xpForCurrentLevel;
+  const xpForNextLevel = xpForNextLevelTotal - xpForCurrentLevel;
+  const percentage = Math.min(100, Math.max(0, (currentLevelXp / xpForNextLevel) * 100));
+  
+  return { currentLevelXp, xpForNextLevel, percentage };
+}
+
 export function getBadgeIcon(badgeId: BadgeId): typeof Trophy {
   const badge = BADGES[badgeId as BadgeId];
   if (!badge) return Trophy;

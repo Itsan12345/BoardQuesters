@@ -8,6 +8,9 @@ import { BottomNav } from '@/components/navigation/BottomNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { getUserProfile } from '@/app/actions/user';
+import { getLevelProgress } from '@/lib/badge-system';
 
 export function LayoutContent({ 
   children, 
@@ -17,6 +20,21 @@ export function LayoutContent({
   isLoggedIn: boolean;
 }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+  const [progress, setProgress] = useState<{ currentLevelXp: number, xpForNextLevel: number, percentage: number } | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      if (isLoggedIn) {
+        const profile = await getUserProfile();
+        if (profile) {
+          setUser(profile);
+          setProgress(getLevelProgress(profile.xp));
+        }
+      }
+    }
+    loadUser();
+  }, [isLoggedIn, pathname]); // Re-fetch on navigation to keep it somewhat fresh
   
   // Hide navigation on auth pages
   const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -43,15 +61,28 @@ export function LayoutContent({
           </Link>
         </div>
 
-        <div className="flex items-center gap-3 lg:gap-4">
-          <div className="flex flex-col items-end text-right hidden xs:flex">
-            <span className="text-xs lg:text-sm font-bold text-foreground leading-tight">Alex Rivera</span>
-            <span className="text-[9px] lg:text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Lvl 24 Aspirant</span>
+        <div className="flex items-center gap-3 lg:gap-5">
+          <div className="flex flex-col items-end text-right hidden sm:flex min-w-[140px]">
+            {user ? (
+              <>
+                <span className="text-xs lg:text-sm font-black text-foreground leading-tight tracking-tight uppercase">{user.name}</span>
+                <span className="text-[10px] text-primary font-bold uppercase tracking-widest whitespace-nowrap mt-0.5">
+                  Lvl {user.level} Aspirant
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="h-4 w-24 bg-muted animate-pulse rounded mb-1" />
+                <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+              </>
+            )}
           </div>
           <Link href="/profile">
-            <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all">
-              <AvatarImage src="https://picsum.photos/seed/alex/100/100" />
-              <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">AR</AvatarFallback>
+            <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border border-border shadow-sm hover:ring-2 ring-primary/20 transition-all cursor-pointer">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'default'}`} />
+              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-black">
+                {user?.name?.substring(0, 2).toUpperCase() || 'AR'}
+              </AvatarFallback>
             </Avatar>
           </Link>
         </div>

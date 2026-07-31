@@ -13,6 +13,7 @@ import {
   Stethoscope,
   ShieldAlert,
   ChevronLeft,
+  ChevronRight,
   Star,
   Target,
   Loader2,
@@ -144,10 +145,11 @@ export default function LearningQuest() {
   const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
   const [leaveConfirmDialogOpen, setLeaveConfirmDialogOpen] = useState(false);
   const [setupStep, setSetupStep] = useState<'mode' | 'details' | 'limit'>('mode');
+  const [mobileModalStep, setMobileModalStep] = useState<'info' | 'action'>('info');
   const [score, setScore] = useState(0);
   const [fetchingExplanations, setFetchingExplanations] = useState<Record<number, boolean>>({});
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
-  
+
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -186,7 +188,7 @@ export default function LearningQuest() {
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
   const [isAnimating, setIsAnimating] = useState<"player" | "enemy" | null>(null);
-  
+
   // Advanced Boss Mechanics States
   const [turnCount, setTurnCount] = useState(0);
   const [bossShieldActive, setBossShieldActive] = useState(false);
@@ -261,12 +263,12 @@ export default function LearningQuest() {
   };
 
   const handleAnswer = (isCorrect: boolean, index: number, letter: string, action?: 'heavy' | 'normal' | 'defend', questionData?: Question) => {
-    setUserAnswers(prev => [...prev, { 
-      questionIndex: index, 
-      selectedLetter: letter, 
-      isCorrect, 
+    setUserAnswers(prev => [...prev, {
+      questionIndex: index,
+      selectedLetter: letter,
+      isCorrect,
       questionId: questionData?.id,
-      difficulty: questionData?.difficulty 
+      difficulty: questionData?.difficulty
     }]);
 
     const baseDamage = 100 / (questions.length || 5);
@@ -320,7 +322,7 @@ export default function LearningQuest() {
 
       // Aggressive Phase 2: (Boss <= 60% HP and > 20% HP) -> Double damage on player mistake
       if (!isCorrect && enemyHealth <= 60 && enemyHealth > 20) {
-        playerDmg *= 2; 
+        playerDmg *= 2;
       }
 
       // Poison Infliction Mechanics
@@ -399,7 +401,7 @@ export default function LearningQuest() {
 
   const handleFinish = (finalScore: number, outcome?: 'victory' | 'defeat') => {
     setScore(finalScore);
-    
+
     if (outcome) {
       setBattleOutcome(outcome);
     } else if (quizMode === 'boss-battle') {
@@ -492,10 +494,10 @@ export default function LearningQuest() {
 
   if (isFinished) {
     const isVictor = quizMode === 'boss-battle' ? battleOutcome === 'victory' : (score > questions.length / 2);
-    
+
     return (
       <div className="max-w-4xl mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-12 animate-in fade-in zoom-in duration-500">
-        
+
         {/* For standard learning/test modes, show the original header */}
         {quizMode !== 'boss-battle' && (
           <header className="text-center space-y-4 md:space-y-6">
@@ -563,13 +565,13 @@ export default function LearningQuest() {
               <Button onClick={() => setShowBattleLog(true)} className="flex-1 h-16 rounded-2xl text-lg font-bold" variant="outline">
                 Review Battle Log
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   setIsFinished(false);
                   setIsStarted(false);
                   setShowBattleLog(false);
-                }} 
-                className="flex-1 h-16 rounded-2xl text-lg font-bold" 
+                }}
+                className="flex-1 h-16 rounded-2xl text-lg font-bold"
                 variant="default"
               >
                 Return to Dashboard
@@ -582,84 +584,84 @@ export default function LearningQuest() {
         {(quizMode !== 'boss-battle' || showBattleLog) && (
           <>
             {score === 0 && (
-          <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
-            <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
-              <p className="text-sm md:text-base text-foreground font-medium">
-                Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
-              </p>
-              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                💡 Tip: Review the topics from this quest and try again. Better luck next time!
-              </p>
-            </CardContent>
-          </Card>
-        )}
+              <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
+                <CardContent className="p-6 md:p-8 text-center space-y-4">
+                  <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
+                  <p className="text-sm md:text-base text-foreground font-medium">
+                    Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
+                  </p>
+                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                    💡 Tip: Review the topics from this quest and try again. Better luck next time!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-        {score > 0 && score < Math.ceil(questions.length / 2) && (
-          <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
-            <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-foreground">Nice Effort, Aspirant! 🌟</p>
-              <p className="text-sm md:text-base text-foreground font-medium">
-                You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
-              </p>
-              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                💡 Tip: Focus on the questions you missed—they're your learning opportunities!
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            {score > 0 && score < Math.ceil(questions.length / 2) && (
+              <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
+                <CardContent className="p-6 md:p-8 text-center space-y-4">
+                  <p className="text-lg md:text-xl font-black text-foreground">Nice Effort, Aspirant! 🌟</p>
+                  <p className="text-sm md:text-base text-foreground font-medium">
+                    You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
+                  </p>
+                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                    💡 Tip: Focus on the questions you missed—they're your learning opportunities!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-        {score >= Math.ceil(questions.length / 2) && score < questions.length && (
-          <Card className="border border-border shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
-            <CardContent className="p-6 md:p-8 text-center space-y-4">
-              <p className="text-lg md:text-xl font-black text-foreground">Great Job, Aspirant! 🚀</p>
-              <p className="text-sm md:text-base text-foreground font-medium">
-                You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
-              </p>
-              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                💡 Tip: You're almost there! One more push to achieve perfect mastery.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            {score >= Math.ceil(questions.length / 2) && score < questions.length && (
+              <Card className="border border-border shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
+                <CardContent className="p-6 md:p-8 text-center space-y-4">
+                  <p className="text-lg md:text-xl font-black text-foreground">Great Job, Aspirant! 🚀</p>
+                  <p className="text-sm md:text-base text-foreground font-medium">
+                    You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
+                  </p>
+                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                    💡 Tip: You're almost there! One more push to achieve perfect mastery.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-        {score === questions.length && score > 0 && (
-          <Card className="border border-border shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
-            <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
-              <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
-              <p className="text-sm md:text-base text-foreground font-bold">
-                PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
-              </p>
-              <div className="flex justify-center gap-2 text-2xl animate-bounce">
-                🏆 ⭐ 🏆
-              </div>
-              <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                You've earned extra respect in the BoardQuest arena!
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Earned Badges Section */}
-        {earnedBadges.length > 0 && (
-          <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
-            <CardContent className="p-6 md:p-8">
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {earnedBadges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
-                  >
-                    <div className="text-2xl">✨</div>
-                    <p className="font-bold text-xs md:text-sm text-foreground">{badge.title}</p>
-                    <p className="text-[9px] text-slate-600">{badge.name}</p>
+            {score === questions.length && score > 0 && (
+              <Card className="border border-border shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
+                <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
+                  <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
+                  <p className="text-sm md:text-base text-foreground font-bold">
+                    PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
+                  </p>
+                  <div className="flex justify-center gap-2 text-2xl animate-bounce">
+                    🏆 ⭐ 🏆
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                    You've earned extra respect in the BoardQuest arena!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Earned Badges Section */}
+            {earnedBadges.length > 0 && (
+              <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
+                <CardContent className="p-6 md:p-8">
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {earnedBadges.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
+                      >
+                        <div className="text-2xl">✨</div>
+                        <p className="font-bold text-xs md:text-sm text-foreground">{badge.title}</p>
+                        <p className="text-[9px] text-slate-600">{badge.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
           </>
         )}
@@ -752,128 +754,128 @@ export default function LearningQuest() {
         {/* AI Tutor Summary (Only show if not in Boss-Battle, or if reviewing the log) */}
         {(quizMode !== 'boss-battle' || showBattleLog) && (
           <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
-          <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <CardTitle className="font-headline text-xl md:text-2xl flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                  Battle Log
-                </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-wider">
-                  Post-Battle Rationale
-                </CardDescription>
+            <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="font-headline text-xl md:text-2xl flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                    Battle Log
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-wider">
+                    Post-Battle Rationale
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="border-primary/20 text-primary bg-background px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
+                  {quizMode} Mode Verified
+                </Badge>
               </div>
-              <Badge variant="outline" className="border-primary/20 text-primary bg-background px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
-                {quizMode} Mode Verified
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Accordion type="single" collapsible className="w-full">
-              {questions.map((q, idx) => {
-                const userAns = userAnswers.find(ua => ua.questionIndex === idx);
-                const isCorrect = userAns?.isCorrect;
+            </CardHeader>
+            <CardContent className="p-0">
+              <Accordion type="single" collapsible className="w-full">
+                {questions.map((q, idx) => {
+                  const userAns = userAnswers.find(ua => ua.questionIndex === idx);
+                  const isCorrect = userAns?.isCorrect;
 
-                return (
-                  <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
-                    <AccordionTrigger className="hover:no-underline py-4 md:py-6 px-2 md:px-4">
-                      <div className="flex items-start text-left gap-4 md:gap-6">
-                        <div className="mt-1 shrink-0">
-                          {isCorrect ? (
-                            <div className="bg-green-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600" /></div>
-                          ) : (
-                            <div className="bg-red-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-600" /></div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-xs md:text-sm leading-snug line-clamp-1">{q.question}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[8px] h-3.5 font-black uppercase tracking-tighter">
-                              {isCorrect ? "Mastered" : "Review"}
-                            </Badge>
-                            <Badge variant="outline" className="text-[8px] h-3.5 font-black uppercase tracking-tighter border-primary/20 text-primary">
-                              {q.type?.replace('_', ' ') || "MCQ"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 md:px-6 pb-6 md:pb-8 pt-2">
-                      <div className="bg-muted/30 rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-4 md:space-y-6 border border-primary/5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
-                          <div className="p-4 bg-background rounded-xl border shadow-sm">
-                            <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
-                            <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
-                              {q.type === 'TRUE_FALSE' && userAns?.selectedLetter 
-                                ? (userAns.selectedLetter === 'A' ? 'True (Option A)' : userAns.selectedLetter === 'B' ? 'False (Option B)' : userAns.selectedLetter)
-                                : userAns?.selectedLetter ? `Option ${userAns.selectedLetter}` : 'None'}
-                            </p>
-                          </div>
-                          <div className="p-4 bg-background rounded-xl border shadow-sm">
-                            <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
-                            <p className="font-bold text-sm text-primary">
-                              {q.type === 'TRUE_FALSE' 
-                                ? (q.correctAnswer === 'A' ? 'True (Option A)' : q.correctAnswer === 'B' ? 'False (Option B)' : q.correctAnswer)
-                                : `Option ${q.correctAnswer}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          <h4 className="font-black font-headline text-primary flex items-center gap-2 uppercase text-[10px] tracking-widest">
-                            <BrainCircuit className="w-3.5 h-3.5" />
-                            AI LOGICAL ANALYSIS
-                          </h4>
-                          <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
-                            {q.explanation ? (
-                              <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
-                                {q.explanation}
-                              </p>
-                            ) : fetchingExplanations[idx] ? (
-                              <div className="flex items-center gap-3 py-2">
-                                <Loader2 className="w-3 h-3 text-primary animate-spin" />
-                                <p className="text-[10px] font-bold text-primary animate-pulse">INTERPRETING DATA...</p>
-                              </div>
+                  return (
+                    <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
+                      <AccordionTrigger className="hover:no-underline py-4 md:py-6 px-2 md:px-4">
+                        <div className="flex items-start text-left gap-4 md:gap-6">
+                          <div className="mt-1 shrink-0">
+                            {isCorrect ? (
+                              <div className="bg-green-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600" /></div>
                             ) : (
-                              <div className="flex flex-col items-start gap-2">
-                                <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
-                                  Want to know why this is the correct answer?
-                                </p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => handleRequestExplanation(idx)}
-                                  className="text-xs text-primary border-primary hover:bg-primary hover:text-white"
-                                >
-                                  <BrainCircuit className="w-3 h-3 mr-2" />
-                                  Ask AI Tutor
-                                </Button>
-                              </div>
+                              <div className="bg-red-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-600" /></div>
                             )}
                           </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-xs md:text-sm leading-snug line-clamp-1">{q.question}</p>
+                            <div className="flex gap-2 mt-1">
+                              <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[8px] h-3.5 font-black uppercase tracking-tighter">
+                                {isCorrect ? "Mastered" : "Review"}
+                              </Badge>
+                              <Badge variant="outline" className="text-[8px] h-3.5 font-black uppercase tracking-tighter border-primary/20 text-primary">
+                                {q.type?.replace('_', ' ') || "MCQ"}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </CardContent>
-        </Card>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 md:px-6 pb-6 md:pb-8 pt-2">
+                        <div className="bg-muted/30 rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-4 md:space-y-6 border border-primary/5">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
+                            <div className="p-4 bg-background rounded-xl border shadow-sm">
+                              <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
+                              <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
+                                {q.type === 'TRUE_FALSE' && userAns?.selectedLetter
+                                  ? (userAns.selectedLetter === 'A' ? 'True (Option A)' : userAns.selectedLetter === 'B' ? 'False (Option B)' : userAns.selectedLetter)
+                                  : userAns?.selectedLetter ? `Option ${userAns.selectedLetter}` : 'None'}
+                              </p>
+                            </div>
+                            <div className="p-4 bg-background rounded-xl border shadow-sm">
+                              <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
+                              <p className="font-bold text-sm text-primary">
+                                {q.type === 'TRUE_FALSE'
+                                  ? (q.correctAnswer === 'A' ? 'True (Option A)' : q.correctAnswer === 'B' ? 'False (Option B)' : q.correctAnswer)
+                                  : `Option ${q.correctAnswer}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <h4 className="font-black font-headline text-primary flex items-center gap-2 uppercase text-[10px] tracking-widest">
+                              <BrainCircuit className="w-3.5 h-3.5" />
+                              AI LOGICAL ANALYSIS
+                            </h4>
+                            <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
+                              {q.explanation ? (
+                                <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                  {q.explanation}
+                                </p>
+                              ) : fetchingExplanations[idx] ? (
+                                <div className="flex items-center gap-3 py-2">
+                                  <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                                  <p className="text-[10px] font-bold text-primary animate-pulse">INTERPRETING DATA...</p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-start gap-2">
+                                  <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                    Want to know why this is the correct answer?
+                                  </p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRequestExplanation(idx)}
+                                    className="text-xs text-primary border-primary hover:bg-primary hover:text-white"
+                                  >
+                                    <BrainCircuit className="w-3 h-3 mr-2" />
+                                    Ask AI Tutor
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </CardContent>
+          </Card>
         )}
 
-        <div className="flex flex-col sm:flex-row justify-center gap-4 pb-12">
+        <div className="flex flex-row justify-center gap-2 sm:gap-4 pb-12 w-full max-w-md mx-auto px-4 sm:px-0">
           <Button
             size="lg"
             onClick={() => {
               setIsStarted(false);
               setIsFinished(false);
             }}
-            className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-black shadow-xl"
+            className="flex-1 h-12 md:h-16 px-2 md:px-10 rounded-xl md:rounded-2xl text-xs sm:text-base md:text-lg font-black shadow-xl whitespace-nowrap"
           >
             Re-Enter Arena
           </Button>
-          <Link href="/">
-            <Button variant="outline" size="lg" className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-2">
+          <Link href="/" className="flex-1 flex">
+            <Button variant="outline" size="lg" className="w-full h-12 md:h-16 px-2 md:px-10 rounded-xl md:rounded-2xl text-xs sm:text-base md:text-lg font-bold border-2 whitespace-nowrap">
               Back to Dashboard
             </Button>
           </Link>
@@ -884,13 +886,16 @@ export default function LearningQuest() {
 
   if (isStarted) {
     return (
-      <div 
-        ref={fullscreenRef} 
-        className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen" : "")}
+      <div
+        ref={fullscreenRef}
+        className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen overflow-y-auto" : "")}
       >
         {/* Exit Confirmation Dialog */}
         <Dialog open={leaveConfirmDialogOpen} onOpenChange={setLeaveConfirmDialogOpen}>
-          <DialogContent className="sm:max-w-md border-2 border-destructive bg-gradient-to-br from-slate-50 to-white">
+          <DialogContent
+            container={isFullscreen ? fullscreenRef.current : undefined}
+            className="sm:max-w-md border-2 border-destructive bg-gradient-to-br from-slate-50 to-white"
+          >
             <DialogHeader className="text-center space-y-4">
               <DialogTitle className="font-headline text-2xl text-destructive flex items-center justify-center gap-2">
                 <ShieldAlert className="w-6 h-6" />
@@ -901,16 +906,16 @@ export default function LearningQuest() {
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
-              <Button 
-                variant="outline" 
-                className="flex-1 font-bold border-2" 
+              <Button
+                variant="outline"
+                className="flex-1 font-bold border-2"
                 onClick={() => setLeaveConfirmDialogOpen(false)}
               >
                 Return to Battle
               </Button>
-              <Button 
-                variant="destructive" 
-                className="flex-1 font-bold shadow-lg shadow-destructive/20" 
+              <Button
+                variant="destructive"
+                className="flex-1 font-bold shadow-lg shadow-destructive/20"
                 onClick={() => {
                   setLeaveConfirmDialogOpen(false);
                   setIsStarted(false);
@@ -973,7 +978,7 @@ export default function LearningQuest() {
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 md:w-20 md:h-20 bg-background rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl hidden sm:flex">
+                <div className="w-12 h-12 md:w-20 md:h-20 bg-background rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl">
                   <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
@@ -1029,10 +1034,10 @@ export default function LearningQuest() {
 
       <header className="px-6 md:px-8 pt-6 md:pt-8 pb-4 space-y-1 relative z-10">
         <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-md transition-all shadow-lg" 
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-md transition-all shadow-lg"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
@@ -1178,7 +1183,7 @@ export default function LearningQuest() {
                   <>
                     {/* Learning Mode Button */}
                     <button
-                      onClick={() => { setQuizMode('learning'); setSetupStep('details'); }}
+                      onClick={() => { setQuizMode('learning'); setSetupStep('details'); setMobileModalStep('info'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-learning.png" alt="Learning Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1194,7 +1199,7 @@ export default function LearningQuest() {
 
                     {/* Test Mode Button */}
                     <button
-                      onClick={() => { setQuizMode('test'); setSetupStep('details'); }}
+                      onClick={() => { setQuizMode('test'); setSetupStep('details'); setMobileModalStep('info'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-test.png" alt="Test Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1210,7 +1215,7 @@ export default function LearningQuest() {
 
                     {/* Boss Battle Button */}
                     <button
-                      onClick={() => { setQuizMode('boss-battle'); setSetupStep('details'); }}
+                      onClick={() => { setQuizMode('boss-battle'); setSetupStep('details'); setMobileModalStep('info'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1225,93 +1230,129 @@ export default function LearningQuest() {
                     </button>
                   </>
                 ) : setupStep === 'details' ? (
-                  <div className="flex flex-col w-full h-full bg-black/60 rounded-xl p-4 md:p-6 overflow-y-auto no-scrollbar border border-white/10 shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95">
-                    {quizMode === 'learning' && (
-                      <div className="flex-1 flex flex-col space-y-4 md:space-y-6">
-                        <div className="text-center space-y-2">
+                  <div className="flex flex-col w-full h-full bg-black/60 rounded-xl p-2 min-[375px]:p-3 md:p-6 overflow-hidden no-scrollbar border border-white/10 shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95 relative">
+                    
+                    {/* INFO SECTION */}
+                    <div className={cn("flex-1 flex flex-col relative", mobileModalStep === 'action' ? "hidden md:flex" : "flex")}>
+                      {quizMode === 'learning' && (
+                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
+                        <div className="text-center space-y-0.5 sm:space-y-1">
                           <h3 className="font-bytebounce text-primary text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Intel Gathering</h3>
-                          <p className="text-white/90 text-xs md:text-sm max-w-lg mx-auto font-bold leading-relaxed">
+                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
                             Hone your skills in a low-pressure environment. The AI Tutor provides immediate rationale after every answer. Master the basics before facing the real challenge.
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto w-full">
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <Zap className="w-6 h-6 text-yellow-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Immediate Feedback</p>
+                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <Zap className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Immediate Feedback</p>
                           </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <BrainCircuit className="w-6 h-6 text-blue-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">AI Tutor Analysis</p>
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <BrainCircuit className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-blue-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">AI Tutor Analysis</p>
                           </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <Target className="w-6 h-6 text-green-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Precision Training</p>
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <Target className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-green-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Precision Training</p>
                           </div>
                         </div>
                       </div>
                     )}
 
                     {quizMode === 'test' && (
-                      <div className="flex-1 flex flex-col space-y-4 md:space-y-6">
-                        <div className="text-center space-y-2">
+                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
+                        <div className="text-center space-y-0.5 sm:space-y-1">
                           <h3 className="font-bytebounce text-destructive text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Combat Simulation</h3>
-                          <p className="text-white/90 text-xs md:text-sm max-w-lg mx-auto font-bold leading-relaxed">
-                            A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters. Do you have what it takes to survive the tower?
+                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                            A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters.
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto w-full">
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <Clock className="w-6 h-6 text-orange-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Continuous Flow</p>
+                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <Clock className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-orange-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Continuous Flow</p>
                           </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <Trophy className="w-6 h-6 text-yellow-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Graded Assessment</p>
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <Trophy className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Graded Assessment</p>
                           </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
-                            <Activity className="w-6 h-6 text-red-400" />
-                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Adaptive Difficulty</p>
+                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                            <Activity className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-red-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Adaptive Difficulty</p>
                           </div>
                         </div>
                       </div>
                     )}
 
                     {quizMode === 'boss-battle' && (
-                      <div className="flex-1 flex flex-col space-y-3 md:space-y-4">
-                        <div className="text-center space-y-2">
+                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-4 overflow-hidden">
+                        <div className="text-center space-y-0.5 sm:space-y-2">
                           <h3 className="font-bytebounce text-purple-400 text-3xl md:text-4xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Ultimate Challenge</h3>
-                          <p className="text-white/90 text-xs max-w-lg mx-auto font-bold leading-relaxed">
-                            Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics.
+                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                            Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics. Do you have what it takes to survive?
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 max-w-2xl mx-auto w-full">
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
-                            <ShieldAlert className="w-5 h-5 text-blue-400" />
-                            <p className="text-[10px] uppercase font-black text-blue-300 tracking-wider">Shield Phase</p>
-                            <p className="text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
+                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-3 max-w-2xl mx-auto w-full">
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                            <ShieldAlert className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-blue-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-blue-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Shield Phase</p>
+                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
                           </div>
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
-                            <Biohazard className="w-5 h-5 text-green-400" />
-                            <p className="text-[10px] uppercase font-black text-green-300 tracking-wider">Poison</p>
-                            <p className="text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                            <Biohazard className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-green-400 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-green-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Poison</p>
+                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
                           </div>
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
-                            <Flame className="w-5 h-5 text-red-500" />
-                            <p className="text-[10px] uppercase font-black text-red-400 tracking-wider">Enrage</p>
-                            <p className="text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                            <Flame className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-red-500 shrink-0" />
+                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-red-400 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Enrage</p>
+                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="mt-auto pt-4 md:pt-6 w-full max-w-2xl mx-auto border-t border-white/10 flex flex-col items-center gap-4">
+                    {/* Mobile Back to Modes */}
+                    {mobileModalStep === 'info' && (
+                      <div className="md:hidden mt-auto pt-2 pb-1 w-full flex justify-center">
+                        <button 
+                          onClick={() => setSetupStep('mode')} 
+                          className="text-white/50 hover:text-white font-bytebounce text-xs min-[375px]:text-sm uppercase tracking-widest transition-colors"
+                        >
+                          &larr; Back to Modes
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Mobile Next Arrow */}
+                    {mobileModalStep === 'info' && (
+                      <button 
+                        onClick={() => setMobileModalStep('action')}
+                        className="md:hidden absolute right-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10 animate-pulse"
+                      >
+                        <ChevronRight className="w-4 h-4 text-white" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ACTION SECTION */}
+                  <div className={cn("mt-auto pt-2 md:pt-6 w-full max-w-2xl mx-auto border-t md:border-white/10 flex-col items-center gap-2 md:gap-4 shrink-0 relative", mobileModalStep === 'info' ? "hidden md:flex" : "flex", mobileModalStep === 'action' ? "border-transparent h-full justify-center" : "border-white/10")}>
+                      {/* Mobile Back Arrow */}
+                      {mobileModalStep === 'action' && (
+                        <button 
+                          onClick={() => setMobileModalStep('info')}
+                          className="md:hidden absolute left-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-white" />
+                        </button>
+                      )}
                       {quizMode !== 'boss-battle' ? (
                         <>
                           <h4 className="font-bytebounce text-white/80 text-xl tracking-widest">Select Question Limit</h4>
-                          <div className="flex flex-wrap justify-center gap-2 md:gap-3 w-full">
+                          <div className="flex flex-wrap justify-center gap-1.5 md:gap-3 w-full">
                             {quizMode === 'learning' ? (
                               [10, 20, 30, 40, 50].map((num) => (
-                                <Button key={num} onClick={() => startQuest(num)} className="h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-0.5 transition-transform">
+                                <Button key={num} onClick={() => startQuest(num)} className="h-8 md:h-12 text-xs md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-0.5 transition-transform flex-1 min-w-[100px]">
                                   {num} Questions
                                 </Button>
                               ))
@@ -1332,15 +1373,15 @@ export default function LearningQuest() {
                         </>
                       ) : (
                         <div className="w-full flex justify-center">
-                          <Button 
-                            onClick={() => startQuest(50)} 
+                          <Button
+                            onClick={() => startQuest(50)}
                             className="w-full max-w-xs h-12 md:h-14 text-xl font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-purple-600 hover:bg-purple-700 hover:-translate-y-0.5 transition-transform animate-pulse"
                           >
                             Enter Arena (50 Qs)
                           </Button>
                         </div>
                       )}
-                      <Button variant="ghost" onClick={() => setSetupStep('mode')} className="text-white/60 hover:text-white hover:bg-transparent h-8 text-xs font-bold uppercase tracking-wider">
+                      <Button variant="ghost" onClick={() => setSetupStep('mode')} className="hidden md:flex text-white/60 hover:text-white hover:bg-transparent h-8 text-xs font-bold uppercase tracking-wider">
                         &larr; Back to Modes
                       </Button>
                     </div>

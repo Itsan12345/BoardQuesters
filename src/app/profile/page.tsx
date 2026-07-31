@@ -11,7 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { logout } from '@/app/actions/auth';
 import { getUserProfile } from '@/app/actions/user';
 import { useToast } from '@/hooks/use-toast';
-import { BADGES, BadgeId } from '@/lib/badge-system';
+import { BADGES, BadgeId, getLevelProgress } from '@/lib/badge-system';
 import { format } from 'date-fns';
 
 interface UserProfile {
@@ -126,37 +126,38 @@ function ProfileContent() {
         {/* Profile Header Card */}
         <Card className="border border-border shadow-xl rounded-3xl bg-background overflow-hidden">
           <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
-              {/* Avatar and Info */}
-              <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24 border-4 border-primary/20">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-[#8B0000] text-white text-2xl font-semibold">
-                    {initialsFromName}
-                  </AvatarFallback>
-                </Avatar>
+            <div className="flex flex-col gap-8 w-full">
+              <div className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
+                {/* Avatar and Info */}
+                <div className="flex items-center gap-6">
+                  <Avatar className="h-24 w-24 border-4 border-primary/20">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-[#8B0000] text-white text-2xl font-semibold">
+                      {initialsFromName}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="space-y-3">
-                  <div>
-                    <h1 className="text-3xl font-semibold text-foreground">{userProfile.name}</h1>
-                    <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
-                      <MapPin className="w-4 h-4" /> {userProfile.location}
-                    </p>
-                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <h1 className="text-3xl font-semibold text-foreground">{userProfile.name}</h1>
+                      <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
+                        <MapPin className="w-4 h-4" /> {userProfile.location}
+                      </p>
+                    </div>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge className="bg-[#8B0000] text-white font-semibold text-xs px-3 py-1">
-                      LVL {userProfile.level} ASPIRANT
-                    </Badge>
-                    <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-semibold text-xs px-3 py-1">
-                      {userProfile.classString}
-                    </Badge>
+                    <div className="flex gap-2 flex-wrap mt-1">
+                      <Badge className="bg-[#8B0000] text-white font-semibold text-xs px-3 py-1">
+                        LVL {userProfile.level} ASPIRANT
+                      </Badge>
+                      <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-semibold text-xs px-3 py-1">
+                        {userProfile.classString}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3">
+                {/* Action Buttons */}
+                <div className="flex gap-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -172,6 +173,28 @@ function ProfileContent() {
                   <LogOut className="w-4 h-4 mr-2" /> Logout
                 </Button>
               </div>
+            </div>
+
+            {/* XP Progress Bar */}
+            {(() => {
+                const progress = getLevelProgress(userProfile.xp);
+                return (
+                  <div className="flex flex-col gap-1 w-full mt-2">
+                    <div className="flex justify-between items-end px-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">XP Progress</span>
+                      <span className="text-[10px] font-bold text-[#8B0000]">
+                        {progress.currentLevelXp} <span className="text-muted-foreground">/ {progress.xpForNextLevel}</span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 shadow-inner">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#8B0000]/80 to-[#8B0000] rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${progress.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

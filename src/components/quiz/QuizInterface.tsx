@@ -217,67 +217,67 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
       </div>
 
       {mode === 'boss-battle' && !activeMove ? (
-        <div className="px-6 flex flex-col items-center justify-center py-12 space-y-8 animate-in fade-in duration-500">
-          <div className="text-center space-y-2">
+        <div className="flex flex-col items-center justify-center py-12 space-y-8 animate-in fade-in duration-500 w-full">
+          <div className="text-center space-y-2 px-6">
             <h2 className="text-2xl md:text-3xl font-black font-headline text-foreground">Choose Your Move</h2>
             <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Select an action for the next turn</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+          <div className="grid grid-cols-3 gap-2 md:gap-6 w-full max-w-5xl px-2 md:px-6">
             {/* Heavy Attack Card */}
             <button
               onClick={() => handleSelectMove('heavy')}
-              className={cn("border-2 hover:shadow-xl transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+              className={cn("border-2 hover:shadow-xl transition-all p-2 sm:p-4 md:p-8 rounded-xl md:rounded-3xl flex flex-col items-center text-center space-y-2 md:space-y-6 group", 
                 bossShieldActive ? "bg-blue-50 border-blue-400 hover:border-blue-600 shadow-blue-100" : "bg-background border-red-200 hover:border-red-500 hover:shadow-red-100"
               )}
             >
-              <div className={cn("w-24 h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform", bossShieldActive ? "bg-blue-100" : "bg-red-50")}>
-                <Flame className={cn("w-12 h-12", bossShieldActive ? "text-blue-600" : "text-red-600")} strokeWidth={1.5} />
+              <div className={cn("w-10 h-10 md:w-24 md:h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0", bossShieldActive ? "bg-blue-100" : "bg-red-50")}>
+                <Flame className={cn("w-5 h-5 md:w-12 md:h-12", bossShieldActive ? "text-blue-600" : "text-red-600")} strokeWidth={1.5} />
               </div>
-              <div>
-                <h3 className={cn("font-black uppercase tracking-tight text-lg", bossShieldActive ? "text-blue-700" : "text-red-700")}>
+              <div className="flex flex-col flex-1 justify-start">
+                <h3 className={cn("font-black uppercase tracking-tight text-[8px] sm:text-[10px] md:text-lg leading-tight", bossShieldActive ? "text-blue-700" : "text-red-700")}>
                   Heavy Attack 
-                  {bossShieldActive && <span className="block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mt-2 animate-pulse">BREAKS SHIELD</span>}
+                  {bossShieldActive && <span className="block text-[6px] md:text-xs bg-blue-500 text-white px-1 md:px-2 py-0.5 rounded mt-1 md:mt-2 animate-pulse">BREAKS SHIELD</span>}
                 </h3>
-                <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Attempt a hard difficulty question. If correct, it deals massive damage. If wrong, the player takes a heavy counter-attack.</p>
+                <p className="text-[6.5px] sm:text-[8px] md:text-xs font-bold text-slate-600 mt-1 md:mt-2 leading-[1.2] md:leading-relaxed">Attempt a hard difficulty question. If correct, it deals massive damage. If wrong, the player takes a heavy counter-attack.</p>
               </div>
             </button>
             
             {/* Normal Attack Card */}
             <button
               onClick={() => handleSelectMove('normal')}
-              className={cn("border-2 transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+              className={cn("border-2 transition-all p-2 sm:p-4 md:p-8 rounded-xl md:rounded-3xl flex flex-col items-center text-center space-y-2 md:space-y-6 group", 
                 bossShieldActive ? "bg-slate-50 border-slate-200 opacity-60" : "bg-background border-primary/20 hover:border-primary hover:shadow-xl hover:shadow-primary/10"
               )}
             >
-              <div className={cn("w-24 h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform", bossShieldActive ? "bg-slate-200" : "bg-primary/10")}>
-                <Sword className={cn("w-12 h-12", bossShieldActive ? "text-slate-500" : "text-primary")} strokeWidth={1.5} />
+              <div className={cn("w-10 h-10 md:w-24 md:h-24 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0", bossShieldActive ? "bg-slate-200" : "bg-primary/10")}>
+                <Sword className={cn("w-5 h-5 md:w-12 md:h-12", bossShieldActive ? "text-slate-500" : "text-primary")} strokeWidth={1.5} />
               </div>
-              <div>
-                <h3 className={cn("font-black uppercase tracking-tight text-lg", bossShieldActive ? "text-slate-500" : "text-primary")}>
+              <div className="flex flex-col flex-1 justify-start">
+                <h3 className={cn("font-black uppercase tracking-tight text-[8px] sm:text-[10px] md:text-lg leading-tight", bossShieldActive ? "text-slate-500" : "text-primary")}>
                   Normal Attack 
-                  {bossShieldActive && <span className="block text-xs bg-slate-500 text-white px-2 py-0.5 rounded mt-2">INEFFECTIVE</span>}
+                  {bossShieldActive && <span className="block text-[6px] md:text-xs bg-slate-500 text-white px-1 md:px-2 py-0.5 rounded mt-1 md:mt-2">INEFFECTIVE</span>}
                 </h3>
-                <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Answer a normal-difficulty question. Deals standard damage.</p>
+                <p className="text-[6.5px] sm:text-[8px] md:text-xs font-bold text-slate-600 mt-1 md:mt-2 leading-[1.2] md:leading-relaxed">Answer a normal-difficulty question. Deals standard damage.</p>
               </div>
             </button>
             
             {/* Defend / Heal Card */}
             <button
               onClick={() => handleSelectMove('defend')}
-              className={cn("border-2 hover:shadow-xl transition-all p-8 rounded-3xl flex flex-col items-center text-center space-y-6 group", 
+              className={cn("border-2 hover:shadow-xl transition-all p-2 sm:p-4 md:p-8 rounded-xl md:rounded-3xl flex flex-col items-center text-center space-y-2 md:space-y-6 group", 
                 playerPoisoned ? "bg-green-100 border-green-500 shadow-green-200 animate-pulse" : "bg-background border-green-200 hover:border-green-500 hover:shadow-green-100"
               )}
             >
-              <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ShieldPlus className="w-12 h-12 text-green-600" strokeWidth={1.5} />
+              <div className="w-10 h-10 md:w-24 md:h-24 rounded-full bg-green-50 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                <ShieldPlus className="w-5 h-5 md:w-12 md:h-12 text-green-600" strokeWidth={1.5} />
               </div>
-              <div>
-                <h3 className="font-black text-green-700 uppercase tracking-tight text-lg">
+              <div className="flex flex-col flex-1 justify-start">
+                <h3 className="font-black text-green-700 uppercase tracking-tight text-[8px] sm:text-[10px] md:text-lg leading-tight">
                   Defend / Heal 
-                  {playerPoisoned && <span className="block text-xs bg-green-500 text-white px-2 py-0.5 rounded mt-2">CURES POISON</span>}
+                  {playerPoisoned && <span className="block text-[6px] md:text-xs bg-green-500 text-white px-1 md:px-2 py-0.5 rounded mt-1 md:mt-2">CURES POISON</span>}
                 </h3>
-                <p className="text-[10px] md:text-xs font-bold text-slate-600 mt-2 leading-relaxed">Answer an easier question dealing no damage to the boss, but restoring the player's HP. Great for when they are close to dying.</p>
+                <p className="text-[6.5px] sm:text-[8px] md:text-xs font-bold text-slate-600 mt-1 md:mt-2 leading-[1.2] md:leading-relaxed">Answer an easier question dealing no damage to the boss, but restoring the player's HP. Great for when they are close to dying.</p>
               </div>
             </button>
           </div>
