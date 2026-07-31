@@ -25,7 +25,11 @@ import {
   BookOpen,
   Swords,
   Maximize,
-  Minimize
+  Minimize,
+  Clock,
+  Activity,
+  Biohazard,
+  Flame
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,8 +142,10 @@ export default function LearningQuest() {
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [quizMode, setQuizMode] = useState<'learning' | 'test' | 'boss-battle'>('learning');
   const [modeSelectDialogOpen, setModeSelectDialogOpen] = useState(false);
-  const [setupStep, setSetupStep] = useState<'mode' | 'limit'>('mode');
+  const [leaveConfirmDialogOpen, setLeaveConfirmDialogOpen] = useState(false);
+  const [setupStep, setSetupStep] = useState<'mode' | 'details' | 'limit'>('mode');
   const [score, setScore] = useState(0);
+  const [fetchingExplanations, setFetchingExplanations] = useState<Record<number, boolean>>({});
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_AREAS[0]);
   
   // Fullscreen state
@@ -368,6 +374,7 @@ export default function LearningQuest() {
 
     if (!qToExplain || !userAns || qToExplain.explanation) return;
 
+    setFetchingExplanations(prev => ({ ...prev, [index]: true }));
     try {
       const feedback = await provideExamFeedback({
         questionId: qToExplain.id,
@@ -385,6 +392,8 @@ export default function LearningQuest() {
       });
     } catch (e) {
       console.error("Failed to fetch explanation", e);
+    } finally {
+      setFetchingExplanations(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -739,6 +748,7 @@ export default function LearningQuest() {
           </DialogContent>
         </Dialog>
 
+
         {/* AI Tutor Summary (Only show if not in Boss-Battle, or if reviewing the log) */}
         {(quizMode !== 'boss-battle' || showBattleLog) && (
           <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
@@ -781,6 +791,9 @@ export default function LearningQuest() {
                             <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[8px] h-3.5 font-black uppercase tracking-tighter">
                               {isCorrect ? "Mastered" : "Review"}
                             </Badge>
+                            <Badge variant="outline" className="text-[8px] h-3.5 font-black uppercase tracking-tighter border-primary/20 text-primary">
+                              {q.type?.replace('_', ' ') || "MCQ"}
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -791,13 +804,17 @@ export default function LearningQuest() {
                           <div className="p-4 bg-background rounded-xl border shadow-sm">
                             <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
                             <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
-                              Option {userAns?.selectedLetter || 'None'}
+                              {q.type === 'TRUE_FALSE' && userAns?.selectedLetter 
+                                ? (userAns.selectedLetter === 'A' ? 'True (Option A)' : userAns.selectedLetter === 'B' ? 'False (Option B)' : userAns.selectedLetter)
+                                : userAns?.selectedLetter ? `Option ${userAns.selectedLetter}` : 'None'}
                             </p>
                           </div>
                           <div className="p-4 bg-background rounded-xl border shadow-sm">
                             <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
                             <p className="font-bold text-sm text-primary">
-                              Option {q.correctAnswer}
+                              {q.type === 'TRUE_FALSE' 
+                                ? (q.correctAnswer === 'A' ? 'True (Option A)' : q.correctAnswer === 'B' ? 'False (Option B)' : q.correctAnswer)
+                                : `Option ${q.correctAnswer}`}
                             </p>
                           </div>
                         </div>
@@ -807,9 +824,31 @@ export default function LearningQuest() {
                             AI LOGICAL ANALYSIS
                           </h4>
                           <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
-                            <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
-                              {q.explanation || "AI analysis is being finalized..."}
-                            </p>
+                            {q.explanation ? (
+                              <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                {q.explanation}
+                              </p>
+                            ) : fetchingExplanations[idx] ? (
+                              <div className="flex items-center gap-3 py-2">
+                                <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                                <p className="text-[10px] font-bold text-primary animate-pulse">INTERPRETING DATA...</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-start gap-2">
+                                <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                  Want to know why this is the correct answer?
+                                </p>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleRequestExplanation(idx)}
+                                  className="text-xs text-primary border-primary hover:bg-primary hover:text-white"
+                                >
+                                  <BrainCircuit className="w-3 h-3 mr-2" />
+                                  Ask AI Tutor
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -849,8 +888,42 @@ export default function LearningQuest() {
         ref={fullscreenRef} 
         className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen" : "")}
       >
+        {/* Exit Confirmation Dialog */}
+        <Dialog open={leaveConfirmDialogOpen} onOpenChange={setLeaveConfirmDialogOpen}>
+          <DialogContent className="sm:max-w-md border-2 border-destructive bg-gradient-to-br from-slate-50 to-white">
+            <DialogHeader className="text-center space-y-4">
+              <DialogTitle className="font-headline text-2xl text-destructive flex items-center justify-center gap-2">
+                <ShieldAlert className="w-6 h-6" />
+                Retreat from Battle?
+              </DialogTitle>
+              <DialogDescription className="text-sm font-bold text-slate-600 leading-relaxed">
+                Are you certain you wish to retreat? Leaving the arena now means you will forfeit all potential XP and badges from this session.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <Button 
+                variant="outline" 
+                className="flex-1 font-bold border-2" 
+                onClick={() => setLeaveConfirmDialogOpen(false)}
+              >
+                Return to Battle
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="flex-1 font-bold shadow-lg shadow-destructive/20" 
+                onClick={() => {
+                  setLeaveConfirmDialogOpen(false);
+                  setIsStarted(false);
+                }}
+              >
+                Flee Arena
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <header className="bg-background px-4 py-3 flex items-center justify-between border-b relative z-10">
-          <Button variant="ghost" size="icon" onClick={() => setIsStarted(false)} className="rounded-full shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setLeaveConfirmDialogOpen(true)} className="rounded-full shrink-0">
             <ChevronLeft className="h-6 w-6 text-primary" />
           </Button>
           <div className="text-center min-w-0 flex-1 px-4">
@@ -1105,7 +1178,7 @@ export default function LearningQuest() {
                   <>
                     {/* Learning Mode Button */}
                     <button
-                      onClick={() => { setQuizMode('learning'); setSetupStep('limit'); }}
+                      onClick={() => { setQuizMode('learning'); setSetupStep('details'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-learning.png" alt="Learning Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1121,7 +1194,7 @@ export default function LearningQuest() {
 
                     {/* Test Mode Button */}
                     <button
-                      onClick={() => { setQuizMode('test'); setSetupStep('limit'); }}
+                      onClick={() => { setQuizMode('test'); setSetupStep('details'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-test.png" alt="Test Mode" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1137,7 +1210,7 @@ export default function LearningQuest() {
 
                     {/* Boss Battle Button */}
                     <button
-                      onClick={() => { setQuizMode('boss-battle'); startQuest(50); }}
+                      onClick={() => { setQuizMode('boss-battle'); setSetupStep('details'); }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1151,35 +1224,128 @@ export default function LearningQuest() {
                       </div>
                     </button>
                   </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-                    <h3 className="font-bytebounce text-white text-3xl md:text-5xl" style={{ textShadow: '2px 2px 0 #000' }}>Select Question Limit</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full px-8">
-                      {quizMode === 'learning' ? (
-                        [10, 20, 30, 40, 50].map((num) => (
-                          <Button key={num} onClick={() => startQuest(num)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-1 transition-transform">
-                            {num} Questions
-                          </Button>
-                        ))
-                      ) : (
+                ) : setupStep === 'details' ? (
+                  <div className="flex flex-col w-full h-full bg-black/60 rounded-xl p-4 md:p-6 overflow-y-auto no-scrollbar border border-white/10 shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95">
+                    {quizMode === 'learning' && (
+                      <div className="flex-1 flex flex-col space-y-4 md:space-y-6">
+                        <div className="text-center space-y-2">
+                          <h3 className="font-bytebounce text-primary text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Intel Gathering</h3>
+                          <p className="text-white/90 text-xs md:text-sm max-w-lg mx-auto font-bold leading-relaxed">
+                            Hone your skills in a low-pressure environment. The AI Tutor provides immediate rationale after every answer. Master the basics before facing the real challenge.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto w-full">
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <Zap className="w-6 h-6 text-yellow-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Immediate Feedback</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <BrainCircuit className="w-6 h-6 text-blue-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">AI Tutor Analysis</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <Target className="w-6 h-6 text-green-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Precision Training</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {quizMode === 'test' && (
+                      <div className="flex-1 flex flex-col space-y-4 md:space-y-6">
+                        <div className="text-center space-y-2">
+                          <h3 className="font-bytebounce text-destructive text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Combat Simulation</h3>
+                          <p className="text-white/90 text-xs md:text-sm max-w-lg mx-auto font-bold leading-relaxed">
+                            A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters. Do you have what it takes to survive the tower?
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto w-full">
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <Clock className="w-6 h-6 text-orange-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Continuous Flow</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <Trophy className="w-6 h-6 text-yellow-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Graded Assessment</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center text-center gap-2">
+                            <Activity className="w-6 h-6 text-red-400" />
+                            <p className="text-[10px] uppercase font-bold text-white tracking-wider">Adaptive Difficulty</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {quizMode === 'boss-battle' && (
+                      <div className="flex-1 flex flex-col space-y-3 md:space-y-4">
+                        <div className="text-center space-y-2">
+                          <h3 className="font-bytebounce text-purple-400 text-3xl md:text-4xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Ultimate Challenge</h3>
+                          <p className="text-white/90 text-xs max-w-lg mx-auto font-bold leading-relaxed">
+                            Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 max-w-2xl mx-auto w-full">
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
+                            <ShieldAlert className="w-5 h-5 text-blue-400" />
+                            <p className="text-[10px] uppercase font-black text-blue-300 tracking-wider">Shield Phase</p>
+                            <p className="text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
+                          </div>
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
+                            <Biohazard className="w-5 h-5 text-green-400" />
+                            <p className="text-[10px] uppercase font-black text-green-300 tracking-wider">Poison</p>
+                            <p className="text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
+                          </div>
+                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-3 flex flex-col items-center text-center gap-1.5">
+                            <Flame className="w-5 h-5 text-red-500" />
+                            <p className="text-[10px] uppercase font-black text-red-400 tracking-wider">Enrage</p>
+                            <p className="text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-auto pt-4 md:pt-6 w-full max-w-2xl mx-auto border-t border-white/10 flex flex-col items-center gap-4">
+                      {quizMode !== 'boss-battle' ? (
                         <>
-                          <Button onClick={() => startQuest(20)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
-                            Quick (20)
-                          </Button>
-                          <Button onClick={() => startQuest(50)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
-                            Standard (50)
-                          </Button>
-                          <Button onClick={() => startQuest(100)} className="h-16 text-xl md:text-2xl font-bytebounce border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-1 transition-transform col-span-2 sm:col-span-1">
-                            Full (100)
-                          </Button>
+                          <h4 className="font-bytebounce text-white/80 text-xl tracking-widest">Select Question Limit</h4>
+                          <div className="flex flex-wrap justify-center gap-2 md:gap-3 w-full">
+                            {quizMode === 'learning' ? (
+                              [10, 20, 30, 40, 50].map((num) => (
+                                <Button key={num} onClick={() => startQuest(num)} className="h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-0.5 transition-transform">
+                                  {num} Questions
+                                </Button>
+                              ))
+                            ) : (
+                              <>
+                                <Button onClick={() => startQuest(20)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-0.5 transition-transform">
+                                  Quick (20)
+                                </Button>
+                                <Button onClick={() => startQuest(50)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-0.5 transition-transform">
+                                  Standard (50)
+                                </Button>
+                                <Button onClick={() => startQuest(100)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-0.5 transition-transform">
+                                  Full (100)
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </>
+                      ) : (
+                        <div className="w-full flex justify-center">
+                          <Button 
+                            onClick={() => startQuest(50)} 
+                            className="w-full max-w-xs h-12 md:h-14 text-xl font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-purple-600 hover:bg-purple-700 hover:-translate-y-0.5 transition-transform animate-pulse"
+                          >
+                            Enter Arena (50 Qs)
+                          </Button>
+                        </div>
                       )}
+                      <Button variant="ghost" onClick={() => setSetupStep('mode')} className="text-white/60 hover:text-white hover:bg-transparent h-8 text-xs font-bold uppercase tracking-wider">
+                        &larr; Back to Modes
+                      </Button>
                     </div>
-                    <Button variant="ghost" onClick={() => setSetupStep('mode')} className="mt-4 text-white hover:text-primary hover:bg-transparent">
-                      &larr; Back to Modes
-                    </Button>
                   </div>
-                )}
+                ) : null}
 
               </div>
             </div>
