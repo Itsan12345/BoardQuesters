@@ -87,8 +87,13 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
       newStreak = 1;
     }
 
-    // Calculate accuracy
-    const accuracy = (params.score / params.totalQuestions) * 100;
+    // Calculate actual total and accuracy. In boss-battle, totalQuestions is artificially high (e.g., 999), 
+    // so we use the number of questions actually answered.
+    const actualTotal = params.questMode === 'boss-battle' 
+      ? (params.userAnswers?.length || params.score) 
+      : params.totalQuestions;
+    
+    const accuracy = actualTotal > 0 ? (params.score / actualTotal) * 100 : 0;
 
     // Calculate earned badges using the CURRENT streak
     const earnedBadges = calculateEarnedBadges({
@@ -136,7 +141,7 @@ export async function completeQuest(params: CompleteQuestParams): Promise<Comple
       data: {
         userId,
         score: params.score,
-        total: params.totalQuestions,
+        total: actualTotal,
         accuracy,
         subject: params.subject,
       },

@@ -11,7 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { logout } from '@/app/actions/auth';
 import { getUserProfile } from '@/app/actions/user';
 import { useToast } from '@/hooks/use-toast';
-import { BADGES, BadgeId, getLevelProgress } from '@/lib/badge-system';
+import { BADGES, BadgeId, getLevelProgress, getRankTitle } from '@/lib/badge-system';
 import { format } from 'date-fns';
 
 interface UserProfile {
@@ -147,7 +147,7 @@ function ProfileContent() {
 
                     <div className="flex gap-2 flex-wrap mt-1">
                       <Badge className="bg-[#8B0000] text-white font-semibold text-xs px-3 py-1">
-                        LVL {userProfile.level} ASPIRANT
+                        LVL {userProfile.level} {getRankTitle(userProfile.level).toUpperCase()}
                       </Badge>
                       <Badge variant="outline" className="border-[#8B0000] text-[#8B0000] font-semibold text-xs px-3 py-1">
                         {userProfile.classString}

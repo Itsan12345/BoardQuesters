@@ -382,7 +382,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
             )}
           </div>
 
-          {(mode === 'learning' || mode === 'boss-battle') && isAnswered && (
+          {mode === 'learning' && isAnswered && (
             <div className="mx-6 mt-8 space-y-6">
               <div className="p-5 bg-primary/5 rounded-2xl border-2 border-dashed border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
                  <div className="flex items-center gap-2 mb-3">

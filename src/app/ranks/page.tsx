@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { getUserStats, getGlobalLeaderboard } from '@/app/actions/user';
+import { getRankTitle } from '@/lib/badge-system';
 
 function LeaderboardContent() {
   const [user, setUser] = useState<any>(null);
@@ -108,7 +109,7 @@ function LeaderboardContent() {
                     </div>
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block"></span>
-                      Level {u.level} Aspirant
+                      Level {u.level} {getRankTitle(u.level)}
                     </p>
                   </div>
                   <div className="text-right">

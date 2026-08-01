@@ -42,6 +42,7 @@ import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
 import { getQuestQuestions } from '@/app/actions/arena';
 import { completeQuest } from '@/app/actions/quest';
+import { getUserProfile } from '@/app/actions/user';
 import { calculateEarnedBadges, type Badge as BadgeType } from '@/lib/badge-system';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -196,6 +197,20 @@ export default function LearningQuest() {
   const [battleOutcome, setBattleOutcome] = useState<'victory' | 'defeat' | null>(null);
   const [showBattleLog, setShowBattleLog] = useState(false);
   const [bossDifficulty, setBossDifficulty] = useState<string | null>(null);
+  const [userLevel, setUserLevel] = useState<number>(1);
+
+  // Fetch User Level on mount
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const profile = await getUserProfile();
+        if (profile?.level) setUserLevel(profile.level);
+      } catch (e) {
+        console.error("Failed to load user level");
+      }
+    }
+    fetchUser();
+  }, []);
 
   // Monitor Boss Battle Health for Early Win/Loss
   useEffect(() => {
@@ -246,8 +261,17 @@ export default function LearningQuest() {
         return;
       }
       setQuestions(selected);
-      setPlayerHealth(100);
-      setEnemyHealth(100);
+      // Level-scaled HP: 200 base + 5 per level
+      const startingHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
+      setPlayerHealth(startingHp);
+      
+      let bossStartingHp = 100;
+      if (quizMode === 'boss-battle') {
+        const diffBase = specificDifficulty === 'EASY' ? 400 : specificDifficulty === 'HARD' ? 800 : 600;
+        const levelScaling = specificDifficulty === 'EASY' ? 5 : specificDifficulty === 'HARD' ? 12 : 8;
+        bossStartingHp = Math.floor(diffBase + (userLevel * levelScaling));
+      }
+      setEnemyHealth(bossStartingHp);
       setTurnCount(0);
       setBossShieldActive(false);
       setPlayerPoisoned(false);
@@ -275,7 +299,7 @@ export default function LearningQuest() {
       difficulty: questionData?.difficulty
     }]);
 
-    const baseDamage = quizMode === 'boss-battle' ? 15 : 100 / (questions.length || 5);
+    const baseDamage = quizMode === 'boss-battle' ? 25 : 100 / (questions.length || 5);
     let enemyDmg = 0;
     let playerDmg = 0;
     let playerHeal = 0;
@@ -350,8 +374,14 @@ export default function LearningQuest() {
       const bossMul = bossDifficulty === 'EASY' ? 0.7 : bossDifficulty === 'HARD' ? 1.5 : 1;
       const playerMul = bossDifficulty === 'EASY' ? 1.5 : bossDifficulty === 'HARD' ? 0.7 : 1;
       
-      enemyDmg *= playerMul;
-      playerDmg *= bossMul;
+      // Level-scaled damage: Add a bonus 0.5 base damage per level
+      const levelBonusDamage = userLevel * 0.5;
+
+      enemyDmg = (enemyDmg + (enemyDmg > 0 ? levelBonusDamage : 0)) * playerMul;
+      
+      const bossBonusDamage = userLevel * 0.4;
+      playerDmg = (playerDmg + (playerDmg > 0 ? bossBonusDamage : 0)) * bossMul;
+      
       enemyHeal *= bossMul;
       playerHeal *= playerMul;
     }
@@ -359,7 +389,10 @@ export default function LearningQuest() {
     // Apply health changes
     if (enemyHeal > 0) {
       setIsAnimating("enemy");
-      setEnemyHealth(prev => Math.min(100, prev + enemyHeal));
+      const diffBase = bossDifficulty === 'EASY' ? 400 : bossDifficulty === 'HARD' ? 800 : 600;
+      const levelScaling = bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8;
+      const maxEnemyHp = quizMode === 'boss-battle' ? Math.floor(diffBase + (userLevel * levelScaling)) : 100;
+      setEnemyHealth(prev => Math.min(maxEnemyHp, prev + enemyHeal));
     }
 
     if (enemyDmg > 0) {
@@ -374,7 +407,8 @@ export default function LearningQuest() {
 
     if (playerHeal > 0) {
       setIsAnimating("player");
-      setPlayerHealth(prev => Math.min(100, prev + playerHeal));
+      const maxHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
+      setPlayerHealth(prev => Math.min(maxHp, prev + playerHeal));
     }
 
     setPlayerPoisoned(newPoisonedState);
@@ -575,20 +609,12 @@ export default function LearningQuest() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl">
-              <Button onClick={() => setShowBattleLog(true)} className="flex-1 h-16 rounded-2xl text-lg font-bold" variant="outline">
-                Review Battle Log
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsFinished(false);
-                  setIsStarted(false);
-                  setShowBattleLog(false);
-                }}
-                className="flex-1 h-16 rounded-2xl text-lg font-bold"
-                variant="default"
+            <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-lg mt-4">
+              <Button 
+                onClick={() => setShowBattleLog(true)} 
+                className="w-full h-14 md:h-16 text-xl md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-amber-400 hover:bg-amber-500 text-black hover:-translate-y-1 transition-transform"
               >
-                Return to Dashboard
+                Review Battle Log
               </Button>
             </div>
           </div>
@@ -877,19 +903,19 @@ export default function LearningQuest() {
           </Card>
         )}
 
-        <div className="flex flex-row justify-center gap-2 sm:gap-4 pb-12 w-full max-w-md mx-auto px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 pb-12 w-full max-w-xl mx-auto px-4 sm:px-0 mt-8">
           <Button
-            size="lg"
             onClick={() => {
               setIsStarted(false);
               setIsFinished(false);
+              setShowBattleLog(false);
             }}
-            className="flex-1 h-12 md:h-16 px-2 md:px-10 rounded-xl md:rounded-2xl text-xs sm:text-base md:text-lg font-black shadow-xl whitespace-nowrap"
+            className="flex-1 h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 text-white hover:-translate-y-1 transition-transform whitespace-nowrap"
           >
             Re-Enter Arena
           </Button>
           <Link href="/" className="flex-1 flex">
-            <Button variant="outline" size="lg" className="w-full h-12 md:h-16 px-2 md:px-10 rounded-xl md:rounded-2xl text-xs sm:text-base md:text-lg font-bold border-2 whitespace-nowrap">
+            <Button className="w-full h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-white hover:bg-slate-100 text-black hover:-translate-y-1 transition-transform whitespace-nowrap">
               Back to Dashboard
             </Button>
           </Link>
@@ -979,7 +1005,7 @@ export default function LearningQuest() {
                   </div>
                 </div>
                 <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${enemyHealth}%` }} />
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / (quizMode === 'boss-battle' ? Math.floor((bossDifficulty === 'EASY' ? 400 : bossDifficulty === 'HARD' ? 800 : 600) + (userLevel * (bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8))) : 100)) * 100)}%` }} />
                 </div>
               </div>
               <div className="flex justify-end pr-2 md:pr-4 mt-2">
@@ -997,14 +1023,14 @@ export default function LearningQuest() {
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
                   <div className="flex justify-between items-center mb-1 gap-2">
-                    <span className="text-[8px] md:text-[10px] font-black text-white uppercase">Aspirant Rivera</span>
+                    <span className="text-[7px] md:text-[8px] font-black text-white uppercase">Aspirant Rivera</span>
                     <div className="flex items-center gap-1">
                       {playerPoisoned && <span className="text-[7px] md:text-[8px] bg-green-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Taking damage every turn! Defend to cure.">POISONED</span>}
-                      <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL 24</span>
+                      <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL {userLevel}</span>
                     </div>
                   </div>
                   <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-background transition-all duration-500" style={{ width: `${playerHealth}%` }} />
+                    <div className="h-full bg-background transition-all duration-500" style={{ width: `${Math.min(100, (playerHealth / (quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100)) * 100)}%` }} />
                   </div>
                 </div>
               </div>

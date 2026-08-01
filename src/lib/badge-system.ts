@@ -177,6 +177,13 @@ export function getLevelProgress(xp: number): { currentLevelXp: number, xpForNex
   return { currentLevelXp, xpForNextLevel, percentage };
 }
 
+export function getRankTitle(level: number): string {
+  if (level < 10) return 'Apprentice Technician';
+  if (level < 25) return 'Adept Analyst';
+  if (level < 50) return 'Senior Scientist';
+  return 'Grandmaster Pathologist';
+}
+
 export function getBadgeIcon(badgeId: BadgeId): typeof Trophy {
   const badge = BADGES[badgeId as BadgeId];
   if (!badge) return Trophy;
