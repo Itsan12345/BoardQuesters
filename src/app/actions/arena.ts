@@ -10,7 +10,7 @@ const difficultyOrder: Record<string, number> = {
   'HARD': 3,
 };
 
-export async function getQuestQuestions(subject: string, mode: string = 'learning', limit: number = 50): Promise<QuizQuestion[]> {
+export async function getQuestQuestions(subject: string, mode: string = 'learning', limit: number = 50, specificDifficulty?: string): Promise<QuizQuestion[]> {
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get('user_id')?.value;
@@ -29,6 +29,7 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
         categoryId: category.id,
         status: 'APPROVED',
         isPublished: true,
+        ...(specificDifficulty ? { difficulty: specificDifficulty } : {})
       } as any,
       select: {
         id: true,

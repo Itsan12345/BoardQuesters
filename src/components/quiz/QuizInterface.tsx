@@ -192,9 +192,15 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
     <div className="w-full flex flex-col h-full overflow-y-auto pb-20 no-scrollbar">
       <div className="px-6 pt-6 flex justify-between items-center mb-4">
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-             Quest {currentIndex + 1} of {questions.length}
-          </span>
+          {mode !== 'boss-battle' ? (
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+               Quest {currentIndex + 1} of {questions.length}
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-destructive uppercase tracking-widest">
+               Survival Mode
+            </span>
+          )}
           <div className="flex gap-2 mt-1 flex-wrap">
              <Badge variant="outline" className={cn("h-4 text-[8px] uppercase tracking-tighter", mode === 'learning' || mode === 'boss-battle' ? "border-primary text-primary" : "border-slate-500 text-muted-foreground")}>
                {mode === 'learning' ? <BrainCircuit className="w-2 h-2 mr-1" /> : mode === 'boss-battle' ? <Swords className="w-2 h-2 mr-1" /> : <Shield className="w-2 h-2 mr-1" />}

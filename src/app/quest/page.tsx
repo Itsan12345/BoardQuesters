@@ -195,6 +195,7 @@ export default function LearningQuest() {
   const [playerPoisoned, setPlayerPoisoned] = useState(false);
   const [battleOutcome, setBattleOutcome] = useState<'victory' | 'defeat' | null>(null);
   const [showBattleLog, setShowBattleLog] = useState(false);
+  const [bossDifficulty, setBossDifficulty] = useState<string | null>(null);
 
   // Monitor Boss Battle Health for Early Win/Loss
   useEffect(() => {
@@ -223,7 +224,7 @@ export default function LearningQuest() {
     }
   }, [selectedSubject]);
 
-  const startQuest = async (limit: number = 50) => {
+  const startQuest = async (limit: number = 50, specificDifficulty?: string) => {
     setIsLoading(true);
     setUserAnswers([]);
     setConfidence(null);
@@ -231,7 +232,10 @@ export default function LearningQuest() {
     setConfidenceSubmitted(false);
     setQuestStartTime(Date.now());
     try {
-      const selected = await getQuestQuestions(selectedSubject, quizMode, limit);
+      if (quizMode === 'boss-battle' && specificDifficulty) {
+        setBossDifficulty(specificDifficulty);
+      }
+      const selected = await getQuestQuestions(selectedSubject, quizMode, limit, specificDifficulty);
 
       if (!selected || selected.length === 0) {
         toast({
@@ -271,7 +275,7 @@ export default function LearningQuest() {
       difficulty: questionData?.difficulty
     }]);
 
-    const baseDamage = 100 / (questions.length || 5);
+    const baseDamage = quizMode === 'boss-battle' ? 15 : 100 / (questions.length || 5);
     let enemyDmg = 0;
     let playerDmg = 0;
     let playerHeal = 0;
@@ -340,6 +344,16 @@ export default function LearningQuest() {
     } else {
       if (isCorrect) enemyDmg = baseDamage;
       else playerDmg = baseDamage;
+    }
+
+    if (quizMode === 'boss-battle') {
+      const bossMul = bossDifficulty === 'EASY' ? 0.7 : bossDifficulty === 'HARD' ? 1.5 : 1;
+      const playerMul = bossDifficulty === 'EASY' ? 1.5 : bossDifficulty === 'HARD' ? 0.7 : 1;
+      
+      enemyDmg *= playerMul;
+      playerDmg *= bossMul;
+      enemyHeal *= bossMul;
+      playerHeal *= playerMul;
     }
 
     // Apply health changes
@@ -550,8 +564,8 @@ export default function LearningQuest() {
             {/* Boss Battle Stats */}
             <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
               <div className="text-center">
-                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
-                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}</div>
+                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Correct Answers</div>
               </div>
               <div className="h-10 md:h-12 w-px bg-border" />
               <div className="text-center">
@@ -937,7 +951,7 @@ export default function LearningQuest() {
               {quizMode === 'learning' ? 'Intel Gathering' : 'Battle Simulation'}
             </p>
           </div>
-          <div className="w-10 flex shrink-0 justify-end">
+          <div className="w-10 flex shrink-0 justify-end" >
             <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-primary hover:bg-primary/10 hover:text-primary" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
               {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </Button>
@@ -1372,14 +1386,20 @@ export default function LearningQuest() {
                           </div>
                         </>
                       ) : (
-                        <div className="w-full flex justify-center">
-                          <Button
-                            onClick={() => startQuest(50)}
-                            className="w-full max-w-xs h-12 md:h-14 text-xl font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-purple-600 hover:bg-purple-700 hover:-translate-y-0.5 transition-transform animate-pulse"
-                          >
-                            Enter Arena (50 Qs)
-                          </Button>
-                        </div>
+                        <>
+                          <h4 className="font-bytebounce text-purple-300 text-xl tracking-widest text-center">Select Boss Difficulty</h4>
+                          <div className="flex flex-wrap justify-center gap-1.5 md:gap-3 w-full">
+                            <Button onClick={() => startQuest(999, 'EASY')} className="flex-1 min-w-[90px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-0.5 transition-transform">
+                              Easy
+                            </Button>
+                            <Button onClick={() => startQuest(999, 'MEDIUM')} className="flex-1 min-w-[90px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-0.5 transition-transform">
+                              Medium
+                            </Button>
+                            <Button onClick={() => startQuest(999, 'HARD')} className="flex-1 min-w-[90px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-0.5 transition-transform">
+                              Hard
+                            </Button>
+                          </div>
+                        </>
                       )}
                       <Button variant="ghost" onClick={() => setSetupStep('mode')} className="hidden md:flex text-white/60 hover:text-white hover:bg-transparent h-8 text-xs font-bold uppercase tracking-wider">
                         &larr; Back to Modes
