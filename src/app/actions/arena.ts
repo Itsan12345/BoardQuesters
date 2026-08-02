@@ -28,7 +28,6 @@ export async function getQuestQuestions(subject: string, mode: string = 'learnin
       where: {
         categoryId: category.id,
         status: 'APPROVED',
-        isPublished: true,
         ...(specificDifficulty ? { difficulty: specificDifficulty } : {})
       } as any,
       select: {

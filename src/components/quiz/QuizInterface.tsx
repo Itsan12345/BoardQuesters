@@ -420,18 +420,16 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                    </div>
                  )}
               </div>
-              {mode !== 'boss-battle' && (
-                <div className="flex justify-end animate-in fade-in duration-500 delay-150">
-                  <Button 
-                    onClick={handleNext}
-                    size="lg"
-                    className="font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all rounded-xl border-2 border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white px-8"
-                  >
-                    {currentIndex < questions.length - 1 ? "Next Quest" : "Finish Quest"}
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </div>
-              )}
+              <div className="flex justify-end animate-in fade-in duration-500 delay-150">
+                <Button 
+                  onClick={handleNext}
+                  size="lg"
+                  className="font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all rounded-xl border-2 border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white px-8"
+                >
+                  {currentIndex < questions.length - 1 ? "Next Quest" : "Finish Quest"}
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           )}
         </>

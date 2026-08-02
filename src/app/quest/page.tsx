@@ -184,6 +184,8 @@ export default function LearningQuest() {
   const [confidenceSubmitted, setConfidenceSubmitted] = useState(false);
   const [confidenceDialogOpen, setConfidenceDialogOpen] = useState(false);
   const [thankYouDialogOpen, setThankYouDialogOpen] = useState(false);
+  const [judgementText, setJudgementText] = useState<string | null>(null);
+  const isFinishingRef = useRef(false);
 
   // RPG States
   const [playerHealth, setPlayerHealth] = useState(100);
@@ -246,6 +248,7 @@ export default function LearningQuest() {
     setEarnedBadges([]);
     setConfidenceSubmitted(false);
     setQuestStartTime(Date.now());
+    isFinishingRef.current = false;
     try {
       if (quizMode === 'boss-battle' && specificDifficulty) {
         setBossDifficulty(specificDifficulty);
@@ -269,7 +272,14 @@ export default function LearningQuest() {
       if (quizMode === 'boss-battle') {
         const diffBase = specificDifficulty === 'EASY' ? 400 : specificDifficulty === 'HARD' ? 800 : 600;
         const levelScaling = specificDifficulty === 'EASY' ? 5 : specificDifficulty === 'HARD' ? 12 : 8;
-        bossStartingHp = Math.floor(diffBase + (userLevel * levelScaling));
+        const calculatedHp = Math.floor(diffBase + (userLevel * levelScaling));
+        
+        // Ensure boss is physically beatable with the number of questions available in the DB
+        const playerMul = specificDifficulty === 'EASY' ? 1.5 : specificDifficulty === 'HARD' ? 0.7 : 1;
+        const maxPossibleDamage = selected.length * 25 * playerMul;
+        const safeHpCap = Math.max(100, Math.floor(maxPossibleDamage * 0.8)); // Assumes player needs 80% accuracy using normal attacks to win
+        
+        bossStartingHp = Math.min(calculatedHp, safeHpCap);
       }
       setEnemyHealth(bossStartingHp);
       setTurnCount(0);
@@ -448,18 +458,27 @@ export default function LearningQuest() {
   };
 
   const handleFinish = (finalScore: number, outcome?: 'victory' | 'defeat') => {
+    if (isFinishingRef.current) return; // Prevent stale closures from double-calling
+    isFinishingRef.current = true;
+
     setScore(finalScore);
 
-    if (outcome) {
-      setBattleOutcome(outcome);
-    } else if (quizMode === 'boss-battle') {
-      if (enemyHealth > 0) {
-        setBattleOutcome('defeat');
-        setPlayerHealth(0); // Visually wipe out player due to stamina exhaustion
+    let finalOutcome = outcome;
+    if (!finalOutcome) {
+      if (quizMode === 'boss-battle') {
+        finalOutcome = enemyHealth > 0 ? 'defeat' : 'victory';
+        if (finalOutcome === 'defeat') setPlayerHealth(0); // Visually wipe out player due to stamina exhaustion
       } else {
-        setBattleOutcome('victory');
+        // In Learning/Test mode, force a visual victor based on the final score
+        finalOutcome = finalScore > questions.length / 2 ? 'victory' : 'defeat';
+        if (finalOutcome === 'victory') {
+          setEnemyHealth(0); // Player wins, Enemy dies
+        } else {
+          setPlayerHealth(0); // Enemy wins, Player dies
+        }
       }
     }
+    setBattleOutcome(finalOutcome!);
 
     if (questStartTime) {
       const completionTime = Math.floor((Date.now() - questStartTime) / 1000);
@@ -475,9 +494,17 @@ export default function LearningQuest() {
       });
       setEarnedBadges(badges);
     }
-    setIsFinished(true);
-    // Auto-open confidence dialog
-    setTimeout(() => setConfidenceDialogOpen(true), 300);
+    
+    // Show Judgement Text
+    setJudgementText(finalOutcome === 'victory' ? 'VICTORY' : 'GAME OVER');
+
+    // Wait 2 seconds for animation, then show finished screen
+    setTimeout(() => {
+      setJudgementText(null);
+      setIsFinished(true);
+      // Auto-open confidence dialog
+      setTimeout(() => setConfidenceDialogOpen(true), 300);
+    }, 2000);
   };
 
   const handleConfidenceSubmit = async (selectedLevel: string) => {
@@ -814,7 +841,9 @@ export default function LearningQuest() {
               <Accordion type="single" collapsible className="w-full">
                 {questions.map((q, idx) => {
                   const userAns = userAnswers.find(ua => ua.questionIndex === idx);
-                  const isCorrect = userAns?.isCorrect;
+                  if (!userAns) return null;
+                  
+                  const isCorrect = userAns.isCorrect;
 
                   return (
                     <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
@@ -925,6 +954,19 @@ export default function LearningQuest() {
   }
 
   if (isStarted) {
+    const maxPlayerHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
+    const diffBase = bossDifficulty === 'EASY' ? 400 : bossDifficulty === 'HARD' ? 800 : 600;
+    const levelScaling = bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8;
+    
+    let maxEnemyHp = 100;
+    if (quizMode === 'boss-battle') {
+      const calculatedHp = Math.floor(diffBase + (userLevel * levelScaling));
+      const playerMul = bossDifficulty === 'EASY' ? 1.5 : bossDifficulty === 'HARD' ? 0.7 : 1;
+      const maxPossibleDamage = questions.length * 25 * playerMul;
+      const safeHpCap = Math.max(100, Math.floor(maxPossibleDamage * 0.8));
+      maxEnemyHp = Math.min(calculatedHp, safeHpCap);
+    }
+
     return (
       <div
         ref={fullscreenRef}
@@ -967,28 +1009,39 @@ export default function LearningQuest() {
           </DialogContent>
         </Dialog>
 
-        <header className="bg-background px-4 py-3 flex items-center justify-between border-b relative z-10">
-          <Button variant="ghost" size="icon" onClick={() => setLeaveConfirmDialogOpen(true)} className="rounded-full shrink-0">
-            <ChevronLeft className="h-6 w-6 text-primary" />
-          </Button>
-          <div className="text-center min-w-0 flex-1 px-4">
-            <h1 className="text-primary font-black font-headline text-sm md:text-lg uppercase leading-none truncate">{selectedSubject}</h1>
-            <p className="text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              {quizMode === 'learning' ? 'Intel Gathering' : 'Battle Simulation'}
-            </p>
+        {judgementText && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
+            <h1 className={cn(
+              "text-6xl md:text-8xl font-black font-bytebounce uppercase tracking-widest animate-in zoom-in-50 duration-700 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]",
+              judgementText === 'VICTORY' ? 'text-green-500' : 'text-red-500'
+            )}>
+              {judgementText}
+            </h1>
           </div>
-          <div className="w-10 flex shrink-0 justify-end" >
-            <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-primary hover:bg-primary/10 hover:text-primary" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
-              {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-            </Button>
-          </div>
-        </header>
+        )}
 
         <main className="flex-1 flex flex-col">
-          <div className="relative h-[25vh] md:h-[35vh] bg-gradient-to-b from-primary to-black overflow-hidden border-b">
+          <div className="relative h-[35vh] md:h-[45vh] bg-gradient-to-b from-primary to-black overflow-hidden border-b flex flex-col">
+            <header className="px-4 py-3 flex items-center justify-between relative z-10 w-full drop-shadow-md">
+              <Button variant="ghost" size="icon" onClick={() => setLeaveConfirmDialogOpen(true)} className="rounded-full shrink-0 text-white hover:bg-white/20">
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <div className="text-center min-w-0 flex-1 px-4">
+                <h1 className="text-white font-black font-headline text-sm md:text-lg uppercase leading-none truncate">{selectedSubject}</h1>
+                <p className="text-[8px] md:text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">
+                  {quizMode === 'learning' ? 'Intel Gathering' : 'Battle Simulation'}
+                </p>
+              </div>
+              <div className="w-10 flex shrink-0 justify-end" >
+                <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-white hover:bg-white/20" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                  {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                </Button>
+              </div>
+            </header>
+
             {/* Health Bars Stacked on Mobile, Floating on Desktop */}
             <div className={cn(
-              "absolute top-4 right-4 md:top-8 md:right-8 transition-all duration-300 z-10",
+              "absolute top-14 right-4 md:top-16 md:right-8 transition-all duration-300 z-10",
               isAnimating === "enemy" && "animate-shake scale-110"
             )}>
               <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
@@ -1004,8 +1057,12 @@ export default function LearningQuest() {
                     <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">BOSS</span>
                   </div>
                 </div>
+                <div className="flex justify-between items-center mb-0.5 px-0.5 mt-0.5">
+                  <span className="text-[6px] md:text-[8px] font-bold text-white/70 tracking-widest uppercase">HP</span>
+                  <span className="text-[7.5px] md:text-[9.5px] font-black text-white">{Math.ceil(enemyHealth)} / {maxEnemyHp}</span>
+                </div>
                 <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / (quizMode === 'boss-battle' ? Math.floor((bossDifficulty === 'EASY' ? 400 : bossDifficulty === 'HARD' ? 800 : 600) + (userLevel * (bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8))) : 100)) * 100)}%` }} />
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / maxEnemyHp) * 100)}%` }} />
                 </div>
               </div>
               <div className="flex justify-end pr-2 md:pr-4 mt-2">
@@ -1029,8 +1086,12 @@ export default function LearningQuest() {
                       <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL {userLevel}</span>
                     </div>
                   </div>
+                  <div className="flex justify-between items-center mb-0.5 px-0.5 mt-0.5">
+                    <span className="text-[6px] md:text-[8px] font-bold text-white/70 tracking-widest uppercase">HP</span>
+                    <span className="text-[7.5px] md:text-[9.5px] font-black text-white">{Math.ceil(playerHealth)} / {maxPlayerHp}</span>
+                  </div>
                   <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
-                    <div className="h-full bg-background transition-all duration-500" style={{ width: `${Math.min(100, (playerHealth / (quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100)) * 100)}%` }} />
+                    <div className="h-full bg-background transition-all duration-500" style={{ width: `${Math.min(100, (playerHealth / maxPlayerHp) * 100)}%` }} />
                   </div>
                 </div>
               </div>
