@@ -61,6 +61,25 @@ export interface SubjectMetrics {
   masteryStatus: 'Not Started' | 'In Training' | 'Proficient' | 'Mastered';
 }
 
+export async function getCategories(): Promise<{ id: string; name: string }[]> {
+  try {
+    const categories = await prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
+    return JSON.parse(JSON.stringify(categories));
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+    return [];
+  }
+}
+
 export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
   try {
     const cookieStore = await cookies();
@@ -70,19 +89,25 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
       return [];
     }
 
-    const subjects = [
-      'Clinical Chemistry',
-      'Hematology',
-      'Microbiology',
-      'Immunology & Serology and Immunohematology',
-      'Clinical Microscopy & Parasitology',
-      'Histopathology & MT Laws',
-    ];
+    const dbCategories = await prisma.category.findMany({
+      select: { name: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const subjects = dbCategories.length > 0
+      ? dbCategories.map(c => c.name)
+      : [
+          'Clinical Chemistry',
+          'Hematology',
+          'Microbiology',
+          'Immunology & Serology and Immunohematology',
+          'Clinical Microscopy & Parasitology',
+          'Histopathology & MT Laws',
+        ];
 
     const metrics: SubjectMetrics[] = [];
 
     for (const subject of subjects) {
-      // Get total lessons for this subject from the curriculum
       const totalLessonsMap: Record<string, number> = {
         'Clinical Chemistry': 3,
         'Hematology': 2,
@@ -92,9 +117,8 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
         'Histopathology & MT Laws': 2,
       };
 
-      const totalLessons = totalLessonsMap[subject] || 0;
+      const totalLessons = totalLessonsMap[subject] || 2;
 
-      // Calculate completion: percentage of completed lessons
       const completedLessons = await prisma.lessonCompletion.count({
         where: {
           userId,
@@ -105,7 +129,6 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
 
       const completion = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
-      // Calculate mastery: average accuracy from exam results for this subject
       const examResults = await prisma.examResult.findMany({
         where: {
           userId,
@@ -122,7 +145,6 @@ export async function getSubjectMetrics(): Promise<SubjectMetrics[]> {
         mastery = totalAccuracy / examResults.length;
       }
 
-      // Determine mastery status
       let masteryStatus: 'Not Started' | 'In Training' | 'Proficient' | 'Mastered' = 'Not Started';
       if (mastery === 0) {
         masteryStatus = 'Not Started';

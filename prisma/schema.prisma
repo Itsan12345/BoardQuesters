@@ -251,3 +251,16 @@ model AiAnalysis {
   hash      String   // Hash of the data used to generate the analysis
   updatedAt DateTime @updatedAt
 }
+
+model ReviewCenterProgram {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String?
+  description String?
+  companyName String?
+  category    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String?
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+}

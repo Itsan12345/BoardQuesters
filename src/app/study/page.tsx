@@ -15,20 +15,24 @@ import {
   Loader2,
   CheckCircle2,
   Brain,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Sparkles,
+  Timer
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog';
 import { CustomCalendar } from '@/components/ui/custom-calendar';
 import { cn } from '@/lib/utils';
-import { getStudyPlans, saveStudyPlan } from '@/app/actions/study-plan';
-import { getSubjectMetrics, updateLessonStatus, type SubjectMetrics } from '@/app/actions/study';
-import { format, startOfDay } from 'date-fns';
+import { getStudyPlans, saveStudyPlan, getReviewCenterProgram, type ReviewCenterProgramData } from '@/app/actions/study-plan';
+import { getSubjectMetrics, getCategories, updateLessonStatus, type SubjectMetrics } from '@/app/actions/study';
+import { format, startOfDay, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 const INITIAL_CURRICULUM = [
@@ -89,6 +93,15 @@ const INITIAL_CURRICULUM = [
   }
 ];
 
+const ICON_MAP: Record<string, any> = {
+  "Clinical Chemistry": FlaskConical,
+  "Hematology": Microscope,
+  "Microbiology": Database,
+  "Immunology & Serology and Immunohematology": Stethoscope,
+  "Clinical Microscopy & Parasitology": FlaskConical,
+  "Histopathology & MT Laws": ShieldAlert
+};
+
 export default function StudyPage() {
   const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
@@ -96,6 +109,7 @@ export default function StudyPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState(INITIAL_CURRICULUM[0].id);
   const [targetDates, setTargetDates] = useState<Record<string, Date>>({});
   const [subjectMetrics, setSubjectMetrics] = useState<Record<string, SubjectMetrics>>({});
+  const [program, setProgram] = useState<ReviewCenterProgramData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(true);
@@ -104,10 +118,46 @@ export default function StudyPage() {
   useEffect(() => {
     setMounted(true);
     async function loadData() {
-      const [plans, metrics] = await Promise.all([
+      const [dbCategories, plans, metrics, programData] = await Promise.all([
+        getCategories(),
         getStudyPlans(),
         getSubjectMetrics(),
+        getReviewCenterProgram()
       ]);
+
+      setProgram(programData);
+
+      if (dbCategories && dbCategories.length > 0) {
+        const dynamicCurriculum = dbCategories.map((cat: any) => {
+          const existing = INITIAL_CURRICULUM.find(c => c.title.trim().toLowerCase() === cat.name.trim().toLowerCase());
+          if (existing) {
+            return {
+              ...existing,
+              id: cat.id || existing.id,
+              title: cat.name,
+            };
+          }
+
+          const slug = cat.id || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          return {
+            id: slug,
+            title: cat.name,
+            icon: ICON_MAP[cat.name] || BookMarked,
+            lessons: [
+              { id: `${slug}-1`, title: `${cat.name} Fundamentals & Core Concepts`, duration: "45m", status: "not-started" },
+              { id: `${slug}-2`, title: `${cat.name} Protocols & Comprehensive Review`, duration: "60m", status: "not-started" }
+            ]
+          };
+        });
+
+        setCurriculum(dynamicCurriculum);
+        if (dynamicCurriculum.length > 0) {
+          setSelectedCategoryId(prev => {
+            const existsInNew = dynamicCurriculum.some(c => c.id === prev);
+            return existsInNew ? prev : dynamicCurriculum[0].id;
+          });
+        }
+      }
 
       const dates: Record<string, Date> = {};
       plans.forEach((p: any) => {
@@ -188,22 +238,65 @@ export default function StudyPage() {
     <div className="min-h-full pb-20 lg:pb-12 bg-background">
       <header className="bg-background border-b px-6 py-8 lg:py-10">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="space-y-1">
-              <h1 className="text-3xl lg:text-4xl font-semibold text-foreground tracking-tight leading-none uppercase" style={{ fontFamily: "'Inter-bold', sans-serif"}}>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="space-y-1.5">
+              <h1 className="text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-none uppercase" style={{ fontFamily: "'Inter-bold', sans-serif" }}>
                 Study <span className="text-primary">Curriculum</span>
               </h1>
               <p className="text-[10px] lg:text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em]">
                 Intel Gathering & Concept Mastery
               </p>
             </div>
-            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-3 flex flex-col items-center gap-2">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">Final Deadline</span>
+
+            {/* Dynamic Review Center Program Final Deadline Stat Card (Clean Minimalist Design) */}
+            {program ? (
+              <div className="bg-card border-2 border-border/80 hover:border-primary/30 transition-all rounded-2xl p-4 lg:p-5 shadow-sm space-y-2.5 w-full sm:w-auto min-w-[280px] lg:min-w-[340px]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <CalendarIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Final Deadline</span>
+                  </div>
+                  {(() => {
+                    const daysLeft = differenceInDays(new Date(program.endDate), new Date());
+                    return (
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider border shrink-0",
+                        daysLeft <= 14 
+                          ? "bg-red-50 text-red-700 border-red-200" 
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      )}>
+                        {daysLeft > 0 ? `${daysLeft} days left` : 'Expired'}
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <p className="text-xl lg:text-2xl font-black text-foreground tracking-tight leading-none">
+                    {format(new Date(program.endDate), "MMMM dd, yyyy")}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate pt-0.5 border-t border-border/40">
+                  <Building2 className="w-3 h-3 text-primary shrink-0" />
+                  <span className="font-semibold text-foreground/90 capitalize truncate">{program.companyName}</span>
+                  <span className="text-muted-foreground/60">•</span>
+                  <span className="font-medium truncate">{program.title}</span>
+                </div>
               </div>
-              <p className="text-sm font-black text-red-700">June 15, 2026</p>
-            </div>
+            ) : (
+              <div className="bg-card border-2 border-border rounded-2xl p-4 lg:p-5 flex items-center gap-3.5 text-foreground shadow-sm w-full sm:w-auto">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Final Deadline</p>
+                  <p className="text-xs font-bold text-foreground">Loading schedule...</p>
+                </div>
+              </div>
+            )}
           </div>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -230,13 +323,13 @@ export default function StudyPage() {
                   onClick={() => setSelectedCategoryId(cat.id)}
                   className={cn(
                     "w-full flex items-center gap-4 p-5 rounded-3xl transition-all text-left border-2",
-                    isActive 
-                      ? "bg-background border-primary shadow-xl" 
+                    isActive
+                      ? "bg-background border-primary shadow-xl"
                       : "hover:bg-muted border-border bg-background"
                   )}
                 >
                   <div className={cn(
-                    "p-3 rounded-2xl shrink-0 transition-colors", 
+                    "p-3 rounded-2xl shrink-0 transition-colors",
                     isActive ? "bg-primary text-white" : "bg-secondary text-muted-foreground"
                   )}>
                     <Icon className="h-6 w-6" />
@@ -271,7 +364,7 @@ export default function StudyPage() {
                   </CardTitle>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Discipline Parameters</p>
                 </div>
-                
+
                 {isDesktop ? (
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                     <PopoverTrigger asChild>
@@ -381,9 +474,9 @@ export default function StudyPage() {
                       <span className={cn(
                         "text-[9px] font-semibold px-2 py-1 rounded-full uppercase",
                         subjectMetrics[selectedCategory.title]?.masteryStatus === 'Mastered' ? "bg-green-100 text-green-700" :
-                        subjectMetrics[selectedCategory.title]?.masteryStatus === 'Proficient' ? "bg-blue-100 text-blue-700" :
-                        subjectMetrics[selectedCategory.title]?.masteryStatus === 'In Training' ? "bg-orange-100 text-orange-700" :
-                        "bg-secondary text-slate-600"
+                          subjectMetrics[selectedCategory.title]?.masteryStatus === 'Proficient' ? "bg-blue-100 text-blue-700" :
+                            subjectMetrics[selectedCategory.title]?.masteryStatus === 'In Training' ? "bg-orange-100 text-orange-700" :
+                              "bg-secondary text-slate-600"
                       )}>
                         {subjectMetrics[selectedCategory.title]?.masteryStatus || 'Not Started'}
                       </span>

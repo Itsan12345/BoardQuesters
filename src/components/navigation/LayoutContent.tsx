@@ -93,7 +93,7 @@ export function LayoutContent({
         <div className="hidden lg:block">
           <AppSidebar />
         </div>
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
           {children}
         </main>
       </div>

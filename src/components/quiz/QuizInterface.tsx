@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Loader2, Sparkles, BrainCircuit, Shield, Flame, Sword, ShieldPlus, Swords, ArrowRight, CornerDownLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Sparkles, BrainCircuit, Shield, Flame, Sword, ShieldPlus, Swords, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type Question = {
@@ -173,7 +173,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
           onFinish(newScore);
           setIsTransitioning(false);
         }
-      }, 500);
+      }, 1000);
     }
   };
 
@@ -343,32 +343,36 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                 const letter = optionLetters[idx];
                 const isSelected = selectedAnswer === letter;
                 
-                // Only show correctness in Learning Mode
-                const isCorrect = (mode === 'learning' || mode === 'boss-battle') && isAnswered && letter === currentQuestion.correctAnswer;
-                const isWrong = (mode === 'learning' || mode === 'boss-battle') && isAnswered && isSelected && !isCorrect;
+                // Show correctness indicators
+                const isCorrect = isAnswered && letter === currentQuestion.correctAnswer;
+                const isWrong = isAnswered && isSelected && !isCorrect;
 
                 return (
                   <button
                     key={letter}
-                    disabled={(isAnswered && (mode === 'learning' || mode === 'boss-battle')) || isTransitioning}
+                    disabled={isAnswered || isTransitioning}
                     onClick={() => handleSubmit(letter)}
                     className={cn(
                       "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm",
                       !isAnswered && !isTransitioning && "bg-background border-transparent hover:border-primary/20",
-                      isSelected && mode === 'test' && isTransitioning && "border-primary bg-primary/10 shadow-md shadow-primary/20 scale-[1.02]",
                       isCorrect && "bg-green-50 border-green-500 shadow-green-100",
                       isWrong && "bg-red-50 border-red-500 shadow-red-100",
-                      (mode === 'learning' || mode === 'boss-battle') && isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
+                      isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
                     )}
                   >
                     <div className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm transition-all",
                       isCorrect ? "bg-green-500 text-white" : 
                       isWrong ? "bg-red-500 text-white" : 
-                      isSelected && mode === 'test' && isTransitioning ? "bg-primary text-white animate-pulse" :
                       isSelected ? "bg-primary text-white" : "bg-muted text-primary"
                     )}>
-                      {isCorrect || (isSelected && mode === 'test' && isTransitioning) ? <CheckCircle2 className="w-4 h-4" /> : letter}
+                      {isCorrect ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : isWrong ? (
+                        <XCircle className="w-4 h-4" />
+                      ) : (
+                        letter
+                      )}
                     </div>
                     <span className={cn(
                       "text-sm font-bold flex-1",

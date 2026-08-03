@@ -65,3 +65,68 @@ export async function getStudyPlans(): Promise<any[]> {
     return [];
   }
 }
+
+export interface ReviewCenterProgramData {
+  id: string;
+  title: string;
+  description?: string;
+  companyName: string;
+  category?: string;
+  startDate?: string;
+  endDate: string;
+  status: string;
+}
+
+export async function getReviewCenterProgram(): Promise<ReviewCenterProgramData | null> {
+  try {
+    try {
+      const p = await (prisma as any).reviewCenterProgram.findFirst({
+        where: { status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (p) return JSON.parse(JSON.stringify(p));
+    } catch (_) {
+      // Fall through to raw command
+    }
+
+    const rawResult: any = await prisma.$runCommandRaw({
+      find: "ReviewCenterProgram",
+      filter: { status: "ACTIVE" },
+      limit: 1
+    });
+
+    let firstBatch = rawResult?.cursor?.firstBatch;
+
+    if (!firstBatch || firstBatch.length === 0) {
+      const rawResultFallback: any = await prisma.$runCommandRaw({
+        find: "ReviewCenterProgram",
+        limit: 1
+      });
+      firstBatch = rawResultFallback?.cursor?.firstBatch;
+    }
+
+    if (firstBatch && firstBatch.length > 0) {
+      const doc = firstBatch[0];
+      const endDateVal = doc.endDate?.$date || doc.endDate;
+      const startDateVal = doc.startDate?.$date || doc.startDate;
+      const idVal = doc._id?.$oid || doc._id;
+
+      return {
+        id: String(idVal),
+        title: doc.title || 'Review Period',
+        description: doc.description || '',
+        companyName: doc.companyName || 'berndt review center',
+        category: doc.category || 'Board Review',
+        startDate: startDateVal ? new Date(startDateVal).toISOString() : undefined,
+        endDate: endDateVal ? new Date(endDateVal).toISOString() : new Date(2026, 10, 30).toISOString(),
+        status: doc.status || 'ACTIVE'
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to fetch ReviewCenterProgram:', error);
+    return null;
+  }
+}
+

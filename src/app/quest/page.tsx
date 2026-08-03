@@ -54,6 +54,7 @@ const SUBJECT_METADATA: Record<string, {
   enemy: string;
   imageUrl?: string;
   backgroundUrl?: string;
+  arenaBackgroundUrl?: string;
   difficulty: number;
   biome: string;
   description: string;
@@ -65,6 +66,7 @@ const SUBJECT_METADATA: Record<string, {
     enemy: "Hyperglycemic Specter",
     imageUrl: "/images/ClinChem256.png",
     backgroundUrl: "/images/ClinChem256_bg.png",
+    arenaBackgroundUrl: "/ui/background_clinicalchem.png",
     difficulty: 4,
     biome: "Crystal Peak Archipelago",
     description: "The air is thick with the scent of ozone and reagents. Master the metabolic currents."
@@ -187,6 +189,9 @@ export default function LearningQuest() {
   const [judgementText, setJudgementText] = useState<string | null>(null);
   const isFinishingRef = useRef(false);
 
+  // Cutscene State
+  const [introPhase, setIntroPhase] = useState<'hidden' | 'cutscene' | 'vs' | 'active'>('active');
+
   // RPG States
   const [playerHealth, setPlayerHealth] = useState(100);
   const [enemyHealth, setEnemyHealth] = useState(100);
@@ -226,6 +231,36 @@ export default function LearningQuest() {
       }
     }
   }, [enemyHealth, playerHealth, isStarted, isFinished, quizMode, userAnswers]);
+
+  // Cutscene Timers
+  useEffect(() => {
+    if (!isStarted) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    if (introPhase === 'cutscene' || introPhase === 'vs') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    if (introPhase === 'cutscene') {
+      const timer = setTimeout(() => setIntroPhase('vs'), 2500); // Wait 2.5s showing just the background
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = '';
+      };
+    }
+    
+    if (introPhase === 'vs') {
+      const timer = setTimeout(() => setIntroPhase('active'), 1200); // 1.2s for characters to slide in before quiz appears
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = '';
+      };
+    }
+  }, [introPhase, isStarted]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -267,18 +302,18 @@ export default function LearningQuest() {
       // Level-scaled HP: 200 base + 5 per level
       const startingHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
       setPlayerHealth(startingHp);
-      
+
       let bossStartingHp = 100;
       if (quizMode === 'boss-battle') {
         const diffBase = specificDifficulty === 'EASY' ? 400 : specificDifficulty === 'HARD' ? 800 : 600;
         const levelScaling = specificDifficulty === 'EASY' ? 5 : specificDifficulty === 'HARD' ? 12 : 8;
         const calculatedHp = Math.floor(diffBase + (userLevel * levelScaling));
-        
+
         // Ensure boss is physically beatable with the number of questions available in the DB
         const playerMul = specificDifficulty === 'EASY' ? 1.5 : specificDifficulty === 'HARD' ? 0.7 : 1;
         const maxPossibleDamage = selected.length * 25 * playerMul;
         const safeHpCap = Math.max(100, Math.floor(maxPossibleDamage * 0.8)); // Assumes player needs 80% accuracy using normal attacks to win
-        
+
         bossStartingHp = Math.min(calculatedHp, safeHpCap);
       }
       setEnemyHealth(bossStartingHp);
@@ -287,8 +322,20 @@ export default function LearningQuest() {
       setPlayerPoisoned(false);
       setBattleOutcome(null);
       setShowBattleLog(false);
+
+      const activeBg = SUBJECT_METADATA[selectedSubject]?.arenaBackgroundUrl || SUBJECT_METADATA[selectedSubject]?.backgroundUrl;
+      if (quizMode === 'boss-battle' && activeBg) {
+        setIntroPhase('cutscene');
+      } else {
+        setIntroPhase('hidden');
+        setTimeout(() => setIntroPhase('vs'), 50); // slight delay to trigger CSS transition
+      }
+
       setIsStarted(true);
       setIsFinished(false);
+      
+      // Ensure we start at the top of the page so the cutscene is fully visible
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -383,15 +430,15 @@ export default function LearningQuest() {
     if (quizMode === 'boss-battle') {
       const bossMul = bossDifficulty === 'EASY' ? 0.7 : bossDifficulty === 'HARD' ? 1.5 : 1;
       const playerMul = bossDifficulty === 'EASY' ? 1.5 : bossDifficulty === 'HARD' ? 0.7 : 1;
-      
+
       // Level-scaled damage: Add a bonus 0.5 base damage per level
       const levelBonusDamage = userLevel * 0.5;
 
       enemyDmg = (enemyDmg + (enemyDmg > 0 ? levelBonusDamage : 0)) * playerMul;
-      
+
       const bossBonusDamage = userLevel * 0.4;
       playerDmg = (playerDmg + (playerDmg > 0 ? bossBonusDamage : 0)) * bossMul;
-      
+
       enemyHeal *= bossMul;
       playerHeal *= playerMul;
     }
@@ -494,7 +541,7 @@ export default function LearningQuest() {
       });
       setEarnedBadges(badges);
     }
-    
+
     // Show Judgement Text
     setJudgementText(finalOutcome === 'victory' ? 'VICTORY' : 'GAME OVER');
 
@@ -568,11 +615,14 @@ export default function LearningQuest() {
   const EnemyIcon = subjectMeta.icon;
 
   if (isFinished) {
-    const isVictor = quizMode === 'boss-battle' ? battleOutcome === 'victory' : (score > questions.length / 2);
+    const isVictor = quizMode === 'boss-battle' ? battleOutcome === 'victory' : ((score / questions.length) >= 0.75);
 
     return (
-      <div className="max-w-4xl mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-12 animate-in fade-in zoom-in duration-500">
-
+      <div 
+        ref={fullscreenRef}
+        className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen overflow-y-auto" : "")}
+      >
+        <div className="flex-1 max-w-4xl w-full mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-12 animate-in fade-in zoom-in duration-500">
         {/* For standard learning/test modes, show the original header */}
         {quizMode !== 'boss-battle' && (
           <header className="text-center space-y-4 md:space-y-6">
@@ -637,8 +687,8 @@ export default function LearningQuest() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-lg mt-4">
-              <Button 
-                onClick={() => setShowBattleLog(true)} 
+              <Button
+                onClick={() => setShowBattleLog(true)}
                 className="w-full h-14 md:h-16 text-xl md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-amber-400 hover:bg-amber-500 text-black hover:-translate-y-1 transition-transform"
               >
                 Review Battle Log
@@ -842,7 +892,7 @@ export default function LearningQuest() {
                 {questions.map((q, idx) => {
                   const userAns = userAnswers.find(ua => ua.questionIndex === idx);
                   if (!userAns) return null;
-                  
+
                   const isCorrect = userAns.isCorrect;
 
                   return (
@@ -950,6 +1000,7 @@ export default function LearningQuest() {
           </Link>
         </div>
       </div>
+      </div>
     );
   }
 
@@ -957,7 +1008,7 @@ export default function LearningQuest() {
     const maxPlayerHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
     const diffBase = bossDifficulty === 'EASY' ? 400 : bossDifficulty === 'HARD' ? 800 : 600;
     const levelScaling = bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8;
-    
+
     let maxEnemyHp = 100;
     if (quizMode === 'boss-battle') {
       const calculatedHp = Math.floor(diffBase + (userLevel * levelScaling));
@@ -970,7 +1021,11 @@ export default function LearningQuest() {
     return (
       <div
         ref={fullscreenRef}
-        className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen overflow-y-auto" : "")}
+        className={cn(
+          "min-h-full flex flex-col bg-background", 
+          isFullscreen ? "h-screen w-screen" : "",
+          (introPhase === 'cutscene' || introPhase === 'vs') ? "overflow-hidden" : (isFullscreen ? "overflow-y-auto no-scrollbar" : "no-scrollbar")
+        )}
       >
         {/* Exit Confirmation Dialog */}
         <Dialog open={leaveConfirmDialogOpen} onOpenChange={setLeaveConfirmDialogOpen}>
@@ -1020,8 +1075,27 @@ export default function LearningQuest() {
           </div>
         )}
 
-        <main className="flex-1 flex flex-col">
-          <div className="relative h-[35vh] md:h-[45vh] bg-gradient-to-b from-primary to-black overflow-hidden border-b flex flex-col">
+        <main className={cn("flex-1 flex flex-col relative", introPhase !== 'active' && "overflow-hidden")}>
+          <div
+            className={cn(
+              "relative overflow-hidden border-b flex flex-col transition-all duration-1000 ease-in-out shrink-0",
+              introPhase === 'cutscene' ? "h-[85vh] md:h-[100vh]" : "h-[35vh] md:h-[45vh]",
+              !(SUBJECT_METADATA[selectedSubject]?.arenaBackgroundUrl || SUBJECT_METADATA[selectedSubject]?.backgroundUrl) && "bg-gradient-to-b from-primary to-black"
+            )}
+            style={{
+              ...((SUBJECT_METADATA[selectedSubject]?.arenaBackgroundUrl || SUBJECT_METADATA[selectedSubject]?.backgroundUrl) ? {
+                backgroundImage: `url('${SUBJECT_METADATA[selectedSubject]?.arenaBackgroundUrl || SUBJECT_METADATA[selectedSubject]?.backgroundUrl}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              } : {})
+            }}
+          >
+            {/* Dark Overlay that fades in after cutscene intro */}
+            <div className={cn(
+              "absolute inset-0 transition-all duration-1000",
+              introPhase === 'cutscene' ? "bg-black/0 backdrop-blur-none" : "bg-black/60 backdrop-blur-sm"
+            )} />
+
             <header className="px-4 py-3 flex items-center justify-between relative z-10 w-full drop-shadow-md">
               <Button variant="ghost" size="icon" onClick={() => setLeaveConfirmDialogOpen(true)} className="rounded-full shrink-0 text-white hover:bg-white/20">
                 <ChevronLeft className="h-6 w-6" />
@@ -1032,16 +1106,28 @@ export default function LearningQuest() {
                   {quizMode === 'learning' ? 'Intel Gathering' : 'Battle Simulation'}
                 </p>
               </div>
-              <div className="w-10 flex shrink-0 justify-end" >
-                <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-white hover:bg-white/20" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
-                  {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+              <div className="flex shrink-0 justify-end items-center gap-2" >
+                {introPhase === 'cutscene' && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setIntroPhase('vs')}
+                    className="font-black uppercase tracking-widest text-[8px] md:text-[10px] animate-pulse h-8"
+                  >
+                    Skip Cutscene
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-white hover:bg-white/20 h-8 w-8" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                 </Button>
               </div>
             </header>
 
             {/* Health Bars Stacked on Mobile, Floating on Desktop */}
+            {/* Enemy */}
             <div className={cn(
-              "absolute top-14 right-4 md:top-16 md:right-8 transition-all duration-300 z-10",
+              "absolute top-14 right-4 md:top-16 md:right-8 transition-all duration-1000 ease-out z-10",
+              (introPhase === 'cutscene' || introPhase === 'hidden') ? 'translate-x-[150%]' : 'translate-x-0',
               isAnimating === "enemy" && "animate-shake scale-110"
             )}>
               <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
@@ -1070,8 +1156,10 @@ export default function LearningQuest() {
               </div>
             </div>
 
+            {/* Player */}
             <div className={cn(
-              "absolute bottom-4 left-4 md:bottom-6 md:left-8 transition-all duration-300 z-10",
+              "absolute bottom-4 left-4 md:bottom-6 md:left-8 transition-all duration-1000 ease-out z-10",
+              (introPhase === 'cutscene' || introPhase === 'hidden') ? '-translate-x-[150%]' : 'translate-x-0',
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="flex items-center gap-3">
@@ -1098,7 +1186,10 @@ export default function LearningQuest() {
             </div>
           </div>
 
-          <div className="flex-1 bg-background">
+          <div className={cn(
+            "flex-1 bg-background transition-transform duration-700 ease-out z-20",
+            introPhase === 'active' ? 'translate-y-0' : 'translate-y-[100%]'
+          )}>
             <QuizInterface
               questions={questions}
               onFinish={handleFinish}
@@ -1332,115 +1423,115 @@ export default function LearningQuest() {
                   </>
                 ) : setupStep === 'details' ? (
                   <div className="flex flex-col w-full h-full bg-black/60 rounded-xl p-2 min-[375px]:p-3 md:p-6 overflow-hidden no-scrollbar border border-white/10 shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95 relative">
-                    
+
                     {/* INFO SECTION */}
                     <div className={cn("flex-1 flex flex-col relative", mobileModalStep === 'action' ? "hidden md:flex" : "flex")}>
                       {quizMode === 'learning' && (
-                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
-                        <div className="text-center space-y-0.5 sm:space-y-1">
-                          <h3 className="font-bytebounce text-primary text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Intel Gathering</h3>
-                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
-                            Hone your skills in a low-pressure environment. The AI Tutor provides immediate rationale after every answer. Master the basics before facing the real challenge.
-                          </p>
+                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
+                          <div className="text-center space-y-0.5 sm:space-y-1">
+                            <h3 className="font-bytebounce text-primary text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Intel Gathering</h3>
+                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                              Hone your skills in a low-pressure environment. The AI Tutor provides immediate rationale after every answer. Master the basics before facing the real challenge.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <Zap className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Immediate Feedback</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <BrainCircuit className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-blue-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">AI Tutor Analysis</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <Target className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-green-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Precision Training</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <Zap className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Immediate Feedback</p>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <BrainCircuit className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-blue-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">AI Tutor Analysis</p>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <Target className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-green-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Precision Training</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {quizMode === 'test' && (
-                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
-                        <div className="text-center space-y-0.5 sm:space-y-1">
-                          <h3 className="font-bytebounce text-destructive text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Combat Simulation</h3>
-                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
-                            A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters.
-                          </p>
+                      {quizMode === 'test' && (
+                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
+                          <div className="text-center space-y-0.5 sm:space-y-1">
+                            <h3 className="font-bytebounce text-destructive text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Combat Simulation</h3>
+                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                              A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <Clock className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-orange-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Continuous Flow</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <Trophy className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Graded Assessment</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
+                              <Activity className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-red-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Adaptive Difficulty</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <Clock className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-orange-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Continuous Flow</p>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <Trophy className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Graded Assessment</p>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                            <Activity className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-red-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Adaptive Difficulty</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {quizMode === 'boss-battle' && (
-                      <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-4 overflow-hidden">
-                        <div className="text-center space-y-0.5 sm:space-y-2">
-                          <h3 className="font-bytebounce text-purple-400 text-3xl md:text-4xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Ultimate Challenge</h3>
-                          <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
-                            Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics. Do you have what it takes to survive?
-                          </p>
+                      {quizMode === 'boss-battle' && (
+                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-4 overflow-hidden">
+                          <div className="text-center space-y-0.5 sm:space-y-2">
+                            <h3 className="font-bytebounce text-purple-400 text-3xl md:text-4xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Ultimate Challenge</h3>
+                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                              Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics. Do you have what it takes to survive?
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-3 max-w-2xl mx-auto w-full">
+                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                              <ShieldAlert className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-blue-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-blue-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Shield Phase</p>
+                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
+                            </div>
+                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                              <Biohazard className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-green-400 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-green-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Poison</p>
+                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
+                            </div>
+                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
+                              <Flame className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-red-500 shrink-0" />
+                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-red-400 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Enrage</p>
+                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-3 max-w-2xl mx-auto w-full">
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                            <ShieldAlert className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-blue-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-blue-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Shield Phase</p>
-                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
-                          </div>
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                            <Biohazard className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-green-400 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-green-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Poison</p>
-                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
-                          </div>
-                          <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                            <Flame className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-red-500 shrink-0" />
-                            <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-red-400 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Enrage</p>
-                            <p className="hidden sm:block text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Mobile Back to Modes */}
-                    {mobileModalStep === 'info' && (
-                      <div className="md:hidden mt-auto pt-2 pb-1 w-full flex justify-center">
-                        <button 
-                          onClick={() => setSetupStep('mode')} 
-                          className="text-white/50 hover:text-white font-bytebounce text-xs min-[375px]:text-sm uppercase tracking-widest transition-colors"
+                      {/* Mobile Back to Modes */}
+                      {mobileModalStep === 'info' && (
+                        <div className="md:hidden mt-auto pt-2 pb-1 w-full flex justify-center">
+                          <button
+                            onClick={() => setSetupStep('mode')}
+                            className="text-white/50 hover:text-white font-bytebounce text-xs min-[375px]:text-sm uppercase tracking-widest transition-colors"
+                          >
+                            &larr; Back to Modes
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Mobile Next Arrow */}
+                      {mobileModalStep === 'info' && (
+                        <button
+                          onClick={() => setMobileModalStep('action')}
+                          className="md:hidden absolute right-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10 animate-pulse"
                         >
-                          &larr; Back to Modes
+                          <ChevronRight className="w-4 h-4 text-white" />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {/* Mobile Next Arrow */}
-                    {mobileModalStep === 'info' && (
-                      <button 
-                        onClick={() => setMobileModalStep('action')}
-                        className="md:hidden absolute right-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10 animate-pulse"
-                      >
-                        <ChevronRight className="w-4 h-4 text-white" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* ACTION SECTION */}
-                  <div className={cn("mt-auto pt-2 md:pt-6 w-full max-w-2xl mx-auto border-t md:border-white/10 flex-col items-center gap-2 md:gap-4 shrink-0 relative", mobileModalStep === 'info' ? "hidden md:flex" : "flex", mobileModalStep === 'action' ? "border-transparent h-full justify-center" : "border-white/10")}>
+                    {/* ACTION SECTION */}
+                    <div className={cn("mt-auto pt-2 md:pt-6 w-full max-w-2xl mx-auto border-t md:border-white/10 flex-col items-center gap-2 md:gap-4 shrink-0 relative", mobileModalStep === 'info' ? "hidden md:flex" : "flex", mobileModalStep === 'action' ? "border-transparent h-full justify-center" : "border-white/10")}>
                       {/* Mobile Back Arrow */}
                       {mobileModalStep === 'action' && (
-                        <button 
+                        <button
                           onClick={() => setMobileModalStep('info')}
                           className="md:hidden absolute left-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10"
                         >
