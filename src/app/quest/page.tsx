@@ -205,13 +205,30 @@ export default function LearningQuest() {
   const [showBattleLog, setShowBattleLog] = useState(false);
   const [bossDifficulty, setBossDifficulty] = useState<string | null>(null);
   const [userLevel, setUserLevel] = useState<number>(1);
+  const [userLastName, setUserLastName] = useState<string>('Aspirant');
 
-  // Fetch User Level on mount
+  const [streak, setStreak] = useState(0);
+  const [floatingTexts, setFloatingTexts] = useState<{ id: string, target: 'player' | 'enemy', text: string, color: string }[]>([]);
+  const [hitFlash, setHitFlash] = useState(false);
+
+  const addFloatingText = (target: 'player' | 'enemy', text: string, color: string) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setFloatingTexts(prev => [...prev, { id, target, text, color }]);
+    setTimeout(() => {
+      setFloatingTexts(prev => prev.filter(ft => ft.id !== id));
+    }, 1500);
+  };
+
+  // Fetch User Info on mount
   useEffect(() => {
     async function fetchUser() {
       try {
         const profile = await getUserProfile();
         if (profile?.level) setUserLevel(profile.level);
+        if (profile?.name) {
+          const parts = profile.name.trim().split(/\s+/);
+          setUserLastName(parts[parts.length - 1]);
+        }
       } catch (e) {
         console.error("Failed to load user level");
       }
@@ -356,6 +373,12 @@ export default function LearningQuest() {
       difficulty: questionData?.difficulty
     }]);
 
+    if (isCorrect) {
+      setStreak(prev => prev + 1);
+    } else {
+      setStreak(0);
+    }
+
     const baseDamage = quizMode === 'boss-battle' ? 25 : 100 / (questions.length || 5);
     let enemyDmg = 0;
     let playerDmg = 0;
@@ -450,22 +473,30 @@ export default function LearningQuest() {
       const levelScaling = bossDifficulty === 'EASY' ? 5 : bossDifficulty === 'HARD' ? 12 : 8;
       const maxEnemyHp = quizMode === 'boss-battle' ? Math.floor(diffBase + (userLevel * levelScaling)) : 100;
       setEnemyHealth(prev => Math.min(maxEnemyHp, prev + enemyHeal));
+      addFloatingText('enemy', `+${Math.ceil(enemyHeal)} HEALED!`, 'text-green-400');
     }
 
     if (enemyDmg > 0) {
       setIsAnimating("enemy");
       setEnemyHealth(prev => Math.max(0, prev - enemyDmg));
+      addFloatingText('enemy', `-${Math.ceil(enemyDmg)} ${action === 'heavy' ? 'CRITICAL HIT!' : 'DMG!'}`, 'text-yellow-400');
     }
 
     if (playerDmg > 0) {
       setIsAnimating("player");
       setPlayerHealth(prev => Math.max(0, prev - playerDmg));
+      addFloatingText('player', `-${Math.ceil(playerDmg)} DMG!`, 'text-red-500');
+      if (playerDmg >= baseDamage || quizMode === 'boss-battle') {
+        setHitFlash(true);
+        setTimeout(() => setHitFlash(false), 300);
+      }
     }
 
     if (playerHeal > 0) {
       setIsAnimating("player");
       const maxHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
       setPlayerHealth(prev => Math.min(maxHp, prev + playerHeal));
+      addFloatingText('player', `+${Math.ceil(playerHeal)} HEALED!`, 'text-green-400');
     }
 
     setPlayerPoisoned(newPoisonedState);
@@ -1022,9 +1053,10 @@ export default function LearningQuest() {
       <div
         ref={fullscreenRef}
         className={cn(
-          "min-h-full flex flex-col bg-background", 
+          "min-h-full flex flex-col bg-background transition-transform", 
           isFullscreen ? "h-screen w-screen" : "",
-          (introPhase === 'cutscene' || introPhase === 'vs') ? "overflow-hidden" : (isFullscreen ? "overflow-y-auto no-scrollbar" : "no-scrollbar")
+          (introPhase === 'cutscene' || introPhase === 'vs') ? "overflow-hidden" : (isFullscreen ? "overflow-y-auto no-scrollbar" : "no-scrollbar"),
+          hitFlash && "animate-shake-subtle"
         )}
       >
         {/* Exit Confirmation Dialog */}
@@ -1096,6 +1128,12 @@ export default function LearningQuest() {
               introPhase === 'cutscene' ? "bg-black/0 backdrop-blur-none" : "bg-black/60 backdrop-blur-sm"
             )} />
 
+            {/* Hit Flash Overlay */}
+            <div className={cn(
+              "absolute inset-0 bg-red-600 z-50 pointer-events-none transition-opacity duration-300",
+              hitFlash ? "opacity-30" : "opacity-0"
+            )} />
+
             <header className="px-4 py-3 flex items-center justify-between relative z-10 w-full drop-shadow-md">
               <Button variant="ghost" size="icon" onClick={() => setLeaveConfirmDialogOpen(true)} className="rounded-full shrink-0 text-white hover:bg-white/20">
                 <ChevronLeft className="h-6 w-6" />
@@ -1151,8 +1189,14 @@ export default function LearningQuest() {
                   <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / maxEnemyHp) * 100)}%` }} />
                 </div>
               </div>
-              <div className="flex justify-end pr-2 md:pr-4 mt-2">
+              <div className="flex justify-end pr-2 md:pr-4 mt-2 relative">
                 <EnemyIcon className="w-12 h-12 md:w-20 md:h-20 text-white drop-shadow-glow" />
+                {/* Enemy Floating Text */}
+                {floatingTexts.filter(ft => ft.target === 'enemy').map(ft => (
+                  <div key={ft.id} className={cn("absolute -top-4 right-10 font-bytebounce text-2xl md:text-3xl animate-float-up pointer-events-none z-50 whitespace-nowrap", ft.color)} style={{ textShadow: '2px 2px 0 #000' }}>
+                    {ft.text}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1163,12 +1207,28 @@ export default function LearningQuest() {
               isAnimating === "player" && "animate-shake scale-110"
             )}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 md:w-20 md:h-20 bg-background rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl">
-                  <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
+                <div className="relative">
+                  <div className="w-12 h-12 md:w-20 md:h-20 bg-background rounded-xl md:rounded-2xl rotate-3 flex items-center justify-center border-2 md:border-4 border-primary shadow-2xl">
+                    <Shield className="w-6 h-6 md:w-10 md:h-10 text-primary" />
+                  </div>
+                  {/* Player Floating Text */}
+                  {floatingTexts.filter(ft => ft.target === 'player').map(ft => (
+                    <div key={ft.id} className={cn("absolute -top-6 left-2 font-bytebounce text-2xl md:text-3xl animate-float-up pointer-events-none z-50 whitespace-nowrap", ft.color)} style={{ textShadow: '2px 2px 0 #000' }}>
+                      {ft.text}
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px] relative">
+                  {streak >= 2 && (
+                    <div className="absolute -top-3.5 -right-2 z-30 animate-bounce">
+                      <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 border border-yellow-300 text-white font-bytebounce text-xs md:text-sm px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.8)] flex items-center gap-1 whitespace-nowrap">
+                        <Flame className="w-3 h-3 text-yellow-200 fill-yellow-200 animate-pulse" />
+                        {streak}x COMBO
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mb-1 gap-2">
-                    <span className="text-[7px] md:text-[8px] font-black text-white uppercase">Aspirant Rivera</span>
+                    <span className="text-[7px] md:text-[8px] font-black text-white uppercase">Aspirant {userLastName}</span>
                     <div className="flex items-center gap-1">
                       {playerPoisoned && <span className="text-[7px] md:text-[8px] bg-green-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Taking damage every turn! Defend to cure.">POISONED</span>}
                       <span className="text-[7px] md:text-[8px] bg-background text-primary px-1.5 py-0.5 rounded font-black shrink-0">LVL {userLevel}</span>
@@ -1199,6 +1259,7 @@ export default function LearningQuest() {
               mode={quizMode}
               bossShieldActive={bossShieldActive}
               playerPoisoned={playerPoisoned}
+              streak={streak}
             />
           </div>
         </main>

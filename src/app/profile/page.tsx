@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Settings, LogOut, MapPin, Mail, Calendar as CalendarIcon, Zap, Trophy, Clock, Award } from 'lucide-react';
+import { Settings, LogOut, MapPin, Mail, Calendar as CalendarIcon, Zap, Trophy, Clock, Award, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +13,84 @@ import { getUserProfile } from '@/app/actions/user';
 import { useToast } from '@/hooks/use-toast';
 import { BADGES, BadgeId, getLevelProgress, getRankTitle } from '@/lib/badge-system';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+const BADGE_SPRITE_DEFINITIONS: Record<string, {
+  title: string;
+  sprite: string;
+  bgGradient: string;
+  borderColor: string;
+}> = {
+  speed: {
+    title: 'Speed Master',
+    sprite: '/ui/speedmaster-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+  'swift-solver': {
+    title: 'Speed Master',
+    sprite: '/ui/speedmaster-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+  master: {
+    title: 'Master',
+    sprite: '/ui/master-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+  adept: {
+    title: 'Adept',
+    sprite: '/ui/adept-badge.png',
+    bgGradient: 'from-[#7986CB] via-[#5C6BC0] to-[#3F51B5]',
+    borderColor: 'border-[#303F9F]',
+  },
+  bronze: {
+    title: 'Bronze',
+    sprite: '/ui/bronze-badge.png',
+    bgGradient: 'from-[#9C7A68] via-[#5D4037] to-[#2E1C14]',
+    borderColor: 'border-[#271B17]',
+  },
+  gold: {
+    title: 'Gold',
+    sprite: '/ui/gold-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+  silver: {
+    title: 'Silver',
+    sprite: '/ui/silver-badge.png',
+    bgGradient: 'from-[#EEEEEE] via-[#757575] to-[#37474F]',
+    borderColor: 'border-[#263238]',
+  },
+  'streak-7': {
+    title: 'Adept',
+    sprite: '/ui/adept-badge.png',
+    bgGradient: 'from-[#7986CB] via-[#5C6BC0] to-[#3F51B5]',
+    borderColor: 'border-[#303F9F]',
+  },
+  'streak-14': {
+    title: 'Master',
+    sprite: '/ui/master-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+  'streak-30': {
+    title: 'Speed Master',
+    sprite: '/ui/speedmaster-badge.png',
+    bgGradient: 'from-[#FFB732] via-[#FFA000] to-[#F57C00]',
+    borderColor: 'border-[#E67E22]',
+  },
+};
+
+const DEFAULT_SHOWCASE_BADGES = [
+  BADGE_SPRITE_DEFINITIONS.speed,
+  BADGE_SPRITE_DEFINITIONS.master,
+  BADGE_SPRITE_DEFINITIONS.adept,
+  BADGE_SPRITE_DEFINITIONS.bronze,
+  BADGE_SPRITE_DEFINITIONS.gold,
+  BADGE_SPRITE_DEFINITIONS.silver,
+];
 
 interface UserProfile {
   id: string;
@@ -250,53 +328,85 @@ function ProfileContent() {
 
           {/* Right Column - Achievements and Activity */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Achievements/Badges Grid */}
-            <Card className="border border-border shadow-lg rounded-2xl">
-              <CardHeader className="pb-3">
+            {/* Achievements/Badges Grid (Dynamic Earned Badges Only) */}
+            <Card className="border border-border shadow-lg rounded-2xl overflow-hidden bg-background">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#8B0000]" /> Achievements
-                  </CardTitle>
-                  <span className="text-sm font-bold text-muted-foreground">
-                    {userProfile.achievements?.filter(a => a.badge).length || 0} badges
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-6 h-6 text-[#8B0000]" />
+                    <CardTitle className="text-xl font-bold text-foreground">
+                      Achievements
+                    </CardTitle>
+                  </div>
+                  <button className="text-sm font-semibold text-[#8B0000] underline underline-offset-4 hover:opacity-80 transition-opacity">
+                    View ALL
+                  </button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground font-medium mb-4">
+                <p className="text-xs text-muted-foreground font-medium mt-1">
                   Badges earned through your BoardQuest journey.
                 </p>
-                <div className="grid grid-cols-4 gap-3">
-                  {userProfile.achievements && userProfile.achievements.filter(a => a.badge).length > 0 ? (
-                    userProfile.achievements
-                      .filter(a => a.badge)
-                      .map((achievement) => {
-                        const badgeData = BADGES[achievement.badge as BadgeId];
-                        return (
+              </CardHeader>
+              <CardContent className="pt-2 pb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+                  {(() => {
+                    const earnedBadgeMap = new Map<string, typeof BADGE_SPRITE_DEFINITIONS[string]>();
+                    userProfile.achievements?.forEach(a => {
+                      if (a.badge && BADGE_SPRITE_DEFINITIONS[a.badge]) {
+                        const def = BADGE_SPRITE_DEFINITIONS[a.badge];
+                        if (!earnedBadgeMap.has(def.title)) {
+                          earnedBadgeMap.set(def.title, def);
+                        }
+                      }
+                    });
+
+                    const earnedBadgesList = Array.from(earnedBadgeMap.values());
+                    const lockedCount = Math.max(0, 8 - earnedBadgesList.length);
+
+                    return (
+                      <>
+                        {earnedBadgesList.map((badge, idx) => (
                           <div
-                            key={achievement.id}
-                            className="aspect-square bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg flex flex-col items-center justify-center border-2 border-yellow-300 p-2 group cursor-pointer hover:shadow-lg transition-all"
-                            title={badgeData?.name}
+                            key={idx}
+                            className={cn(
+                              "relative aspect-[0.95/1] rounded-[22px] p-3 flex flex-col items-center justify-between border-2 shadow-md hover:scale-105 transition-all duration-200 cursor-pointer overflow-hidden group bg-gradient-to-b animate-in fade-in zoom-in duration-300",
+                              badge.bgGradient,
+                              badge.borderColor
+                            )}
+                            title={badge.title}
                           >
-                            <div className="text-2xl">✨</div>
-                            <div className="text-center text-[9px] font-bold text-foreground mt-1 line-clamp-2">
-                              {badgeData?.title || 'Unknown'}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/20 pointer-events-none" />
+
+                            <div className="flex-1 flex items-center justify-center w-full pt-1">
+                              <img
+                                src={badge.sprite}
+                                alt={badge.title}
+                                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)] group-hover:scale-110 transition-transform duration-200"
+                                style={{ imageRendering: 'pixelated' }}
+                              />
                             </div>
+
+                            <span
+                              className="font-bytebounce text-white text-xs sm:text-sm md:text-base tracking-wide text-center leading-none mb-0.5"
+                              style={{
+                                textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)'
+                              }}
+                            >
+                              {badge.title}
+                            </span>
                           </div>
-                        );
-                      })
-                  ) : (
-                    <>
-                      {[...Array(8)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="aspect-square bg-secondary rounded-lg flex items-center justify-center border-2 border-[#8B0000]/10 opacity-50"
-                        >
-                          <Award className="w-6 h-6 text-[#8B0000]" />
-                        </div>
-                      ))}
-                    </>
-                  )}
+                        ))}
+
+                        {[...Array(lockedCount)].map((_, i) => (
+                          <div
+                            key={`locked-${i}`}
+                            className="aspect-[0.95/1] rounded-[22px] bg-[#EBEBEB] border-2 border-transparent flex items-center justify-center p-4"
+                          >
+                            <Shield className="w-10 h-10 md:w-12 md:h-12 text-[#8B0000] stroke-[2.2]" />
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

@@ -26,9 +26,10 @@ interface QuizInterfaceProps {
   mode: 'learning' | 'test' | 'boss-battle';
   bossShieldActive?: boolean;
   playerPoisoned?: boolean;
+  streak?: number;
 }
 
-export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned }: QuizInterfaceProps) {
+export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned, streak }: QuizInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -201,7 +202,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                Survival Mode
             </span>
           )}
-          <div className="flex gap-2 mt-1 flex-wrap">
+          <div className="flex gap-2 mt-1 flex-wrap items-center">
              <Badge variant="outline" className={cn("h-4 text-[8px] uppercase tracking-tighter", mode === 'learning' || mode === 'boss-battle' ? "border-primary text-primary" : "border-slate-500 text-muted-foreground")}>
                {mode === 'learning' ? <BrainCircuit className="w-2 h-2 mr-1" /> : mode === 'boss-battle' ? <Swords className="w-2 h-2 mr-1" /> : <Shield className="w-2 h-2 mr-1" />}
                {mode === 'learning' ? 'Learning Mode' : mode === 'boss-battle' ? 'Boss Battle Mode' : 'Test Mode'}
@@ -216,6 +217,12 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                  {currentQuestion.difficulty === 'EASY' ? 'Wave 1: Minion Phase' :
                   currentQuestion.difficulty === 'MEDIUM' ? 'Wave 2: Enforcer Phase' :
                   'Wave 3: Elite Phase'}
+               </Badge>
+             )}
+             {streak !== undefined && streak >= 2 && (
+               <Badge className="h-4 bg-gradient-to-r from-orange-500 via-amber-500 to-red-600 border border-amber-300 text-white font-black text-[8px] uppercase tracking-wider px-2 shadow-[0_0_8px_rgba(249,115,22,0.5)] flex items-center gap-1 animate-pulse">
+                 <Flame className="w-2.5 h-2.5 text-yellow-200 fill-yellow-200" />
+                 <span>{streak}x STREAK</span>
                </Badge>
              )}
           </div>

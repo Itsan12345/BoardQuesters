@@ -32,6 +32,7 @@ import { CustomCalendar } from '@/components/ui/custom-calendar';
 import { cn } from '@/lib/utils';
 import { getStudyPlans, saveStudyPlan, getReviewCenterProgram, type ReviewCenterProgramData } from '@/app/actions/study-plan';
 import { getSubjectMetrics, getCategories, updateLessonStatus, type SubjectMetrics } from '@/app/actions/study';
+import { getUserProfile } from '@/app/actions/user';
 import { format, startOfDay, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -110,6 +111,7 @@ export default function StudyPage() {
   const [targetDates, setTargetDates] = useState<Record<string, Date>>({});
   const [subjectMetrics, setSubjectMetrics] = useState<Record<string, SubjectMetrics>>({});
   const [program, setProgram] = useState<ReviewCenterProgramData | null>(null);
+  const [userLastName, setUserLastName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(true);
@@ -118,14 +120,19 @@ export default function StudyPage() {
   useEffect(() => {
     setMounted(true);
     async function loadData() {
-      const [dbCategories, plans, metrics, programData] = await Promise.all([
+      const [dbCategories, plans, metrics, programData, userProfile] = await Promise.all([
         getCategories(),
         getStudyPlans(),
         getSubjectMetrics(),
-        getReviewCenterProgram()
+        getReviewCenterProgram(),
+        getUserProfile()
       ]);
 
       setProgram(programData);
+      if (userProfile?.name) {
+        const parts = userProfile.name.trim().split(/\s+/);
+        setUserLastName(parts[parts.length - 1]);
+      }
 
       if (dbCategories && dbCategories.length > 0) {
         const dynamicCurriculum = dbCategories.map((cat: any) => {
@@ -244,7 +251,7 @@ export default function StudyPage() {
                 Study <span className="text-primary">Curriculum</span>
               </h1>
               <p className="text-[10px] lg:text-xs font-semibold text-muted-foreground uppercase tracking-[0.2em]">
-                Intel Gathering & Concept Mastery
+                Intel Gathering & Concept Mastery {userLastName && `• Aspirant ${userLastName}`}
               </p>
             </div>
 
