@@ -30,7 +30,9 @@ import {
   Clock,
   Activity,
   Biohazard,
-  Flame
+  Flame,
+  Package,
+  ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +44,7 @@ import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
 import { getQuestQuestions } from '@/app/actions/arena';
 import { completeQuest } from '@/app/actions/quest';
-import { getUserProfile } from '@/app/actions/user';
+import { getUserProfile, saveUserInventory, purchaseReagentAction } from '@/app/actions/user';
 import { calculateEarnedBadges, type Badge as BadgeType } from '@/lib/badge-system';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -211,6 +213,104 @@ export default function LearningQuest() {
   const [floatingTexts, setFloatingTexts] = useState<{ id: string, target: 'player' | 'enemy', text: string, color: string }[]>([]);
   const [hitFlash, setHitFlash] = useState(false);
 
+  // Inventory & Consumables State
+  const [userXp, setUserXp] = useState<number>(100);
+  const [inventory, setInventory] = useState<Record<string, number>>({
+    erlenmeyer_shield: 2,
+    pipette_clarity: 2,
+    buffered_saline: 2,
+  });
+  const [equippedItem, setEquippedItem] = useState<string | null>('erlenmeyer_shield');
+  const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
+  const [selectedItemSlot, setSelectedItemSlot] = useState<string>('erlenmeyer_shield');
+  const [salineUsedThisBattle, setSalineUsedThisBattle] = useState(false);
+  const [clarityUsedThisBattle, setClarityUsedThisBattle] = useState(false);
+
+  const MAX_REAGENT_CAP = 5;
+
+  // Load Inventory, Equipped Item, and User XP from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedInv = localStorage.getItem('boardquest_reagent_inventory');
+      if (savedInv) {
+        setInventory(JSON.parse(savedInv));
+      }
+      const savedEquipped = localStorage.getItem('boardquest_equipped_reagent');
+      if (savedEquipped !== null) {
+        setEquippedItem(savedEquipped === 'none' ? null : savedEquipped);
+      }
+      const savedXp = localStorage.getItem('boardquest_user_xp');
+      if (savedXp) {
+        setUserXp(parseInt(savedXp, 10));
+      }
+    } catch (e) {
+      console.error('Error loading inventory from localStorage:', e);
+    }
+  }, []);
+
+  // Sync state changes to localStorage and DB
+  useEffect(() => {
+    try {
+      localStorage.setItem('boardquest_reagent_inventory', JSON.stringify(inventory));
+      localStorage.setItem('boardquest_equipped_reagent', equippedItem || 'none');
+      saveUserInventory(inventory, equippedItem);
+    } catch (e) {
+      console.error('Error saving inventory to DB:', e);
+    }
+  }, [inventory, equippedItem]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('boardquest_user_xp', userXp.toString());
+    } catch (e) {
+      console.error('Error saving user XP:', e);
+    }
+  }, [userXp]);
+
+  const getScaledCost = (baseCost: number, level: number) => {
+    return Math.floor(baseCost * (1 + (Math.max(1, level) - 1) * 0.25));
+  };
+
+  const handleBuyReagent = async (itemId: string, name: string, cost: number) => {
+    const currentCount = inventory[itemId] || 0;
+    if (currentCount >= MAX_REAGENT_CAP) {
+      toast({
+        variant: "destructive",
+        title: "Carrying Cap Reached! 🎒",
+        description: `You can carry a maximum of ${MAX_REAGENT_CAP} charges of ${name} at a time.`,
+      });
+      return;
+    }
+
+    if (userXp < cost) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient XP ⚡",
+        description: `You need ${cost} XP to purchase ${name}. Complete more quests to earn XP!`,
+      });
+      return;
+    }
+
+    const newXp = userXp - cost;
+    const newInventory = { ...inventory, [itemId]: currentCount + 1 };
+
+    setUserXp(newXp);
+    setInventory(newInventory);
+
+    try {
+      localStorage.setItem('boardquest_user_xp', newXp.toString());
+      localStorage.setItem('boardquest_reagent_inventory', JSON.stringify(newInventory));
+      await purchaseReagentAction(itemId, cost, newInventory);
+    } catch (e) {
+      console.error('Failed to save purchase to DB:', e);
+    }
+
+    toast({
+      title: "Reagent Purchased! 🧪✨",
+      description: `+1 charge of ${name} added to your inventory!`,
+    });
+  };
+
   const addFloatingText = (target: 'player' | 'enemy', text: string, color: string) => {
     const id = Math.random().toString(36).substring(2, 9);
     setFloatingTexts(prev => [...prev, { id, target, text, color }]);
@@ -219,12 +319,290 @@ export default function LearningQuest() {
     }, 1500);
   };
 
+  const CONSUMABLE_ITEMS_LIST = [
+    {
+      id: 'erlenmeyer_shield',
+      name: 'Erlenmeyer Shield',
+      icon: '🛡️',
+      color: 'border-blue-500/60 bg-blue-950/50 text-blue-300',
+      effect: '+20 Bonus Max & Starting HP in Boss Battles',
+      desc: 'Reinforced lab flask infused with protective saline.',
+      cost: getScaledCost(50, userLevel),
+      baseCost: 50,
+    },
+    {
+      id: 'pipette_clarity',
+      name: 'Pipette of Clarity',
+      icon: '✨',
+      color: 'border-purple-500/60 bg-purple-950/50 text-purple-300',
+      effect: 'Eliminates 1 incorrect option (50:50 hint)',
+      desc: 'Precision micro-pipette that filters erroneous choices.',
+      cost: getScaledCost(75, userLevel),
+      baseCost: 75,
+    },
+    {
+      id: 'buffered_saline',
+      name: 'Buffered Saline',
+      icon: '💧',
+      color: 'border-emerald-500/60 bg-emerald-950/50 text-emerald-300',
+      effect: 'Nullifies 1st poison or debuff from boss',
+      desc: 'Neutralizes toxic afflictions and corrosive acid.',
+      cost: getScaledCost(60, userLevel),
+      baseCost: 60,
+    },
+  ];
+
+  const activeSelectedItem = CONSUMABLE_ITEMS_LIST.find(i => i.id === selectedItemSlot) || CONSUMABLE_ITEMS_LIST[0];
+
+  // Weekly Restock Timer State
+  const [restockCountdown, setRestockCountdown] = useState<string>('');
+
+  const getNextResetTimestamp = () => {
+    const now = new Date();
+    const day = now.getUTCDay();
+    const diff = (8 - (day === 0 ? 7 : day)) % 7;
+    const nextMon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + (diff === 0 ? 7 : diff), 0, 0, 0));
+    return nextMon.getTime();
+  };
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const target = getNextResetTimestamp();
+      const diff = Math.max(0, target - Date.now());
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setRestockCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Check Weekly Supply Drop on mount
+  useEffect(() => {
+    const lastRestockStr = localStorage.getItem('boardquest_last_reagent_restock');
+    const now = Date.now();
+    let shouldRestock = false;
+
+    if (!lastRestockStr) {
+      shouldRestock = true;
+    } else {
+      const lastTime = parseInt(lastRestockStr, 10);
+      if (now - lastTime >= 7 * 24 * 60 * 60 * 1000) {
+        shouldRestock = true;
+      }
+    }
+
+    if (shouldRestock) {
+      localStorage.setItem('boardquest_last_reagent_restock', now.toString());
+      setInventory(prev => ({
+        erlenmeyer_shield: Math.min(5, (prev.erlenmeyer_shield || 0) + 1),
+        pipette_clarity: Math.min(5, (prev.pipette_clarity || 0) + 1),
+        buffered_saline: Math.min(5, (prev.buffered_saline || 0) + 1),
+      }));
+      toast({
+        title: "🎁 Weekly Guild Supply Drop Claimed!",
+        description: "+1 free charge added to all consumable reagents!",
+      });
+    }
+  }, []);
+
+  const inventoryDialogJSX = (
+    <Dialog open={inventoryDialogOpen} onOpenChange={setInventoryDialogOpen}>
+      <DialogContent container={isFullscreen ? (fullscreenRef.current || undefined) : undefined} className="w-[94vw] sm:max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar bg-[#1c2438] border-4 border-[#3b4763] text-white shadow-[0_0_30px_rgba(0,0,0,0.8)] p-3 sm:p-5 rounded-2xl z-[100] font-bytebounce">
+
+        {/* Header & XP Display */}
+        <div className="flex items-center justify-between border-b-2 border-[#3b4763] pb-2 sm:pb-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="bg-[#2a354d] border-2 border-[#526287] p-1 sm:p-1.5 rounded-lg text-base sm:text-lg flex items-center justify-center shrink-0">
+              🧪
+            </div>
+            <div>
+              <DialogTitle className="font-bytebounce text-xl sm:text-3xl text-amber-400 tracking-wider flex items-center gap-1.5 leading-none">
+                REAGENT INVENTORY
+              </DialogTitle>
+              <p className="text-[9px] sm:text-[10px] text-slate-300 font-sans tracking-wide mt-0.5">Select a slot to Equip or Buy (LVL {userLevel} Pricing)</p>
+            </div>
+          </div>
+          <div className="bg-[#0f172a] border border-amber-500/40 px-2 sm:px-2.5 py-1 rounded-lg text-right shrink-0">
+            <span className="text-[7.5px] sm:text-[8px] text-slate-400 uppercase tracking-wider block font-sans">Available XP</span>
+            <span className="text-amber-400 font-bytebounce text-xs sm:text-base flex items-center gap-0.5 justify-end">
+              ⚡ {userXp} XP
+            </span>
+          </div>
+        </div>
+
+        {/* Weekly Guild Restock Countdown Banner */}
+        <div className="mt-2.5 bg-[#111827] border border-[#3b4763] px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center justify-between text-xs gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-slate-300 font-sans text-[9px] sm:text-[10.5px] truncate">
+              Weekly Supply: <span className="text-emerald-400 font-bold">+1 Free Charge</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] sm:text-[10px] bg-[#1e293b] px-2 py-0.5 rounded border border-[#334155] shrink-0">
+            <span>Restock:</span>
+            <span className="text-amber-400 font-bold">{restockCountdown || 'Calculating...'}</span>
+          </div>
+        </div>
+
+        {/* 16-Bit Pixel RPG Grid Container */}
+        <div className="mt-2.5 sm:mt-3 bg-[#111827] border-3 sm:border-4 border-[#374151] p-1.5 sm:p-2.5 rounded-xl shadow-inner relative">
+          {/* Stone Accents */}
+          <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-[#4b5563] opacity-40" />
+          <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#4b5563] opacity-40" />
+          <div className="absolute bottom-1 left-1 w-1.5 h-1.5 bg-[#4b5563] opacity-40" />
+          <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-[#4b5563] opacity-40" />
+
+          {/* Grid Slots (6 columns x 3 rows = 18 slots) */}
+          <div className="grid grid-cols-6 gap-1 sm:gap-2">
+            {/* Render consumable item slots */}
+            {CONSUMABLE_ITEMS_LIST.map((item) => {
+              const count = inventory[item.id] || 0;
+              const isEquipped = equippedItem === item.id;
+              const isSelected = selectedItemSlot === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedItemSlot(item.id)}
+                  className={cn(
+                    "relative aspect-square rounded-lg border-2 transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 select-none group",
+                    isSelected
+                      ? "bg-[#252f48] border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)] scale-105"
+                      : isEquipped
+                        ? "bg-[#1e293b] border-emerald-400"
+                        : "bg-[#1e293b] border-[#334155] hover:border-slate-400 hover:bg-[#283549]"
+                  )}
+                >
+                  {/* Icon */}
+                  <span className="text-lg sm:text-3xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{item.icon}</span>
+
+                  {/* Count Stack Badge (Bottom Right) */}
+                  <span className="absolute bottom-0.5 right-0.5 sm:right-1 font-bytebounce text-[10px] sm:text-sm font-black text-white drop-shadow-[1px_1px_0_#000]">
+                    {count}/{MAX_REAGENT_CAP}
+                  </span>
+
+                  {/* Equipped Tag Badge */}
+                  {isEquipped && (
+                    <span className="absolute top-0.5 left-0.5 bg-emerald-500 text-black text-[6px] sm:text-[7.5px] font-black uppercase px-0.5 sm:px-1 rounded shadow-sm border border-black animate-pulse">
+                      EQ
+                    </span>
+                  )}
+
+                  {/* Pixel Cursor Corner Brackets when selected */}
+                  {isSelected && (
+                    <>
+                      <div className="absolute -top-1 -left-1 w-1.5 h-1.5 sm:w-2 sm:h-2 border-t-2 border-l-2 border-amber-300" />
+                      <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 border-t-2 border-r-2 border-amber-300" />
+                      <div className="absolute -bottom-1 -left-1 w-1.5 h-1.5 sm:w-2 sm:h-2 border-b-2 border-l-2 border-amber-300" />
+                      <div className="absolute -bottom-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 border-b-2 border-r-2 border-amber-300" />
+                    </>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Render 15 empty/locked grid slots */}
+            {Array.from({ length: 15 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="aspect-square bg-[#0f172a]/70 border-2 border-[#1e293b] rounded-lg flex items-center justify-center text-slate-700 select-none"
+              >
+                <span className="text-[9px] sm:text-[10px] opacity-20 font-mono">+</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Selected Item Details & Command Action Panel */}
+        {activeSelectedItem && (
+          <div className="mt-2.5 sm:mt-3 bg-[#111827] border-2 border-[#3b4763] rounded-xl p-2.5 sm:p-4 relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="text-2xl sm:text-4xl p-1.5 sm:p-2 bg-[#1e293b] border-2 border-[#3b4763] rounded-xl shrink-0">
+                {activeSelectedItem.icon}
+              </div>
+              <div className="space-y-0.5 min-w-0 flex-1 font-sans">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="font-bold text-amber-300 font-bytebounce text-sm sm:text-lg tracking-wide">{activeSelectedItem.name}</h4>
+                  <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider bg-white/10 px-1 sm:px-1.5 py-0.5 rounded text-amber-200">
+                    Stock: {inventory[activeSelectedItem.id] || 0}/{MAX_REAGENT_CAP}
+                  </span>
+                  {equippedItem === activeSelectedItem.id && (
+                    <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider bg-emerald-500 text-black px-1 sm:px-1.5 py-0.5 rounded border border-black animate-pulse">
+                      EQUIPPED
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-200 font-semibold leading-tight">{activeSelectedItem.desc}</p>
+                <p className="text-[9.5px] sm:text-[11px] font-bold text-amber-400 leading-tight">✨ {activeSelectedItem.effect}</p>
+              </div>
+            </div>
+
+            {/* RPG Action Buttons */}
+            <div className="flex sm:flex-col gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-[#374151] sm:pl-3">
+              {equippedItem === activeSelectedItem.id ? (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setEquippedItem(null)}
+                  className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white font-bytebounce text-xs sm:text-sm uppercase tracking-wider h-7 sm:h-8 px-2.5 sm:px-3 border border-red-400 shadow-md whitespace-nowrap"
+                >
+                  Unequip
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={(inventory[activeSelectedItem.id] || 0) <= 0}
+                  onClick={() => setEquippedItem(activeSelectedItem.id)}
+                  className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-black font-bytebounce text-xs sm:text-sm uppercase tracking-wider h-7 sm:h-8 px-2.5 sm:px-3 border border-emerald-300 disabled:opacity-30 shadow-md whitespace-nowrap"
+                >
+                  Equip
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                disabled={(inventory[activeSelectedItem.id] || 0) >= MAX_REAGENT_CAP}
+                onClick={() => handleBuyReagent(activeSelectedItem.id, activeSelectedItem.name, activeSelectedItem.cost)}
+                className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-black font-bytebounce text-xs sm:text-sm uppercase tracking-wider h-7 sm:h-8 px-2.5 sm:px-3 border border-amber-300 shadow-md flex items-center justify-center gap-1 whitespace-nowrap disabled:opacity-40"
+              >
+                {(inventory[activeSelectedItem.id] || 0) >= MAX_REAGENT_CAP ? (
+                  `MAX CAP (5/5)`
+                ) : (
+                  `Buy +1 (⚡${activeSelectedItem.cost})`
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  const handleUseClarity = () => {
+    if (clarityUsedThisBattle || (inventory.pipette_clarity || 0) <= 0) return;
+    setClarityUsedThisBattle(true);
+    addFloatingText('player', 'HINT ACTIVATED! 🧪✨', 'text-purple-400');
+    toast({
+      title: "Pipette of Clarity! 🧪✨",
+      description: "1 incorrect distractor has been eliminated!",
+    });
+    setInventory(prev => ({ ...prev, pipette_clarity: Math.max(0, (prev.pipette_clarity || 0) - 1) }));
+  };
+
   // Fetch User Info on mount
   useEffect(() => {
     async function fetchUser() {
       try {
         const profile = await getUserProfile();
         if (profile?.level) setUserLevel(profile.level);
+        if (profile?.xp !== undefined) {
+          const savedXp = localStorage.getItem('boardquest_user_xp');
+          setUserXp(savedXp ? parseInt(savedXp, 10) : profile.xp);
+        }
         if (profile?.name) {
           const parts = profile.name.trim().split(/\s+/);
           setUserLastName(parts[parts.length - 1]);
@@ -269,7 +647,7 @@ export default function LearningQuest() {
         document.body.style.overflow = '';
       };
     }
-    
+
     if (introPhase === 'vs') {
       const timer = setTimeout(() => setIntroPhase('active'), 1200); // 1.2s for characters to slide in before quiz appears
       return () => {
@@ -317,8 +695,18 @@ export default function LearningQuest() {
       }
       setQuestions(selected);
       // Level-scaled HP: 200 base + 5 per level
-      const startingHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
+      let startingHp = quizMode === 'boss-battle' ? 200 + (userLevel * 5) : 100;
+
+      // Erlenmeyer Shield Consumable Effect
+      if (quizMode === 'boss-battle' && equippedItem === 'erlenmeyer_shield' && (inventory.erlenmeyer_shield || 0) > 0) {
+        startingHp += 20;
+        addFloatingText('player', '+20 SHIELD HP! 🧪🛡️', 'text-blue-400');
+        setInventory(prev => ({ ...prev, erlenmeyer_shield: Math.max(0, (prev.erlenmeyer_shield || 0) - 1) }));
+      }
+
       setPlayerHealth(startingHp);
+      setSalineUsedThisBattle(false);
+      setClarityUsedThisBattle(false);
 
       let bossStartingHp = 100;
       if (quizMode === 'boss-battle') {
@@ -350,7 +738,7 @@ export default function LearningQuest() {
 
       setIsStarted(true);
       setIsFinished(false);
-      
+
       // Ensure we start at the top of the page so the cutscene is fully visible
       window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (error) {
@@ -437,6 +825,20 @@ export default function LearningQuest() {
       if (!isCorrect && Math.random() < 0.25) {
         newPoisonedState = true;
         toast({ title: "POISONED!", description: "The boss inflicted a toxic wound! Defend to cure it.", variant: "destructive" });
+      }
+
+      // Buffered Saline Consumable Effect (Nullifies 1st Poison/Debuff)
+      if (quizMode === 'boss-battle' && equippedItem === 'buffered_saline' && !salineUsedThisBattle && (inventory.buffered_saline || 0) > 0) {
+        if (newPoisonedState || (!isCorrect && playerDmg > 0)) {
+          newPoisonedState = false;
+          setSalineUsedThisBattle(true);
+          addFloatingText('player', 'DEBUFF NULLIFIED! 🧪💧', 'text-emerald-400');
+          toast({
+            title: "Buffered Saline Activated! 🧪💧",
+            description: "Your Buffered Saline neutralized the boss's toxic affliction!",
+          });
+          setInventory(prev => ({ ...prev, buffered_saline: Math.max(0, (prev.buffered_saline || 0) - 1) }));
+        }
       }
 
       // Boss casts shield every 4 turns
@@ -649,388 +1051,388 @@ export default function LearningQuest() {
     const isVictor = quizMode === 'boss-battle' ? battleOutcome === 'victory' : ((score / questions.length) >= 0.75);
 
     return (
-      <div 
+      <div
         ref={fullscreenRef}
         className={cn("min-h-full flex flex-col bg-background", isFullscreen ? "h-screen w-screen overflow-y-auto" : "")}
       >
         <div className="flex-1 max-w-4xl w-full mx-auto py-8 md:py-12 px-4 md:px-6 space-y-8 md:space-y-12 animate-in fade-in zoom-in duration-500">
-        {/* For standard learning/test modes, show the original header */}
-        {quizMode !== 'boss-battle' && (
-          <header className="text-center space-y-4 md:space-y-6">
-            <div className="relative inline-block">
-              <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 md:scale-150 animate-pulse" />
-              <div className="relative w-24 h-24 md:w-32 md:h-32 bg-background rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
-                {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
+          {/* For standard learning/test modes, show the original header */}
+          {quizMode !== 'boss-battle' && (
+            <header className="text-center space-y-4 md:space-y-6">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-125 md:scale-150 animate-pulse" />
+                <div className="relative w-24 h-24 md:w-32 md:h-32 bg-background rounded-full flex items-center justify-center border-4 border-primary shadow-2xl mx-auto">
+                  {isVictor ? <Award className="w-12 h-12 md:w-16 md:h-16 text-primary" /> : <Skull className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <h2 className="text-3xl md:text-5xl font-black font-headline text-primary tracking-tighter">
-                {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
-              </h2>
-              <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] md:text-xs">
-                Expedition for {selectedSubject}
-              </p>
-            </div>
-
-            <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
-              <div className="text-center">
-                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
-                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+              <div className="space-y-1">
+                <h2 className="text-3xl md:text-5xl font-black font-headline text-primary tracking-tighter">
+                  {isVictor ? "BATTLE VICTORY" : "QUEST DEFEAT"}
+                </h2>
+                <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] md:text-xs">
+                  Expedition for {selectedSubject}
+                </p>
               </div>
-              <div className="h-10 md:h-12 w-px bg-border" />
-              <div className="text-center">
-                <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
-                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+
+              <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
+                <div className="text-center">
+                  <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}/{questions.length}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accuracy</div>
+                </div>
+                <div className="h-10 md:h-12 w-px bg-border" />
+                <div className="text-center">
+                  <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+                </div>
               </div>
-            </div>
-          </header>
-        )}
+            </header>
+          )}
 
-        {/* Dedicated Boss Battle Game Over Screen */}
-        {quizMode === 'boss-battle' && !showBattleLog && (
-          <div className="flex flex-col items-center justify-center space-y-10 py-10 animate-in fade-in zoom-in duration-500">
-            {/* The Outcome Banner */}
-            <div className={cn(
-              "w-full max-w-2xl py-12 text-center rounded-[2rem] border-4 shadow-2xl",
-              battleOutcome === 'victory' ? "bg-green-100 border-green-500 shadow-green-200" : "bg-red-100 border-red-600 shadow-red-200"
-            )}>
-              <h1 className={cn("text-5xl md:text-6xl font-black font-headline uppercase tracking-tight", battleOutcome === 'victory' ? "text-green-700" : "text-red-700")}>
-                {battleOutcome === 'victory' ? 'VICTORY!' : 'DEFEAT!'}
-              </h1>
-              <p className={cn("text-base md:text-lg font-bold uppercase tracking-widest mt-4", battleOutcome === 'victory' ? "text-green-600" : "text-red-600")}>
-                {battleOutcome === 'victory' ? 'The Boss has been vanquished!' : (playerHealth <= 0 && enemyHealth > 0) ? 'Your HP reached 0! The boss has defeated you!' : 'You have ran out of chances to defeat the Boss and failed'}
-              </p>
-            </div>
-
-            {/* Boss Battle Stats */}
-            <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
-              <div className="text-center">
-                <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}</div>
-                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Correct Answers</div>
+          {/* Dedicated Boss Battle Game Over Screen */}
+          {quizMode === 'boss-battle' && !showBattleLog && (
+            <div className="flex flex-col items-center justify-center space-y-10 py-10 animate-in fade-in zoom-in duration-500">
+              {/* The Outcome Banner */}
+              <div className={cn(
+                "w-full max-w-2xl py-12 text-center rounded-[2rem] border-4 shadow-2xl",
+                battleOutcome === 'victory' ? "bg-green-100 border-green-500 shadow-green-200" : "bg-red-100 border-red-600 shadow-red-200"
+              )}>
+                <h1 className={cn("text-5xl md:text-6xl font-black font-headline uppercase tracking-tight", battleOutcome === 'victory' ? "text-green-700" : "text-red-700")}>
+                  {battleOutcome === 'victory' ? 'VICTORY!' : 'DEFEAT!'}
+                </h1>
+                <p className={cn("text-base md:text-lg font-bold uppercase tracking-widest mt-4", battleOutcome === 'victory' ? "text-green-600" : "text-red-600")}>
+                  {battleOutcome === 'victory' ? 'The Boss has been vanquished!' : (playerHealth <= 0 && enemyHealth > 0) ? 'Your HP reached 0! The boss has defeated you!' : 'You have ran out of chances to defeat the Boss and failed'}
+                </p>
               </div>
-              <div className="h-10 md:h-12 w-px bg-border" />
-              <div className="text-center">
-                <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
-                <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+
+              {/* Boss Battle Stats */}
+              <div className="flex justify-center items-center gap-6 md:gap-12 py-4">
+                <div className="text-center">
+                  <div className="text-2xl md:text-4xl font-black font-headline text-primary">{score}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Correct Answers</div>
+                </div>
+                <div className="h-10 md:h-12 w-px bg-border" />
+                <div className="text-center">
+                  <div className="text-2xl md:text-4xl font-black font-headline text-accent">+{score * XP_PER_QUESTION}</div>
+                  <div className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">XP Earned</div>
+                </div>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-lg mt-4">
-              <Button
-                onClick={() => setShowBattleLog(true)}
-                className="w-full h-14 md:h-16 text-xl md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-amber-400 hover:bg-amber-500 text-black hover:-translate-y-1 transition-transform"
-              >
-                Review Battle Log
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Motivational Cards (Only show if not in Boss-Battle, or if reviewing the log) */}
-        {(quizMode !== 'boss-battle' || showBattleLog) && (
-          <>
-            {score === 0 && (
-              <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
-                <CardContent className="p-6 md:p-8 text-center space-y-4">
-                  <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
-                  <p className="text-sm md:text-base text-foreground font-medium">
-                    Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
-                  </p>
-                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                    💡 Tip: Review the topics from this quest and try again. Better luck next time!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {score > 0 && score < Math.ceil(questions.length / 2) && (
-              <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
-                <CardContent className="p-6 md:p-8 text-center space-y-4">
-                  <p className="text-lg md:text-xl font-black text-foreground">Nice Effort, Aspirant! 🌟</p>
-                  <p className="text-sm md:text-base text-foreground font-medium">
-                    You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
-                  </p>
-                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                    💡 Tip: Focus on the questions you missed—they're your learning opportunities!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {score >= Math.ceil(questions.length / 2) && score < questions.length && (
-              <Card className="border border-border shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
-                <CardContent className="p-6 md:p-8 text-center space-y-4">
-                  <p className="text-lg md:text-xl font-black text-foreground">Great Job, Aspirant! 🚀</p>
-                  <p className="text-sm md:text-base text-foreground font-medium">
-                    You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
-                  </p>
-                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                    💡 Tip: You're almost there! One more push to achieve perfect mastery.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {score === questions.length && score > 0 && (
-              <Card className="border border-border shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
-                <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
-                  <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
-                  <p className="text-sm md:text-base text-foreground font-bold">
-                    PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
-                  </p>
-                  <div className="flex justify-center gap-2 text-2xl animate-bounce">
-                    🏆 ⭐ 🏆
-                  </div>
-                  <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
-                    You've earned extra respect in the BoardQuest arena!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Earned Badges Section */}
-            {earnedBadges.length > 0 && (
-              <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
-                <CardContent className="p-6 md:p-8">
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {earnedBadges.map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
-                      >
-                        <div className="text-2xl">✨</div>
-                        <p className="font-bold text-xs md:text-sm text-foreground">{badge.title}</p>
-                        <p className="text-[9px] text-slate-600">{badge.name}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-          </>
-        )}
-
-        {/* Confidence Dialog */}
-        <Dialog open={confidenceDialogOpen} onOpenChange={setConfidenceDialogOpen}>
-          <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-white">
-            <DialogHeader className="text-center space-y-4">
-              <DialogTitle className="font-headline text-2xl">⚡ Aspirant's Conviction</DialogTitle>
-              <DialogDescription className="text-sm">How confident are you in your answers?</DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-3 gap-3 py-6">
-              {[
-                {
-                  level: 'Shaky',
-                  emoji: '🔥',
-                  color: 'bg-red-50 border-red-200 hover:bg-red-100',
-                  selectedColor: 'bg-red-100 border-red-500 ring-2 ring-red-300',
-                  description: 'Low Confidence',
-                },
-                {
-                  level: 'Steady',
-                  emoji: '⚡',
-                  color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
-                  selectedColor: 'bg-yellow-100 border-yellow-500 ring-2 ring-yellow-300',
-                  description: 'Balanced Confidence',
-                },
-                {
-                  level: 'Unyielding',
-                  emoji: '💫',
-                  color: 'bg-primary/5 border-primary/30 hover:bg-primary/15',
-                  selectedColor: 'bg-primary/20 border-primary ring-2 ring-primary/50',
-                  description: 'High Confidence',
-                },
-              ].map((option) => (
-                <button
-                  key={option.level}
-                  onClick={() => {
-                    if (!confidenceSubmitted) {
-                      handleConfidenceSubmit(option.level);
-                    }
-                  }}
-                  className={cn(
-                    'relative p-4 rounded-xl border-2 transition-all duration-200 text-center transform',
-                    confidence === option.level ? option.selectedColor : option.color,
-                    !confidenceSubmitted && 'hover:scale-105'
-                  )}
-                  disabled={isSavingResults}
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-lg mt-4">
+                <Button
+                  onClick={() => setShowBattleLog(true)}
+                  className="w-full h-14 md:h-16 text-xl md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-amber-400 hover:bg-amber-500 text-black hover:-translate-y-1 transition-transform"
                 >
-                  <div className="space-y-2">
-                    <div className="text-3xl">{option.emoji}</div>
-                    <div className="font-black text-xs leading-tight">{option.level}</div>
-                    <div className="text-[9px] text-muted-foreground font-bold">{option.description}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Thank You Dialog */}
-        <Dialog open={thankYouDialogOpen} onOpenChange={setThankYouDialogOpen}>
-          <DialogContent className="sm:max-w-md border-2 border-primary bg-gradient-to-br from-white via-slate-50 to-white animate-in fade-in zoom-in duration-500">
-            <DialogTitle className="sr-only">Quest Completion</DialogTitle>
-            <div className="space-y-6 text-center py-8 px-2">
-              {/* Trophy Animation */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                  <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/80 border-4 border-primary/30 shadow-2xl animate-bounce">
-                    <Trophy className="w-12 h-12 text-white" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Message */}
-              <div className="space-y-3">
-                <p className="text-3xl md:text-4xl font-black font-headline text-primary tracking-tight">
-                  Thank You, Aspirant!
-                </p>
-                <p className="text-sm md:text-base text-foreground font-bold leading-relaxed">
-                  Your conviction has been recorded and your quest success has been logged to your profile!
-                </p>
+                  Review Battle Log
+                </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          )}
 
+          {/* Motivational Cards (Only show if not in Boss-Battle, or if reviewing the log) */}
+          {(quizMode !== 'boss-battle' || showBattleLog) && (
+            <>
+              {score === 0 && (
+                <Card className="border border-border shadow-lg bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl overflow-hidden border-2 border-orange-200">
+                  <CardContent className="p-6 md:p-8 text-center space-y-4">
+                    <p className="text-lg md:text-xl font-black text-foreground">Tough Expedition, Aspirant! 💪</p>
+                    <p className="text-sm md:text-base text-foreground font-medium">
+                      Even the greatest champions face setbacks. This is your learning moment! Every question you encounter strengthens your knowledge for the next quest.
+                    </p>
+                    <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                      💡 Tip: Review the topics from this quest and try again. Better luck next time!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
-        {/* AI Tutor Summary (Only show if not in Boss-Battle, or if reviewing the log) */}
-        {(quizMode !== 'boss-battle' || showBattleLog) && (
-          <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
-            <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="font-headline text-xl md:text-2xl flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                    Battle Log
-                  </CardTitle>
-                  <CardDescription className="text-[10px] font-bold uppercase tracking-wider">
-                    Post-Battle Rationale
-                  </CardDescription>
-                </div>
-                <Badge variant="outline" className="border-primary/20 text-primary bg-background px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
-                  {quizMode} Mode Verified
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Accordion type="single" collapsible className="w-full">
-                {questions.map((q, idx) => {
-                  const userAns = userAnswers.find(ua => ua.questionIndex === idx);
-                  if (!userAns) return null;
+              {score > 0 && score < Math.ceil(questions.length / 2) && (
+                <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl overflow-hidden border-2 border-yellow-200">
+                  <CardContent className="p-6 md:p-8 text-center space-y-4">
+                    <p className="text-lg md:text-xl font-black text-foreground">Nice Effort, Aspirant! 🌟</p>
+                    <p className="text-sm md:text-base text-foreground font-medium">
+                      You're on the right path! You've grasped some key concepts. Keep reinforcing these topics and you'll see significant improvement on your next expedition.
+                    </p>
+                    <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                      💡 Tip: Focus on the questions you missed—they're your learning opportunities!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
-                  const isCorrect = userAns.isCorrect;
+              {score >= Math.ceil(questions.length / 2) && score < questions.length && (
+                <Card className="border border-border shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl overflow-hidden border-2 border-blue-200">
+                  <CardContent className="p-6 md:p-8 text-center space-y-4">
+                    <p className="text-lg md:text-xl font-black text-foreground">Great Job, Aspirant! 🚀</p>
+                    <p className="text-sm md:text-base text-foreground font-medium">
+                      You're demonstrating solid knowledge! You're well on your way to mastery. A few more focused study sessions and you'll be unstoppable. Keep up the momentum!
+                    </p>
+                    <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                      💡 Tip: You're almost there! One more push to achieve perfect mastery.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
-                  return (
-                    <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
-                      <AccordionTrigger className="hover:no-underline py-4 md:py-6 px-2 md:px-4">
-                        <div className="flex items-start text-left gap-4 md:gap-6">
-                          <div className="mt-1 shrink-0">
-                            {isCorrect ? (
-                              <div className="bg-green-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600" /></div>
-                            ) : (
-                              <div className="bg-red-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-600" /></div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-xs md:text-sm leading-snug line-clamp-1">{q.question}</p>
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[8px] h-3.5 font-black uppercase tracking-tighter">
-                                {isCorrect ? "Mastered" : "Review"}
-                              </Badge>
-                              <Badge variant="outline" className="text-[8px] h-3.5 font-black uppercase tracking-tighter border-primary/20 text-primary">
-                                {q.type?.replace('_', ' ') || "MCQ"}
-                              </Badge>
-                            </div>
-                          </div>
+              {score === questions.length && score > 0 && (
+                <Card className="border border-border shadow-lg bg-gradient-to-br from-primary/10 via-yellow-50 to-primary/5 rounded-2xl overflow-hidden border-2 border-primary">
+                  <CardContent className="p-6 md:p-8 text-center space-y-4 animate-pulse">
+                    <p className="text-lg md:text-xl font-black bg-gradient-to-r from-primary to-yellow-600 bg-clip-text text-transparent">PERFECT SCORE! 👑✨</p>
+                    <p className="text-sm md:text-base text-foreground font-bold">
+                      PHENOMENAL! You've achieved PERFECT MASTERY! You are a true champion among aspirants. This is the peak of excellence—celebrate this victory!
+                    </p>
+                    <div className="flex justify-center gap-2 text-2xl animate-bounce">
+                      🏆 ⭐ 🏆
+                    </div>
+                    <p className="text-xs md:text-sm text-slate-600 font-semibold uppercase tracking-wide">
+                      You've earned extra respect in the BoardQuest arena!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Earned Badges Section */}
+              {earnedBadges.length > 0 && (
+                <Card className="border border-border shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl overflow-hidden border-2 border-yellow-300">
+                  <CardContent className="p-6 md:p-8">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-6 text-center">🏆 Badges Earned</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {earnedBadges.map((badge) => (
+                        <div
+                          key={badge.id}
+                          className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-center space-y-1 animate-pulse"
+                        >
+                          <div className="text-2xl">✨</div>
+                          <p className="font-bold text-xs md:text-sm text-foreground">{badge.title}</p>
+                          <p className="text-[9px] text-slate-600">{badge.name}</p>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 md:px-6 pb-6 md:pb-8 pt-2">
-                        <div className="bg-muted/30 rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-4 md:space-y-6 border border-primary/5">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
-                            <div className="p-4 bg-background rounded-xl border shadow-sm">
-                              <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
-                              <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
-                                {q.type === 'TRUE_FALSE' && userAns?.selectedLetter
-                                  ? (userAns.selectedLetter === 'A' ? 'True (Option A)' : userAns.selectedLetter === 'B' ? 'False (Option B)' : userAns.selectedLetter)
-                                  : userAns?.selectedLetter ? `Option ${userAns.selectedLetter}` : 'None'}
-                              </p>
-                            </div>
-                            <div className="p-4 bg-background rounded-xl border shadow-sm">
-                              <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
-                              <p className="font-bold text-sm text-primary">
-                                {q.type === 'TRUE_FALSE'
-                                  ? (q.correctAnswer === 'A' ? 'True (Option A)' : q.correctAnswer === 'B' ? 'False (Option B)' : q.correctAnswer)
-                                  : `Option ${q.correctAnswer}`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <h4 className="font-black font-headline text-primary flex items-center gap-2 uppercase text-[10px] tracking-widest">
-                              <BrainCircuit className="w-3.5 h-3.5" />
-                              AI LOGICAL ANALYSIS
-                            </h4>
-                            <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
-                              {q.explanation ? (
-                                <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
-                                  {q.explanation}
-                                </p>
-                              ) : fetchingExplanations[idx] ? (
-                                <div className="flex items-center gap-3 py-2">
-                                  <Loader2 className="w-3 h-3 text-primary animate-spin" />
-                                  <p className="text-[10px] font-bold text-primary animate-pulse">INTERPRETING DATA...</p>
-                                </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+            </>
+          )}
+
+          {/* Confidence Dialog */}
+          <Dialog open={confidenceDialogOpen} onOpenChange={setConfidenceDialogOpen}>
+            <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-slate-50 to-white">
+              <DialogHeader className="text-center space-y-4">
+                <DialogTitle className="font-headline text-2xl">⚡ Aspirant's Conviction</DialogTitle>
+                <DialogDescription className="text-sm">How confident are you in your answers?</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-3 gap-3 py-6">
+                {[
+                  {
+                    level: 'Shaky',
+                    emoji: '🔥',
+                    color: 'bg-red-50 border-red-200 hover:bg-red-100',
+                    selectedColor: 'bg-red-100 border-red-500 ring-2 ring-red-300',
+                    description: 'Low Confidence',
+                  },
+                  {
+                    level: 'Steady',
+                    emoji: '⚡',
+                    color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
+                    selectedColor: 'bg-yellow-100 border-yellow-500 ring-2 ring-yellow-300',
+                    description: 'Balanced Confidence',
+                  },
+                  {
+                    level: 'Unyielding',
+                    emoji: '💫',
+                    color: 'bg-primary/5 border-primary/30 hover:bg-primary/15',
+                    selectedColor: 'bg-primary/20 border-primary ring-2 ring-primary/50',
+                    description: 'High Confidence',
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.level}
+                    onClick={() => {
+                      if (!confidenceSubmitted) {
+                        handleConfidenceSubmit(option.level);
+                      }
+                    }}
+                    className={cn(
+                      'relative p-4 rounded-xl border-2 transition-all duration-200 text-center transform',
+                      confidence === option.level ? option.selectedColor : option.color,
+                      !confidenceSubmitted && 'hover:scale-105'
+                    )}
+                    disabled={isSavingResults}
+                  >
+                    <div className="space-y-2">
+                      <div className="text-3xl">{option.emoji}</div>
+                      <div className="font-black text-xs leading-tight">{option.level}</div>
+                      <div className="text-[9px] text-muted-foreground font-bold">{option.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Thank You Dialog */}
+          <Dialog open={thankYouDialogOpen} onOpenChange={setThankYouDialogOpen}>
+            <DialogContent className="sm:max-w-md border-2 border-primary bg-gradient-to-br from-white via-slate-50 to-white animate-in fade-in zoom-in duration-500">
+              <DialogTitle className="sr-only">Quest Completion</DialogTitle>
+              <div className="space-y-6 text-center py-8 px-2">
+                {/* Trophy Animation */}
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                    <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/80 border-4 border-primary/30 shadow-2xl animate-bounce">
+                      <Trophy className="w-12 h-12 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Message */}
+                <div className="space-y-3">
+                  <p className="text-3xl md:text-4xl font-black font-headline text-primary tracking-tight">
+                    Thank You, Aspirant!
+                  </p>
+                  <p className="text-sm md:text-base text-foreground font-bold leading-relaxed">
+                    Your conviction has been recorded and your quest success has been logged to your profile!
+                  </p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+
+          {/* AI Tutor Summary (Only show if not in Boss-Battle, or if reviewing the log) */}
+          {(quizMode !== 'boss-battle' || showBattleLog) && (
+            <Card className="border border-border shadow-xl bg-background overflow-hidden rounded-[1.5rem] md:rounded-[2rem]">
+              <CardHeader className="bg-muted/30 border-b p-6 md:p-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="font-headline text-xl md:text-2xl flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                      Battle Log
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-wider">
+                      Post-Battle Rationale
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="border-primary/20 text-primary bg-background px-3 py-1 uppercase font-bold text-[8px] md:text-[10px]">
+                    {quizMode} Mode Verified
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Accordion type="single" collapsible className="w-full">
+                  {questions.map((q, idx) => {
+                    const userAns = userAnswers.find(ua => ua.questionIndex === idx);
+                    if (!userAns) return null;
+
+                    const isCorrect = userAns.isCorrect;
+
+                    return (
+                      <AccordionItem key={idx} value={`item-${idx}`} className="border-b last:border-0 px-2 md:px-4">
+                        <AccordionTrigger className="hover:no-underline py-4 md:py-6 px-2 md:px-4">
+                          <div className="flex items-start text-left gap-4 md:gap-6">
+                            <div className="mt-1 shrink-0">
+                              {isCorrect ? (
+                                <div className="bg-green-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-green-600" /></div>
                               ) : (
-                                <div className="flex flex-col items-start gap-2">
-                                  <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
-                                    Want to know why this is the correct answer?
-                                  </p>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleRequestExplanation(idx)}
-                                    className="text-xs text-primary border-primary hover:bg-primary hover:text-white"
-                                  >
-                                    <BrainCircuit className="w-3 h-3 mr-2" />
-                                    Ask AI Tutor
-                                  </Button>
-                                </div>
+                                <div className="bg-red-100 p-1.5 md:p-2 rounded-lg md:rounded-xl"><XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-600" /></div>
                               )}
                             </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-xs md:text-sm leading-snug line-clamp-1">{q.question}</p>
+                              <div className="flex gap-2 mt-1">
+                                <Badge variant={isCorrect ? "secondary" : "destructive"} className="text-[8px] h-3.5 font-black uppercase tracking-tighter">
+                                  {isCorrect ? "Mastered" : "Review"}
+                                </Badge>
+                                <Badge variant="outline" className="text-[8px] h-3.5 font-black uppercase tracking-tighter border-primary/20 text-primary">
+                                  {q.type?.replace('_', ' ') || "MCQ"}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </CardContent>
-          </Card>
-        )}
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 md:px-6 pb-6 md:pb-8 pt-2">
+                          <div className="bg-muted/30 rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-4 md:space-y-6 border border-primary/5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
+                              <div className="p-4 bg-background rounded-xl border shadow-sm">
+                                <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Aspirant Choice</p>
+                                <p className={cn("font-bold text-sm", isCorrect ? "text-green-600" : "text-red-600")}>
+                                  {q.type === 'TRUE_FALSE' && userAns?.selectedLetter
+                                    ? (userAns.selectedLetter === 'A' ? 'True (Option A)' : userAns.selectedLetter === 'B' ? 'False (Option B)' : userAns.selectedLetter)
+                                    : userAns?.selectedLetter ? `Option ${userAns.selectedLetter}` : 'None'}
+                                </p>
+                              </div>
+                              <div className="p-4 bg-background rounded-xl border shadow-sm">
+                                <p className="text-[9px] uppercase font-black text-muted-foreground mb-1">Correct Rationale</p>
+                                <p className="font-bold text-sm text-primary">
+                                  {q.type === 'TRUE_FALSE'
+                                    ? (q.correctAnswer === 'A' ? 'True (Option A)' : q.correctAnswer === 'B' ? 'False (Option B)' : q.correctAnswer)
+                                    : `Option ${q.correctAnswer}`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <h4 className="font-black font-headline text-primary flex items-center gap-2 uppercase text-[10px] tracking-widest">
+                                <BrainCircuit className="w-3.5 h-3.5" />
+                                AI LOGICAL ANALYSIS
+                              </h4>
+                              <div className="bg-background/80 p-4 md:p-6 rounded-xl border-2 border-dashed border-primary/10">
+                                {q.explanation ? (
+                                  <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                    {q.explanation}
+                                  </p>
+                                ) : fetchingExplanations[idx] ? (
+                                  <div className="flex items-center gap-3 py-2">
+                                    <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                                    <p className="text-[10px] font-bold text-primary animate-pulse">INTERPRETING DATA...</p>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-start gap-2">
+                                    <p className="text-xs md:text-sm leading-relaxed text-muted-foreground italic">
+                                      Want to know why this is the correct answer?
+                                    </p>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleRequestExplanation(idx)}
+                                      className="text-xs text-primary border-primary hover:bg-primary hover:text-white"
+                                    >
+                                      <BrainCircuit className="w-3 h-3 mr-2" />
+                                      Ask AI Tutor
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
 
-        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 pb-12 w-full max-w-xl mx-auto px-4 sm:px-0 mt-8">
-          <Button
-            onClick={() => {
-              setIsStarted(false);
-              setIsFinished(false);
-              setShowBattleLog(false);
-            }}
-            className="flex-1 h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 text-white hover:-translate-y-1 transition-transform whitespace-nowrap"
-          >
-            Re-Enter Arena
-          </Button>
-          <Link href="/" className="flex-1 flex">
-            <Button className="w-full h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-white hover:bg-slate-100 text-black hover:-translate-y-1 transition-transform whitespace-nowrap">
-              Back to Dashboard
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 pb-12 w-full max-w-xl mx-auto px-4 sm:px-0 mt-8">
+            <Button
+              onClick={() => {
+                setIsStarted(false);
+                setIsFinished(false);
+                setShowBattleLog(false);
+              }}
+              className="flex-1 h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 text-white hover:-translate-y-1 transition-transform whitespace-nowrap"
+            >
+              Re-Enter Arena
             </Button>
-          </Link>
+            <Link href="/" className="flex-1 flex">
+              <Button className="w-full h-14 md:h-16 text-lg md:text-2xl font-bytebounce tracking-widest border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] bg-white hover:bg-slate-100 text-black hover:-translate-y-1 transition-transform whitespace-nowrap">
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
       </div>
     );
   }
@@ -1053,10 +1455,10 @@ export default function LearningQuest() {
       <div
         ref={fullscreenRef}
         className={cn(
-          "min-h-full flex flex-col bg-background transition-transform", 
+          "min-h-full flex flex-col bg-background transition-transform",
           isFullscreen ? "h-screen w-screen" : "",
           (introPhase === 'cutscene' || introPhase === 'vs') ? "overflow-hidden" : (isFullscreen ? "overflow-y-auto no-scrollbar" : "no-scrollbar"),
-          hitFlash && "animate-shake-subtle"
+          hitFlash && "animate-shake"
         )}
       >
         {/* Exit Confirmation Dialog */}
@@ -1153,6 +1555,20 @@ export default function LearningQuest() {
                     className="font-black uppercase tracking-widest text-[8px] md:text-[10px] animate-pulse h-8"
                   >
                     Skip Cutscene
+                  </Button>
+                )}
+                {quizMode === 'boss-battle' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setInventoryDialogOpen(true)}
+                    className="rounded-full text-amber-300 hover:bg-white/20 h-8 w-8 relative"
+                    title="Open Reagent Inventory"
+                  >
+                    <Package className="h-4 w-4" />
+                    {equippedItem && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-black animate-pulse" />
+                    )}
                   </Button>
                 )}
                 <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full text-white hover:bg-white/20 h-8 w-8" title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
@@ -1260,9 +1676,13 @@ export default function LearningQuest() {
               bossShieldActive={bossShieldActive}
               playerPoisoned={playerPoisoned}
               streak={streak}
+              equippedItem={equippedItem}
+              clarityUsedThisBattle={clarityUsedThisBattle}
+              onUseClarity={handleUseClarity}
             />
           </div>
         </main>
+        {inventoryDialogJSX}
       </div>
     );
   }
@@ -1652,6 +2072,7 @@ export default function LearningQuest() {
           </div>
         </DialogContent>
       </Dialog>
+      {inventoryDialogJSX}
     </div>
   );
 }

@@ -27,9 +27,12 @@ interface QuizInterfaceProps {
   bossShieldActive?: boolean;
   playerPoisoned?: boolean;
   streak?: number;
+  equippedItem?: string | null;
+  clarityUsedThisBattle?: boolean;
+  onUseClarity?: () => void;
 }
 
-export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned, streak }: QuizInterfaceProps) {
+export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned, streak, equippedItem, clarityUsedThisBattle, onUseClarity }: QuizInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -39,6 +42,21 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
 
   const [activeMove, setActiveMove] = useState<'heavy' | 'normal' | 'defend' | null>(null);
   const [turnMap, setTurnMap] = useState<number[]>([]);
+  const [eliminatedOptionLetters, setEliminatedOptionLetters] = useState<string[]>([]);
+
+  useEffect(() => {
+    setEliminatedOptionLetters([]);
+  }, [currentIndex]);
+
+  const handleUsePipetteOfClarity = () => {
+    if (clarityUsedThisBattle || !onUseClarity || !currentQuestion?.options) return;
+    if (currentQuestion.type === 'TRUE_FALSE' || currentQuestion.type === 'SHORT_ANSWER' || currentQuestion.options.length <= 2) return;
+    const wrongOptions = optionLetters.filter(letter => letter !== currentQuestion.correctAnswer && !eliminatedOptionLetters.includes(letter));
+    if (wrongOptions.length === 0) return;
+    const randomWrong = wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+    setEliminatedOptionLetters(prev => [...prev, randomWrong]);
+    onUseClarity();
+  };
 
   useEffect(() => {
     if (questions && turnMap.length !== questions.length) {
@@ -191,7 +209,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
 
   return (
     <div className="w-full flex flex-col h-full overflow-y-auto pb-20 no-scrollbar">
-      <div className="px-6 pt-6 flex justify-between items-center mb-4">
+      <div className="px-6 pt-6 flex justify-between items-center mb-4 gap-4">
         <div className="flex flex-col">
           {mode !== 'boss-battle' ? (
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -227,6 +245,17 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
              )}
           </div>
         </div>
+
+        {mode === 'boss-battle' && equippedItem === 'pipette_clarity' && !clarityUsedThisBattle && !isAnswered && currentQuestion?.type !== 'TRUE_FALSE' && currentQuestion?.type !== 'SHORT_ANSWER' && (currentQuestion?.options?.length || 0) > 2 && (
+          <Button
+            size="sm"
+            onClick={handleUsePipetteOfClarity}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-[9px] md:text-[10px] uppercase tracking-wider h-8 px-3 rounded-full shadow-lg shadow-purple-500/30 animate-pulse flex items-center gap-1.5 shrink-0 border border-purple-300"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300 animate-spin" style={{ animationDuration: '3s' }} />
+            Pipette Hint (50:50)
+          </Button>
+        )}
       </div>
 
       {mode === 'boss-battle' && !activeMove ? (
@@ -349,6 +378,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
               currentQuestion.options.map((option, idx) => {
                 const letter = optionLetters[idx];
                 const isSelected = selectedAnswer === letter;
+                const isEliminated = eliminatedOptionLetters.includes(letter);
                 
                 // Show correctness indicators
                 const isCorrect = isAnswered && letter === currentQuestion.correctAnswer;
@@ -357,20 +387,22 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                 return (
                   <button
                     key={letter}
-                    disabled={isAnswered || isTransitioning}
+                    disabled={isAnswered || isTransitioning || isEliminated}
                     onClick={() => handleSubmit(letter)}
                     className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm",
-                      !isAnswered && !isTransitioning && "bg-background border-transparent hover:border-primary/20",
+                      "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left shadow-sm relative overflow-hidden",
+                      !isAnswered && !isTransitioning && !isEliminated && "bg-background border-transparent hover:border-primary/20",
                       isCorrect && "bg-green-50 border-green-500 shadow-green-100",
                       isWrong && "bg-red-50 border-red-500 shadow-red-100",
-                      isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale"
+                      isAnswered && !isSelected && !isCorrect && "opacity-50 grayscale",
+                      isEliminated && "opacity-40 grayscale bg-slate-100 border-slate-300 cursor-not-allowed line-through"
                     )}
                   >
                     <div className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-sm transition-all",
                       isCorrect ? "bg-green-500 text-white" : 
                       isWrong ? "bg-red-500 text-white" : 
+                      isEliminated ? "bg-slate-300 text-slate-500" :
                       isSelected ? "bg-primary text-white" : "bg-muted text-primary"
                     )}>
                       {isCorrect ? (
@@ -383,10 +415,16 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                     </div>
                     <span className={cn(
                       "text-sm font-bold flex-1",
+                      isEliminated && "line-through text-slate-400",
                       isCorrect ? "text-green-700" : isWrong ? "text-red-700" : "text-foreground"
                     )}>
                       {option}
                     </span>
+                    {isEliminated && (
+                      <span className="text-[8px] font-black uppercase tracking-wider bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200 shrink-0">
+                        Filtered Out 🧪
+                      </span>
+                    )}
                   </button>
                 );
               })

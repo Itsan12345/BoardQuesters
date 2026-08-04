@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { startOfWeek } from 'date-fns';
 
 export async function getUserStats(): Promise<any> {
@@ -283,5 +284,60 @@ export async function generateDailyMissions() {
   } catch (error) {
     console.error('Failed to generate daily missions:', error);
     return [];
+  }
+}
+
+export async function saveUserInventory(inventory: Record<string, number>, equippedItem: string | null) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+    if (!userId) return { success: false, error: 'Not authenticated' };
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        inventory: JSON.stringify(inventory),
+        equippedItem: equippedItem || 'none'
+      } as any
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save user inventory to DB:', error);
+    return { success: false, error: 'Failed to update inventory' };
+  }
+}
+
+export async function purchaseReagentAction(itemId: string, cost: number, newInventory: Record<string, number>) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+    if (!userId) return { success: false, error: 'Not authenticated' };
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { xp: true }
+    });
+
+    if (!user) return { success: false, error: 'User not found' };
+    if (user.xp < cost) return { success: false, error: 'Insufficient XP' };
+
+    const newXp = user.xp - cost;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        xp: newXp,
+        inventory: JSON.stringify(newInventory)
+      } as any
+    });
+
+    revalidatePath('/quest');
+    revalidatePath('/profile');
+
+    return { success: true, newXp };
+  } catch (error) {
+    console.error('Failed to process reagent purchase on server:', error);
+    return { success: false, error: 'Purchase failed' };
   }
 }

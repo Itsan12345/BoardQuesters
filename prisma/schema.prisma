@@ -165,6 +165,8 @@ model User {
   level     Int      @default(1)
   xp        Int      @default(0)
   streak    Int      @default(0)
+  inventory String?  @default("{}")
+  equippedItem String? @default("none")
   location  String?  @default("Philippines")
   createdAt DateTime @default(now())
 
