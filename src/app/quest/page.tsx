@@ -40,6 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { QuizInterface, Question } from '@/components/quiz/QuizInterface';
+import { ChapterWorldMap } from '@/components/quiz/ChapterWorldMap';
 import { SUBJECT_AREAS, XP_PER_QUESTION } from '@/lib/game-logic';
 import { provideExamFeedback } from '@/ai/flows/provide-exam-feedback';
 import { getQuestQuestions } from '@/app/actions/arena';
@@ -208,8 +209,80 @@ export default function LearningQuest() {
   const [bossDifficulty, setBossDifficulty] = useState<string | null>(null);
   const [userLevel, setUserLevel] = useState<number>(1);
   const [userLastName, setUserLastName] = useState<string>('Aspirant');
-
   const [streak, setStreak] = useState(0);
+
+  // Bookworm Adventures 3-Stage Progression & Chapter Map State
+  interface SubjectNodeConfig {
+    id: string;
+    nodeNumber: number;
+    title: string;
+    subtopic: string;
+    minionName: string;
+    minionIcon: string;
+    miniBossName: string;
+    miniBossIcon: string;
+    bossName: string;
+    bossIcon: string;
+  }
+
+  const [battleStage, setBattleStage] = useState<1 | 2 | 3>(1);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('cc-1');
+  const [showChapterMap, setShowChapterMap] = useState<boolean>(false);
+  const [nodeStars, setNodeStars] = useState<Record<string, number>>({});
+
+  const CHAPTER_NODES_PER_SUBJECT: Record<string, SubjectNodeConfig[]> = {
+    "Clinical Chemistry": [
+      { id: 'cc-1', nodeNumber: 1, title: 'Carbohydrates & Diabetes', subtopic: 'Glucose Metabolism & HbA1c', minionName: 'Acid Slime', minionIcon: '🧪', miniBossName: 'Hyperglycemic Mutant', miniBossIcon: '🧬', bossName: 'Hyperglycemic Specter', bossIcon: '⚗️' },
+      { id: 'cc-2', nodeNumber: 2, title: 'Lipids & Lipoproteins', subtopic: 'Cholesterol, Triglycerides & HDL', minionName: 'Lipid Core', minionIcon: '💧', miniBossName: 'Athero Golem', miniBossIcon: '🪨', bossName: 'Lipoprotein Titan', bossIcon: '🩸' },
+      { id: 'cc-3', nodeNumber: 3, title: 'Enzymology & Cardiac Markers', subtopic: 'CK-MB, Troponin & AST', minionName: 'Kinase Swarm', minionIcon: '⚡', miniBossName: 'Ischemia Fiend', miniBossIcon: '🔥', bossName: 'Myocardial Colossus', bossIcon: '💔' },
+      { id: 'cc-4', nodeNumber: 4, title: 'Electrolytes & Acid-Base', subtopic: 'Sodium, Potassium & Blood pH', minionName: 'Ion Spark', minionIcon: '✨', miniBossName: 'Acidotic Shade', miniBossIcon: '🌪️', bossName: 'Renal Behemoth', bossIcon: '⚡' },
+      { id: 'cc-5', nodeNumber: 5, title: 'Comprehensive Board Challenge', subtopic: 'All Clinical Chemistry Topics', minionName: 'Lab Sentinel', minionIcon: '🛡️', miniBossName: 'Board Examiner Specter', miniBossIcon: '📜', bossName: 'The Licensure Colossus', bossIcon: '👑' },
+    ],
+    "Microbiology": [
+      { id: 'mb-1', nodeNumber: 1, title: 'Bacteriology & Gram Staining', subtopic: 'Gram Positive & Negative Cocci', minionName: 'Microbe Swarm', minionIcon: '🦠', miniBossName: 'Staph Sentinel', miniBossIcon: '🧬', bossName: 'Gram Positive Overlord', bossIcon: '👾' },
+      { id: 'mb-2', nodeNumber: 2, title: 'Mycology & Parasitology', subtopic: 'Fungi, Mold & Protozoa', minionName: 'Spore Cloud', minionIcon: '🍄', miniBossName: 'Amoeba Stalker', miniBossIcon: '🐙', bossName: 'Parasitic Hydra', bossIcon: '🐉' },
+      { id: 'mb-3', nodeNumber: 3, title: 'Virology & Serology', subtopic: 'Viral Replication & Antigens', minionName: 'Virion Particle', minionIcon: '🔮', miniBossName: 'Retrovirus Fiend', miniBossIcon: '💥', bossName: 'Viral Apex Lord', bossIcon: '👑' },
+      { id: 'mb-4', nodeNumber: 4, title: 'Antimicrobial Susceptibility', subtopic: 'MIC & Antibiotic Resistance', minionName: 'Resistant Strain', minionIcon: '💊', miniBossName: 'Superbug Golem', miniBossIcon: '🪨', bossName: 'MRSA Behemoth', bossIcon: '☣️' },
+      { id: 'mb-5', nodeNumber: 5, title: 'Comprehensive Microbiology', subtopic: 'All Microbiology Topics', minionName: 'Culture Sentinel', minionIcon: '🛡️', miniBossName: 'Lab Director Phantom', miniBossIcon: '📜', bossName: 'Pathogen Sovereign', bossIcon: '👑' },
+    ],
+    "Hematology": [
+      { id: 'hem-1', nodeNumber: 1, title: 'RBC Anomalies & Anemias', subtopic: 'Hemoglobin & Microcytic Anemia', minionName: 'Sickle Cell', minionIcon: '🩸', miniBossName: 'Anemia Shade', miniBossIcon: '👻', bossName: 'Erythrocyte Colossus', bossIcon: '👑' },
+      { id: 'hem-2', nodeNumber: 2, title: 'WBC Disorders & Leukemias', subtopic: 'Neutrophils & Acute Leukemia', minionName: 'Blast Cell', minionIcon: '💥', miniBossName: 'Leukemic Fiend', miniBossIcon: '⚡', bossName: 'White Cell Warlord', bossIcon: '🗡️' },
+      { id: 'hem-3', nodeNumber: 3, title: 'Hemostasis & Coagulation', subtopic: 'Platelets, PT & PTT Pathways', minionName: 'Clot Particle', minionIcon: '🧱', miniBossName: 'Thrombus Beast', miniBossIcon: '🐉', bossName: 'Coagulation Overlord', bossIcon: '🛡️' },
+      { id: 'hem-4', nodeNumber: 4, title: 'Bone Marrow Evaluation', subtopic: 'M:E Ratio & Hematopoiesis', minionName: 'Marrow Stem', minionIcon: '🌱', miniBossName: 'Precursor Golem', miniBossIcon: '🪨', bossName: 'Hematopoietic Archon', bossIcon: '✨' },
+      { id: 'hem-5', nodeNumber: 5, title: 'Comprehensive Hematology', subtopic: 'All Hematology Topics', minionName: 'Smear Sentinel', minionIcon: '🔬', miniBossName: 'Hematopathologist Ghost', miniBossIcon: '📜', bossName: 'Heme Sovereign', bossIcon: '👑' },
+    ],
+  };
+
+  const getSubjectNodes = (subject: string): SubjectNodeConfig[] => {
+    return CHAPTER_NODES_PER_SUBJECT[subject] || [
+      { id: `${subject}-1`, nodeNumber: 1, title: `${subject} Foundations`, subtopic: 'Core Diagnostic Principles', minionName: 'Lab Minion', minionIcon: '🧪', miniBossName: 'Diagnostic Spectre', miniBossIcon: '👻', bossName: `${subject} Overlord`, bossIcon: '👑' },
+      { id: `${subject}-2`, nodeNumber: 2, title: `${subject} Advanced Concepts`, subtopic: 'Pathology & Testing Methodologies', minionName: 'Reagent Swarm', minionIcon: '💧', miniBossName: 'Assay Golem', miniBossIcon: '🪨', bossName: `${subject} Titan`, bossIcon: '⚡' },
+      { id: `${subject}-3`, nodeNumber: 3, title: `${subject} Comprehensive Board Exam`, subtopic: 'All Subject Topics Review', minionName: 'Board Sentinel', minionIcon: '🛡️', miniBossName: 'Senior Examiner Specter', miniBossIcon: '📜', bossName: `Master ${subject} Colossus`, bossIcon: '👑' },
+    ];
+  };
+
+  // Helper to calculate Level-Scaled HP for Player and 3-Stage Enemies
+  const calculatePlayerMaxHp = (level: number, hasShield: boolean) => {
+    const base = 100 + (Math.max(1, level) - 1) * 15;
+    return hasShield ? base + 20 : base;
+  };
+
+  const calculateEnemyStageHp = (stage: 1 | 2 | 3, level: number, difficulty: string) => {
+    const baseHp = stage === 1 ? 80 : stage === 2 ? 130 : 220;
+    const modeMul = difficulty === 'EASY' ? 0.85 : difficulty === 'HARD' ? 1.25 : 1.0;
+    return Math.floor(baseHp * (1 + (Math.max(1, level) - 1) * 0.12) * modeMul);
+  };
+
+  // Load Saved Node Stars from localStorage
+  useEffect(() => {
+    try {
+      const savedStars = localStorage.getItem('boardquest_node_stars');
+      if (savedStars) {
+        setNodeStars(JSON.parse(savedStars));
+      }
+    } catch (e) { }
+  }, []);
   const [floatingTexts, setFloatingTexts] = useState<{ id: string, target: 'player' | 'enemy', text: string, color: string }[]>([]);
   const [hitFlash, setHitFlash] = useState(false);
 
@@ -238,10 +311,6 @@ export default function LearningQuest() {
       const savedEquipped = localStorage.getItem('boardquest_equipped_reagent');
       if (savedEquipped !== null) {
         setEquippedItem(savedEquipped === 'none' ? null : savedEquipped);
-      }
-      const savedXp = localStorage.getItem('boardquest_user_xp');
-      if (savedXp) {
-        setUserXp(parseInt(savedXp, 10));
       }
     } catch (e) {
       console.error('Error loading inventory from localStorage:', e);
@@ -600,8 +669,10 @@ export default function LearningQuest() {
         const profile = await getUserProfile();
         if (profile?.level) setUserLevel(profile.level);
         if (profile?.xp !== undefined) {
-          const savedXp = localStorage.getItem('boardquest_user_xp');
-          setUserXp(savedXp ? parseInt(savedXp, 10) : profile.xp);
+          setUserXp(profile.xp);
+          try {
+            localStorage.setItem('boardquest_user_xp', profile.xp.toString());
+          } catch (e) { }
         }
         if (profile?.name) {
           const parts = profile.name.trim().split(/\s+/);
@@ -710,16 +781,8 @@ export default function LearningQuest() {
 
       let bossStartingHp = 100;
       if (quizMode === 'boss-battle') {
-        const diffBase = specificDifficulty === 'EASY' ? 400 : specificDifficulty === 'HARD' ? 800 : 600;
-        const levelScaling = specificDifficulty === 'EASY' ? 5 : specificDifficulty === 'HARD' ? 12 : 8;
-        const calculatedHp = Math.floor(diffBase + (userLevel * levelScaling));
-
-        // Ensure boss is physically beatable with the number of questions available in the DB
-        const playerMul = specificDifficulty === 'EASY' ? 1.5 : specificDifficulty === 'HARD' ? 0.7 : 1;
-        const maxPossibleDamage = selected.length * 25 * playerMul;
-        const safeHpCap = Math.max(100, Math.floor(maxPossibleDamage * 0.8)); // Assumes player needs 80% accuracy using normal attacks to win
-
-        bossStartingHp = Math.min(calculatedHp, safeHpCap);
+        setBattleStage(1);
+        bossStartingHp = calculateEnemyStageHp(1, userLevel, specificDifficulty || 'MEDIUM');
       }
       setEnemyHealth(bossStartingHp);
       setTurnCount(0);
@@ -880,7 +943,32 @@ export default function LearningQuest() {
 
     if (enemyDmg > 0) {
       setIsAnimating("enemy");
-      setEnemyHealth(prev => Math.max(0, prev - enemyDmg));
+      const nextHp = Math.max(0, enemyHealth - enemyDmg);
+      if (quizMode === 'boss-battle' && nextHp <= 0) {
+        if (battleStage === 1) {
+          setBattleStage(2);
+          const stage2Hp = calculateEnemyStageHp(2, userLevel, bossDifficulty || 'MEDIUM');
+          setEnemyHealth(stage2Hp);
+          addFloatingText('enemy', '👾 MINION DEFEATED! 👹 MINI-BOSS ENTERS!', 'text-amber-300');
+          toast({
+            title: "👾 Stage 1 Clear!",
+            description: "You defeated the Lab Minion! Prepare to face the Mini-Boss!",
+          });
+        } else if (battleStage === 2) {
+          setBattleStage(3);
+          const stage3Hp = calculateEnemyStageHp(3, userLevel, bossDifficulty || 'MEDIUM');
+          setEnemyHealth(stage3Hp);
+          addFloatingText('enemy', '👹 MINI-BOSS DEFEATED! 👑 CHAPTER BOSS APPEARS!', 'text-red-400');
+          toast({
+            title: "👹 Stage 2 Clear!",
+            description: "The Mini-Boss has fallen! The Chapter Boss enters the arena!",
+          });
+        } else {
+          setEnemyHealth(0);
+        }
+      } else {
+        setEnemyHealth(nextHp);
+      }
       addFloatingText('enemy', `-${Math.ceil(enemyDmg)} ${action === 'heavy' ? 'CRITICAL HIT!' : 'DMG!'}`, 'text-yellow-400');
     }
 
@@ -1579,42 +1667,58 @@ export default function LearningQuest() {
 
             {/* Health Bars Stacked on Mobile, Floating on Desktop */}
             {/* Enemy */}
-            <div className={cn(
-              "absolute top-14 right-4 md:top-16 md:right-8 transition-all duration-1000 ease-out z-10",
-              (introPhase === 'cutscene' || introPhase === 'hidden') ? 'translate-x-[150%]' : 'translate-x-0',
-              isAnimating === "enemy" && "animate-shake scale-110"
-            )}>
-              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
-                <div className="flex justify-between items-center mb-1 gap-2">
-                  <span className="text-[8px] md:text-[10px] font-black text-white uppercase truncate">{subjectMeta.enemy}</span>
-                  <div className="flex items-center gap-1">
-                    {bossShieldActive && <span className="text-[7px] md:text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Immune to Normal Attacks">SHIELDED</span>}
-                    {quizMode === 'boss-battle' && enemyHealth <= 20 && enemyHealth > 0 ? (
-                      <span className="text-[7px] md:text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Healing every turn!">ENRAGED</span>
-                    ) : quizMode === 'boss-battle' && enemyHealth <= 60 && enemyHealth > 0 ? (
-                      <span className="text-[7px] md:text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-black shrink-0" title="Double damage on player mistakes!">AGGRESSIVE</span>
-                    ) : null}
-                    <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">BOSS</span>
+            {(() => {
+              const activeNodes = getSubjectNodes(selectedSubject);
+              const currentActiveNode = activeNodes.find(n => n.id === selectedNodeId) || activeNodes[0];
+              const activeEnemyName = quizMode === 'boss-battle'
+                ? (battleStage === 1 ? currentActiveNode.minionName : battleStage === 2 ? currentActiveNode.miniBossName : currentActiveNode.bossName)
+                : subjectMeta.enemy;
+              const activeEnemyBadge = quizMode === 'boss-battle'
+                ? (battleStage === 1 ? 'MINION 👾' : battleStage === 2 ? 'MINI-BOSS 👹' : 'BOSS 👑')
+                : 'BOSS';
+              const stageMaxHp = quizMode === 'boss-battle'
+                ? calculateEnemyStageHp(battleStage, userLevel, bossDifficulty || 'MEDIUM')
+                : 100;
+
+              return (
+                <div className={cn(
+                  "absolute top-14 right-4 md:top-16 md:right-8 transition-all duration-1000 ease-out z-10",
+                  (introPhase === 'cutscene' || introPhase === 'hidden') ? 'translate-x-[150%]' : 'translate-x-0',
+                  isAnimating === "enemy" && "animate-shake scale-110"
+                )}>
+                  <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 md:p-3 rounded-lg shadow-2xl min-w-[120px] md:min-w-[160px]">
+                    <div className="flex justify-between items-center mb-1 gap-2">
+                      <span className="text-[8px] md:text-[10px] font-black text-white uppercase truncate">{activeEnemyName}</span>
+                      <div className="flex items-center gap-1">
+                        {bossShieldActive && <span className="text-[7px] md:text-[8px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Immune to Normal Attacks">SHIELDED</span>}
+                        {quizMode === 'boss-battle' && enemyHealth <= 20 && enemyHealth > 0 ? (
+                          <span className="text-[7px] md:text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black shrink-0 animate-pulse" title="Healing every turn!">ENRAGED</span>
+                        ) : quizMode === 'boss-battle' && enemyHealth <= 60 && enemyHealth > 0 ? (
+                          <span className="text-[7px] md:text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-black shrink-0" title="Double damage on player mistakes!">AGGRESSIVE</span>
+                        ) : null}
+                        <span className="text-[7px] md:text-[8px] bg-primary text-white px-1.5 py-0.5 rounded font-black shrink-0">{activeEnemyBadge}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mb-0.5 px-0.5 mt-0.5">
+                      <span className="text-[6px] md:text-[8px] font-bold text-white/70 tracking-widest uppercase">HP</span>
+                      <span className="text-[7.5px] md:text-[9.5px] font-black text-white">{Math.ceil(enemyHealth)} / {stageMaxHp}</span>
+                    </div>
+                    <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
+                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / stageMaxHp) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex justify-end pr-2 md:pr-4 mt-2 relative">
+                    <EnemyIcon className="w-12 h-12 md:w-20 md:h-20 text-white drop-shadow-glow" />
+                    {/* Enemy Floating Text */}
+                    {floatingTexts.filter(ft => ft.target === 'enemy').map(ft => (
+                      <div key={ft.id} className={cn("absolute -top-4 right-10 font-bytebounce text-2xl md:text-3xl animate-float-up pointer-events-none z-50 whitespace-nowrap", ft.color)} style={{ textShadow: '2px 2px 0 #000' }}>
+                        {ft.text}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="flex justify-between items-center mb-0.5 px-0.5 mt-0.5">
-                  <span className="text-[6px] md:text-[8px] font-bold text-white/70 tracking-widest uppercase">HP</span>
-                  <span className="text-[7.5px] md:text-[9.5px] font-black text-white">{Math.ceil(enemyHealth)} / {maxEnemyHp}</span>
-                </div>
-                <div className="h-1.5 md:h-2 w-full bg-background/10 rounded-full overflow-hidden border border-white/10">
-                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${Math.min(100, (enemyHealth / maxEnemyHp) * 100)}%` }} />
-                </div>
-              </div>
-              <div className="flex justify-end pr-2 md:pr-4 mt-2 relative">
-                <EnemyIcon className="w-12 h-12 md:w-20 md:h-20 text-white drop-shadow-glow" />
-                {/* Enemy Floating Text */}
-                {floatingTexts.filter(ft => ft.target === 'enemy').map(ft => (
-                  <div key={ft.id} className={cn("absolute -top-4 right-10 font-bytebounce text-2xl md:text-3xl animate-float-up pointer-events-none z-50 whitespace-nowrap", ft.color)} style={{ textShadow: '2px 2px 0 #000' }}>
-                    {ft.text}
-                  </div>
-                ))}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Player */}
             <div className={cn(
@@ -1673,6 +1777,7 @@ export default function LearningQuest() {
               onRequestExplanation={handleRequestExplanation}
               isLoading={isLoading}
               mode={quizMode}
+              battleStage={battleStage}
               bossShieldActive={bossShieldActive}
               playerPoisoned={playerPoisoned}
               streak={streak}
@@ -1828,7 +1933,15 @@ export default function LearningQuest() {
           <DialogTitle className="sr-only">Select a session mode</DialogTitle>
           <div className="relative w-[800px] max-w-full aspect-[4/3] flex items-center justify-center overflow-hidden">
             <Image
-              src="/ui/modal-bg.png"
+              src={
+                setupStep === 'details'
+                  ? quizMode === 'learning'
+                    ? "/ui/LearningMode_OverviewModal.png"
+                    : quizMode === 'test'
+                      ? "/ui/TestMode_OverviewModal.png"
+                      : "/ui/BossBattleMode_OverviewModal.png"
+                  : "/ui/modal-bg.png"
+              }
               alt="Select Mode Background"
               fill
               className="object-contain"
@@ -1888,7 +2001,11 @@ export default function LearningQuest() {
 
                     {/* Boss Battle Button */}
                     <button
-                      onClick={() => { setQuizMode('boss-battle'); setSetupStep('details'); setMobileModalStep('info'); }}
+                      onClick={() => {
+                        setQuizMode('boss-battle');
+                        setModeSelectDialogOpen(false);
+                        setShowChapterMap(true);
+                      }}
                       className="relative flex-1 h-full max-h-[80%] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
                     >
                       <Image src="/ui/btn-boss.png" alt="Boss Battle" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
@@ -1903,40 +2020,37 @@ export default function LearningQuest() {
                     </button>
                   </>
                 ) : setupStep === 'details' ? (
-                  <div className="flex flex-col w-full h-full bg-black/60 rounded-xl p-2 min-[375px]:p-3 md:p-6 overflow-hidden no-scrollbar border border-white/10 shadow-2xl backdrop-blur-sm animate-in fade-in zoom-in-95 relative">
+                  <div className="flex flex-col w-full h-full p-1 min-[375px]:p-2 md:p-6 overflow-hidden no-scrollbar animate-in fade-in zoom-in-95 relative justify-between">
 
                     {/* INFO SECTION */}
-                    <div className={cn("flex-1 flex flex-col relative", mobileModalStep === 'action' ? "hidden md:flex" : "flex")}>
+                    <div className={cn("flex-1 flex flex-col justify-center md:justify-end relative md:pt-2", mobileModalStep === 'action' ? "hidden md:flex" : "flex")}>
                       {quizMode === 'learning' && (
-                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
-                          <div className="text-center space-y-0.5 sm:space-y-1">
-                            <h3 className="font-bytebounce text-primary text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Intel Gathering</h3>
-                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                        <div className="flex-1 flex flex-col space-y-2 min-[375px]:space-y-3 md:space-y-3.5 overflow-hidden justify-center md:justify-end items-center">
+                          <div className="text-center space-y-0.5">
+                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-sm md:text-md max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed" style={{ textShadow: '1px 1px 0 #000' }}>
                               Hone your skills in a low-pressure environment. The AI Tutor provides immediate rationale after every answer. Master the basics before facing the real challenge.
                             </p>
                           </div>
-                          <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-4 max-w-2xl mx-auto w-full">
-                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                              <Zap className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-yellow-400 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Immediate Feedback</p>
+
+                          {/* 3 PNG Banners for Learning Mode */}
+                          <div className="flex flex-row justify-center items-center gap-1.5 min-[375px]:gap-2.5 md:gap-1 w-full px-1 min-[375px]:px-2 md:px-4">
+                            <div className="relative flex-1 h-12 min-[375px]:h-14 sm:h-20 md:h-24 transition-transform">
+                              <Image src="/ui/IMMIEDIATEFEEDBACK_BANNER.png" alt="Immediate Feedback" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
                             </div>
-                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                              <BrainCircuit className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-blue-400 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">AI Tutor Analysis</p>
+                            <div className="relative flex-1 h-12 min-[375px]:h-14 sm:h-20 md:h-24 transition-transform">
+                              <Image src="/ui/AITUTORANALYSIS_BANNER.png" alt="AI Tutor Analysis" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
                             </div>
-                            <div className="bg-white/5 border border-white/10 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5 sm:gap-2">
-                              <Target className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-6 md:h-6 text-green-400 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-bold text-white tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Precision Training</p>
+                            <div className="relative flex-1 h-12 min-[375px]:h-14 sm:h-20 md:h-24 transition-transform">
+                              <Image src="/ui/PRECISIONTRAINING_BANNER.png" alt="Precision Training" fill className="object-contain" style={{ imageRendering: 'pixelated' }} unoptimized />
                             </div>
                           </div>
                         </div>
                       )}
 
                       {quizMode === 'test' && (
-                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden">
+                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-5 overflow-hidden justify-center items-center">
                           <div className="text-center space-y-0.5 sm:space-y-1">
-                            <h3 className="font-bytebounce text-destructive text-3xl md:text-5xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Combat Simulation</h3>
-                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
+                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs md:text-sm max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed" style={{ textShadow: '1px 1px 0 #000' }}>
                               A grueling test of endurance. No immediate feedback, no second chances. Only your final score matters.
                             </p>
                           </div>
@@ -1957,40 +2071,13 @@ export default function LearningQuest() {
                         </div>
                       )}
 
-                      {quizMode === 'boss-battle' && (
-                        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2 md:space-y-4 overflow-hidden">
-                          <div className="text-center space-y-0.5 sm:space-y-2">
-                            <h3 className="font-bytebounce text-purple-400 text-3xl md:text-4xl tracking-wide" style={{ textShadow: '2px 2px 0 #000' }}>Ultimate Challenge</h3>
-                            <p className="text-white/90 text-[9px] min-[375px]:text-[11px] sm:text-xs max-w-lg mx-auto font-bold leading-tight min-[375px]:leading-snug sm:leading-relaxed">
-                              Face off against the ultimate exam boss in a turn-based RPG battle! Answer correctly to deal damage, but beware of the boss's deadly mechanics. Do you have what it takes to survive?
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-3 min-[375px]:flex min-[375px]:flex-row min-[375px]:flex-wrap min-[375px]:justify-center sm:grid sm:grid-cols-3 gap-1 min-[375px]:gap-1.5 md:gap-3 max-w-2xl mx-auto w-full">
-                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                              <ShieldAlert className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-blue-400 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-blue-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Shield Phase</p>
-                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">Boss casts a shield every 4 turns. Only 'Heavy Attacks' can break it.</p>
-                            </div>
-                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                              <Biohazard className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-green-400 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-green-300 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Poison</p>
-                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">25% chance to be poisoned on a wrong answer. Use 'Defend' to cure it.</p>
-                            </div>
-                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-full sm:rounded-xl px-1 min-[375px]:px-2.5 py-1 sm:p-3 flex items-center sm:flex-col justify-center text-center gap-0.5 min-[375px]:gap-1.5">
-                              <Flame className="w-2.5 h-2.5 min-[375px]:w-3.5 min-[375px]:h-3.5 md:w-5 md:h-5 text-red-500 shrink-0" />
-                              <p className="text-[5.5px] min-[375px]:text-[8px] md:text-[10px] uppercase font-black text-red-400 tracking-tighter min-[375px]:tracking-wider whitespace-nowrap">Enrage</p>
-                              <p className="hidden sm:block text-[9px] text-white/70 leading-tight">When the boss drops below 20% HP, it heals every turn. Finish it quickly!</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Mobile Back to Modes */}
                       {mobileModalStep === 'info' && (
-                        <div className="md:hidden mt-auto pt-2 pb-1 w-full flex justify-center">
+                        <div className="md:hidden mt-auto pt-1 pb-0.5 w-full flex justify-center">
                           <button
                             onClick={() => setSetupStep('mode')}
-                            className="text-white/50 hover:text-white font-bytebounce text-xs min-[375px]:text-sm uppercase tracking-widest transition-colors"
+                            className="text-white/70 hover:text-white font-bytebounce text-[10px] min-[375px]:text-xs uppercase tracking-widest transition-colors"
+                            style={{ textShadow: '1px 1px 0 #000' }}
                           >
                             &larr; Back to Modes
                           </button>
@@ -2009,40 +2096,52 @@ export default function LearningQuest() {
                     </div>
 
                     {/* ACTION SECTION */}
-                    <div className={cn("mt-auto pt-2 md:pt-6 w-full max-w-2xl mx-auto border-t md:border-white/10 flex-col items-center gap-2 md:gap-4 shrink-0 relative", mobileModalStep === 'info' ? "hidden md:flex" : "flex", mobileModalStep === 'action' ? "border-transparent h-full justify-center" : "border-white/10")}>
+                    <div className={cn("mt-auto pt-1 md:pt-4 w-full max-w-2xl mx-auto flex-col items-center gap-1 md:gap-3 shrink-0 relative", mobileModalStep === 'info' ? "hidden md:flex" : "flex", mobileModalStep === 'action' ? "border-transparent h-full justify-center" : "")}>
                       {/* Mobile Back Arrow */}
                       {mobileModalStep === 'action' && (
                         <button
                           onClick={() => setMobileModalStep('info')}
-                          className="md:hidden absolute left-1 bottom-1 bg-white/10 hover:bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/20 z-10"
+                          className="md:hidden absolute left-1 bottom-1 bg-white/10 hover:bg-white/20 p-1 rounded-full backdrop-blur-md border border-white/20 z-10"
                         >
-                          <ChevronLeft className="w-4 h-4 text-white" />
+                          <ChevronLeft className="w-3.5 h-3.5 text-white" />
                         </button>
                       )}
                       {quizMode !== 'boss-battle' ? (
                         <>
-                          <h4 className="font-bytebounce text-white/80 text-xl tracking-widest">Select Question Limit</h4>
-                          <div className="flex flex-wrap justify-center gap-1.5 md:gap-3 w-full">
-                            {quizMode === 'learning' ? (
-                              [10, 20, 30, 40, 50].map((num) => (
-                                <Button key={num} onClick={() => startQuest(num)} className="h-8 md:h-12 text-xs md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-primary hover:bg-primary/90 hover:-translate-y-0.5 transition-transform flex-1 min-w-[100px]">
-                                  {num} Questions
-                                </Button>
-                              ))
-                            ) : (
-                              <>
-                                <Button onClick={() => startQuest(20)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-0.5 transition-transform">
-                                  Quick (20)
-                                </Button>
-                                <Button onClick={() => startQuest(50)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-0.5 transition-transform">
-                                  Standard (50)
-                                </Button>
-                                <Button onClick={() => startQuest(100)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-0.5 transition-transform">
-                                  Full (100)
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                          <div className="w-full border-t border-white/20 my-1 md:my-1" />
+                          <h4 className="font-bytebounce text-white/90 text-sm min-[375px]:text-base md:text-xl tracking-widest text-center" style={{ textShadow: '1px 1px 0 #000' }}>Select Question Limit</h4>
+                          {quizMode === 'learning' ? (
+                            <div className="flex flex-wrap justify-center items-center gap-1 min-[375px]:gap-1.5 md:gap-3 w-full">
+                              {[10, 20, 30, 40, 50].map((num) => (
+                                <button
+                                  key={num}
+                                  onClick={() => startQuest(num)}
+                                  className="relative flex-1 min-w-[42px] min-[375px]:min-w-[54px] md:min-w-[100px] max-w-[65px] min-[375px]:max-w-[85px] md:max-w-[130px] aspect-[2.6/1] group hover:scale-105 active:scale-95 hover:brightness-110 transition-all cursor-pointer"
+                                >
+                                  <Image
+                                    src={`/ui/${num}QUESTIONS-btn.png`}
+                                    alt={`${num} Questions`}
+                                    fill
+                                    className="object-contain"
+                                    style={{ imageRendering: 'pixelated' }}
+                                    unoptimized
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap justify-center gap-1.5 md:gap-3 w-full">
+                              <Button onClick={() => startQuest(20)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-green-500 hover:bg-green-600 hover:-translate-y-0.5 transition-transform">
+                                Quick (20)
+                              </Button>
+                              <Button onClick={() => startQuest(50)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-0.5 transition-transform">
+                                Standard (50)
+                              </Button>
+                              <Button onClick={() => startQuest(100)} className="flex-1 min-w-[100px] h-10 md:h-12 text-sm md:text-lg font-bytebounce border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-red-500 hover:bg-red-600 hover:-translate-y-0.5 transition-transform">
+                                Full (100)
+                              </Button>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <>
@@ -2070,6 +2169,26 @@ export default function LearningQuest() {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chapter World Map Dialog */}
+      <Dialog open={showChapterMap && !isStarted && !isFinished} onOpenChange={setShowChapterMap}>
+        <DialogContent container={fullscreenRef.current} className="w-screen h-screen max-w-none max-h-none border-none rounded-none p-0 bg-[#160d08] flex flex-col overflow-hidden z-50">
+          <DialogTitle className="sr-only">Chapter Overworld Map</DialogTitle>
+          <ChapterWorldMap
+            selectedSubject={selectedSubject}
+            subjectNodes={getSubjectNodes(selectedSubject)}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+            onLaunchExpedition={(nodeId, difficulty) => {
+              setSelectedNodeId(nodeId);
+              setShowChapterMap(false);
+              startQuest(999, difficulty);
+            }}
+            onClose={() => setShowChapterMap(false)}
+            nodeStars={nodeStars}
+          />
         </DialogContent>
       </Dialog>
       {inventoryDialogJSX}

@@ -24,6 +24,7 @@ interface QuizInterfaceProps {
   onRequestExplanation?: (index: number) => void;
   isLoading: boolean;
   mode: 'learning' | 'test' | 'boss-battle';
+  battleStage?: 1 | 2 | 3;
   bossShieldActive?: boolean;
   playerPoisoned?: boolean;
   streak?: number;
@@ -32,7 +33,7 @@ interface QuizInterfaceProps {
   onUseClarity?: () => void;
 }
 
-export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, bossShieldActive, playerPoisoned, streak, equippedItem, clarityUsedThisBattle, onUseClarity }: QuizInterfaceProps) {
+export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanation, isLoading, mode, battleStage = 1, bossShieldActive, playerPoisoned, streak, equippedItem, clarityUsedThisBattle, onUseClarity }: QuizInterfaceProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -225,6 +226,17 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
                {mode === 'learning' ? <BrainCircuit className="w-2 h-2 mr-1" /> : mode === 'boss-battle' ? <Swords className="w-2 h-2 mr-1" /> : <Shield className="w-2 h-2 mr-1" />}
                {mode === 'learning' ? 'Learning Mode' : mode === 'boss-battle' ? 'Boss Battle Mode' : 'Test Mode'}
              </Badge>
+             {mode === 'boss-battle' && (
+               <Badge className={cn(
+                 "h-4 text-[8px] uppercase font-mono tracking-wider font-bold px-2 rounded-full border shadow-xs flex items-center gap-1",
+                 battleStage === 1 ? "bg-amber-500/15 text-amber-600 border-amber-500/40" :
+                 battleStage === 2 ? "bg-purple-500/15 text-purple-600 border-purple-500/40" :
+                 "bg-red-500/15 text-red-600 border-red-500/40 animate-pulse"
+               )}>
+                 <span>{battleStage === 1 ? '👾' : battleStage === 2 ? '👹' : '👑'}</span>
+                 <span>STAGE {battleStage} / 3</span>
+               </Badge>
+             )}
              {mode === 'learning' && (
                <Badge variant="default" className={cn(
                  "h-4 text-[8px] uppercase tracking-tighter",
@@ -259,7 +271,7 @@ export function QuizInterface({ questions, onFinish, onAnswer, onRequestExplanat
       </div>
 
       {mode === 'boss-battle' && !activeMove ? (
-        <div className="flex flex-col items-center justify-center py-12 space-y-8 animate-in fade-in duration-500 w-full">
+        <div className="flex flex-col items-center justify-center py-8 space-y-8 animate-in fade-in duration-500 w-full">
           <div className="text-center space-y-2 px-6">
             <h2 className="text-2xl md:text-3xl font-black font-headline text-foreground">Choose Your Move</h2>
             <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Select an action for the next turn</p>

@@ -7,10 +7,15 @@ type RateLimitInfo = {
 };
 const rateLimitMap = new Map<string, RateLimitInfo>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
-const MAX_REQUESTS = 60; // Max 60 requests per minute per IP
+const MAX_REQUESTS = 180; // Max 180 requests per minute per IP
 
 function applyRateLimit(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  // Disable rate limiting during local development to avoid HMR / Dev polling limit
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || '127.0.0.1';
   const now = Date.now();
 
   // Prune map to prevent memory leak in long running isolates
